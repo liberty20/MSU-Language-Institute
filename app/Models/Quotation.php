@@ -10,20 +10,13 @@ class Quotation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'reference_number',
-        'service_request_id',
-        'prepared_by',
-        'amount',
-        'currency',
-        'description',
-        'valid_until',
-        'status',
-        'notes',
+        'reference_number', 'service_request_id', 'prepared_by',
+        'description', 'amount', 'currency', 'valid_until', 'status', 'notes',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
-        'amount' => 'decimal:2',
+        'amount'      => 'decimal:2',
     ];
 
     protected static function boot()
@@ -44,10 +37,5 @@ class Quotation extends Model
     public function preparedBy()
     {
         return $this->belongsTo(User::class, 'prepared_by');
-    }
-
-    public function approvals()
-    {
-        return $this->morphMany(Approval::class, 'approvable');
     }
 }

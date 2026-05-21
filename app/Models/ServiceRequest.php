@@ -4,35 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ServiceRequest extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
-        'reference_number',
-        'client_id',
-        'service_category',
-        'title',
-        'description',
-        'source_language',
-        'target_language',
-        'priority',
-        'status',
-        'deadline',
-        'submitted_by',
-        'assigned_to',
-        'estimated_hours',
-        'actual_hours',
-        'completed_at',
+        'reference_number', 'client_id', 'service_category', 'title',
+        'description', 'source_language', 'target_language', 'priority',
+        'status', 'submitted_by', 'assigned_to', 'deadline', 'notes',
     ];
 
     protected $casts = [
         'deadline' => 'date',
-        'completed_at' => 'datetime',
-        'estimated_hours' => 'decimal:2',
-        'actual_hours' => 'decimal:2',
     ];
 
     protected static function boot()
@@ -68,5 +52,10 @@ class ServiceRequest extends Model
     public function assignments()
     {
         return $this->hasMany(Assignment::class);
+    }
+
+    public function getServiceLabelAttribute()
+    {
+        return ucwords(str_replace('_', ' ', $this->service_category));
     }
 }

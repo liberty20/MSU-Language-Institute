@@ -17,7 +17,7 @@ class CreateQuotationsTable extends Migration
             $table->string('currency', 10)->default('USD');
             $table->text('description');
             $table->date('valid_until')->nullable();
-            $table->enum('status', ['draft', 'pending_approval', 'approved', 'rejected', 'expired'])->default('draft');
+            $table->enum('status', ['draft', 'submitted', 'pending_approval', 'approved', 'rejected', 'expired'])->default('draft');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

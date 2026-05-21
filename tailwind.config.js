@@ -11,8 +11,17 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Nunito', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                brand: {
+                    blue: '#0a1f44',
+                    'blue-light': '#1c355d',
+                    'blue-mid': '#152a4d',
+                    gold: '#f5c242',
+                    'gold-dark': '#d4a017',
+                }
+            }
         },
     },
 

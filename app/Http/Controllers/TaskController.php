@@ -3,84 +3,89 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\Assignment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Task::with(['assignedToUser', 'serviceRequest']);
+        $query = Task::with(['assignment.serviceRequest', 'assignment.assignedTo']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-
-        // Language experts should only see their own tasks
-        if (Auth::user()->hasRole('language_expert') || Auth::user()->hasRole('part_time_staff')) {
-            $query->where('assigned_to', Auth::id());
-        }
-
-        $tasks = $query->orderBy('deadline', 'asc')->paginate(10);
-
-        if ($request->wantsJson()) {
-            return response()->json($tasks);
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
         }
 
         return Inertia::render('Tasks/Index', [
-            'tasks' => $tasks
+            'tasks'   => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'filters' => $request->only(['status', 'priority']),
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Tasks/Create', [
+            'assignments' => Assignment::with(['serviceRequest.client', 'assignedTo'])
+                ->whereIn('status', ['assigned', 'accepted', 'in_progress'])->get(),
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'service_request_id' => 'required|exists:service_requests,id',
-            'assigned_to' => 'required|exists:users,id',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'priority' => 'required|in:low,medium,high,urgent',
-            'status' => 'required|in:pending,in_progress,review,completed,overdue',
-            'deadline' => 'required|date',
-            'estimated_hours' => 'nullable|numeric|min:0',
+            'assignment_id' => 'required|exists:assignments,id',
+            'title'         => 'required|string|max:255',
+            'description'   => 'nullable|string',
+            'priority'      => 'required|in:low,medium,high',
+            'due_date'      => 'nullable|date',
         ]);
 
-        $task = Task::create($validated);
+        $validated['status'] = 'todo';
 
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Task assigned successfully', 'data' => $task], 201);
-        }
+        Task::create($validated);
 
-        return back()->with('success', 'Task assigned successfully.');
+        return redirect()->route('tasks.index')->with('success', 'Task created successfully.');
     }
 
     public function show(Task $task)
     {
-        $task->load(['assignedToUser', 'serviceRequest.client']);
+        $task->load(['assignment.serviceRequest', 'assignment.assignedTo']);
+        return Inertia::render('Tasks/Show', ['task' => $task]);
+    }
 
-        if (request()->wantsJson()) {
-            return response()->json($task);
-        }
-
-        return Inertia::render('Tasks/Show', [
-            'task' => $task
+    public function edit(Task $task)
+    {
+        return Inertia::render('Tasks/Edit', [
+            'task'        => $task,
+            'assignments' => Assignment::with(['serviceRequest.client', 'assignedTo'])->get(),
         ]);
     }
 
     public function update(Request $request, Task $task)
     {
         $validated = $request->validate([
-            'status' => 'sometimes|in:pending,in_progress,review,completed,overdue',
-            'actual_hours' => 'sometimes|numeric|min:0',
+            'status'   => 'sometimes|in:todo,in_progress,review,completed',
+            'priority' => 'sometimes|in:low,medium,high',
+            'due_date' => 'sometimes|nullable|date',
+            'title'    => 'sometimes|string|max:255',
         ]);
+
+        if (isset($validated['status']) && $validated['status'] === 'completed') {
+            $validated['completed_at'] = now();
+        }
 
         $task->update($validated);
 
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Task updated', 'data' => $task]);
-        }
+        return redirect()->back()->with('success', 'Task updated.');
+    }
 
-        return back()->with('success', 'Task updated successfully.');
+    public function destroy(Task $task)
+    {
+        $task->delete();
+        return redirect()->route('tasks.index')->with('success', 'Task deleted.');
     }
 }

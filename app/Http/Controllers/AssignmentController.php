@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Assignment;
+use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -11,24 +13,26 @@ class AssignmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Assignment::with(['serviceRequest', 'user']);
+        $query = Assignment::with(['serviceRequest.client', 'assignedTo', 'assignedBy']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if (Auth::user()->hasRole('part_time_staff') || Auth::user()->hasRole('language_expert')) {
-            $query->where('user_id', Auth::id());
-        }
-
-        $assignments = $query->orderBy('created_at', 'desc')->paginate(10);
-
-        if ($request->wantsJson()) {
-            return response()->json($assignments);
-        }
-
         return Inertia::render('Assignments/Index', [
-            'assignments' => $assignments
+            'assignments' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'filters'     => $request->only(['status']),
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Assignments/Create', [
+            'serviceRequests' => ServiceRequest::with('client')
+                ->whereNotIn('status', ['completed', 'cancelled'])->get(),
+            'staff' => User::whereHas('roles', fn($q) =>
+                $q->whereIn('name', ['language_expert', 'part_time_staff', 'secretary'])
+            )->orderBy('name')->get(['id', 'name', 'email']),
         ]);
     }
 
@@ -36,48 +40,57 @@ class AssignmentController extends Controller
     {
         $validated = $request->validate([
             'service_request_id' => 'required|exists:service_requests,id',
-            'user_id' => 'required|exists:users,id',
-            'role_type' => 'required|in:translator,editor,braillist,consultant,sign_language_interpreter',
-            'agreed_fee' => 'nullable|numeric|min:0',
+            'assigned_to'        => 'required|exists:users,id',
+            'role_in_task'       => 'nullable|string|max:100',
+            'notes'              => 'nullable|string',
         ]);
 
-        $validated['status'] = 'pending';
+        $validated['assigned_by'] = Auth::id();
+        $validated['status']      = 'assigned';
 
-        $assignment = Assignment::create($validated);
+        Assignment::create($validated);
 
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Assignment created', 'data' => $assignment], 201);
-        }
-
-        return back()->with('success', 'Staff assigned to request successfully.');
+        return redirect()->route('assignments.index')->with('success', 'Assignment created successfully.');
     }
 
     public function show(Assignment $assignment)
     {
-        $assignment->load(['serviceRequest.client', 'user']);
+        $assignment->load(['serviceRequest.client', 'assignedTo', 'assignedBy', 'tasks']);
+        return Inertia::render('Assignments/Show', ['assignment' => $assignment]);
+    }
 
-        if (request()->wantsJson()) {
-            return response()->json($assignment);
-        }
-
-        return Inertia::render('Assignments/Show', [
-            'assignment' => $assignment
+    public function edit(Assignment $assignment)
+    {
+        return Inertia::render('Assignments/Edit', [
+            'assignment'      => $assignment,
+            'serviceRequests' => ServiceRequest::with('client')->get(),
+            'staff'           => User::orderBy('name')->get(['id', 'name', 'email']),
         ]);
     }
 
     public function update(Request $request, Assignment $assignment)
     {
         $validated = $request->validate([
-            'status' => 'sometimes|in:pending,accepted,rejected,in_progress,completed',
-            'feedback' => 'nullable|string',
+            'status'       => 'sometimes|in:assigned,accepted,in_progress,completed,reassigned',
+            'role_in_task' => 'sometimes|nullable|string|max:100',
+            'notes'        => 'nullable|string',
         ]);
+
+        if (isset($validated['status']) && $validated['status'] === 'in_progress' && !$assignment->started_at) {
+            $validated['started_at'] = now();
+        }
+        if (isset($validated['status']) && $validated['status'] === 'completed') {
+            $validated['completed_at'] = now();
+        }
 
         $assignment->update($validated);
 
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Assignment updated', 'data' => $assignment]);
-        }
+        return redirect()->back()->with('success', 'Assignment updated.');
+    }
 
-        return back()->with('success', 'Assignment updated.');
+    public function destroy(Assignment $assignment)
+    {
+        $assignment->delete();
+        return redirect()->route('assignments.index')->with('success', 'Assignment deleted.');
     }
 }

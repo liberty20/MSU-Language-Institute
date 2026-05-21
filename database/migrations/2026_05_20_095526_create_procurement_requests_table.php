@@ -12,7 +12,7 @@ class CreateProcurementRequestsTable extends Migration
             $table->id();
             $table->string('reference_number', 50)->unique();
             $table->foreignId('requested_by')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('department_id')->constrained('departments')->cascadeOnDelete();
+            $table->foreignId('department_id')->nullable()->constrained('departments')->cascadeOnDelete();
             $table->string('title');
             $table->text('description');
             $table->decimal('estimated_cost', 12, 2)->nullable();

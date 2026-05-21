@@ -1,74 +1,311 @@
 <template>
     <Head title="Welcome to MSUNLI" />
-    
-    <div class="min-h-screen bg-gray-50 flex flex-col">
-        <!-- Header -->
-        <header class="bg-[#0a1f44] shadow-lg">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
-                <div class="flex items-center">
-                    <h1 class="text-3xl font-extrabold tracking-tight text-[#f5c242]">MSUNLI</h1>
+    <div class="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-brand-gold selection:text-brand-blue flex flex-col">
+        
+        <!-- Navigation -->
+        <nav class="fixed w-full z-50 transition-all duration-300 bg-[#0a1f44] shadow-lg" :class="{ 'py-4': scrolled, 'py-6': !scrolled }">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <img src="/msu-logo-2.png" alt="MSU Logo" class="h-14 w-auto bg-white p-1 rounded-lg shadow-sm" />
+                    <div>
+                        <h1 class="text-xl font-black text-white tracking-wide">MSUNLI</h1>
+                        <p class="text-[0.65rem] text-[#f5c242] uppercase tracking-widest font-bold">Midlands State University</p>
+                        <p class="text-[0.65rem] text-gray-300 uppercase tracking-widest">National Language Institute</p>
+                    </div>
                 </div>
-                <div v-if="canLogin" class="flex gap-4">
-                    <Link v-if="$page.props.auth.user" :href="route('dashboard')" class="text-sm font-semibold text-white hover:text-[#f5c242] transition-colors">
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#services" @click.prevent="toggleServices" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Services</a>
+                    <button @click="showAbout = true" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
+                    
+                    <Link v-if="$page.props.auth.user" :href="route('dashboard')" 
+                          class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow-lg transform hover:-translate-y-0.5 text-sm">
                         Go to Dashboard
                     </Link>
-                    <template v-else>
-                        <Link :href="route('login')" class="text-sm font-semibold text-white hover:text-[#f5c242] transition-colors">
-                            Log in
-                        </Link>
-                        <Link v-if="canRegister" :href="route('register')" class="text-sm font-semibold bg-[#f5c242] text-[#0a1f44] px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors shadow-md">
-                            Register
-                        </Link>
-                    </template>
+                    <Link v-else :href="route('login')" 
+                          class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow-lg transform hover:-translate-y-0.5 text-sm">
+                        Portal Login
+                    </Link>
                 </div>
             </div>
-        </header>
+        </nav>
 
         <!-- Hero Section -->
-        <main class="flex-grow flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            <div class="absolute inset-0 z-0 opacity-10">
-                <svg width="100%" height="100%" xmlns="http://www.w300.org/2000/svg">
-                    <defs>
-                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0a1f44" stroke-width="1"/>
-                        </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-            </div>
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#0a1f44] bg-cover bg-center" style="background-image: url('/msuli-build.jpg');">
+            <!-- Overlay -->
+            <div class="absolute inset-0 bg-[#0a1f44]/80 z-0"></div>
             
-            <div class="z-10 max-w-4xl text-center space-y-8">
-                <h2 class="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight">
-                    Midlands State University <br/>
-                    <span class="text-[#0a1f44]">National Language Institute</span>
-                </h2>
-                <p class="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                    A centralized digital platform automating language services, client interactions, procurement, and workflow management with rich, modern aesthetics.
-                </p>
-                <div class="flex justify-center gap-6 pt-4">
-                    <Link v-if="!$page.props.auth.user" :href="route('login')" class="bg-[#0a1f44] text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl hover:bg-[#152a4d] hover:-translate-y-1 transition-all">
-                        Access Portal
-                    </Link>
-                    <a href="#services" class="bg-white text-[#0a1f44] border-2 border-[#0a1f44] px-8 py-4 rounded-xl text-lg font-bold shadow-sm hover:bg-gray-50 transition-all">
-                        Our Services
-                    </a>
+            <!-- Decorative Elements -->
+            <div class="absolute inset-0 w-full h-full z-0 pointer-events-none">
+                <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#0c2859] to-transparent"></div>
+                <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-[#f5c242] opacity-10 blur-3xl"></div>
+                <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-gray-50 to-transparent"></div>
+            </div>
+
+            <div class="relative max-w-7xl mx-auto px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-center gap-12">
+                <div class="text-center z-10 max-w-4xl">
+                    <span class="inline-block py-1.5 px-4 rounded-full bg-white/10 text-[#f5c242] text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm border border-white/10">
+                        Bridging Language Barriers
+                    </span>
+                    <h2 class="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] mb-6">
+                        Official Language <br/>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#f5c242] to-yellow-200">Solutions Hub</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+                        Seamlessly manage your language service requests. From certified translations to brailling and sign language interpretations, Midlands State University National Language Institute delivers excellence.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Link :href="route('login')" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-8 py-4 rounded-full transition shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                            Request a Service
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </Link>
+                        <a href="#services" @click.prevent="toggleServices" class="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-8 py-4 rounded-full transition backdrop-blur-sm flex items-center justify-center cursor-pointer">
+                            Explore Services
+                        </a>
+                    </div>
                 </div>
             </div>
-        </main>
-        
-        <footer class="bg-white border-t border-gray-200 py-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-                &copy; {{ new Date().getFullYear() }} Midlands State University National Language Institute. All rights reserved.
+        </section>
+
+        <!-- Stats Section -->
+        <section class="py-12 bg-white border-b border-gray-100 relative z-20 -mt-10 mx-6 lg:mx-auto max-w-6xl rounded-2xl shadow-xl">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 px-8 text-center">
+                <div>
+                    <p class="text-4xl font-black text-[#0a1f44]">16+</p>
+                    <p class="text-sm text-gray-500 font-medium mt-1">Supported Languages</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-black text-[#0a1f44]">24/7</p>
+                    <p class="text-sm text-gray-500 font-medium mt-1">Digital Portal Access</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-black text-[#0a1f44]">100%</p>
+                    <p class="text-sm text-gray-500 font-medium mt-1">Certified Experts</p>
+                </div>
+                <div>
+                    <p class="text-4xl font-black text-[#0a1f44]">5</p>
+                    <p class="text-sm text-gray-500 font-medium mt-1">Core Service Pillars</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section id="services" v-show="showServices" class="py-24 bg-gray-50 transition-all duration-500">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">Our Core Services</h3>
+                    <p class="text-gray-600 text-lg">We provide comprehensive language solutions tailored for academic, corporate, and individual needs.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Service 1 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-900 mb-3">Translation</h4>
+                        <p class="text-gray-600 text-sm leading-relaxed">Professional document translation ensuring absolute accuracy and cultural nuance across multiple languages.</p>
+                    </div>
+
+                    <!-- Service 2 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                        <div class="w-14 h-14 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-900 mb-3">Editing & Proofreading</h4>
+                        <p class="text-gray-600 text-sm leading-relaxed">Refining academic manuscripts, corporate reports, and publications for impeccable grammar and flow.</p>
+                    </div>
+
+                    <!-- Service 3 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                        <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-900 mb-3">Brailling Services</h4>
+                        <p class="text-gray-600 text-sm leading-relaxed">Converting standard texts into Braille, promoting inclusivity and accessibility for the visually impaired.</p>
+                    </div>
+
+                    <!-- Service 4 -->
+                    <div class="bg-[#0a1f44] rounded-2xl p-8 shadow-xl border border-[#0c2859] hover:-translate-y-2 transition-transform duration-300 group relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-[#f5c242] rounded-full opacity-10 blur-xl"></div>
+                        <div class="w-14 h-14 bg-white/10 text-[#f5c242] rounded-xl flex items-center justify-center mb-6 backdrop-blur-sm">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-3">Sign Language</h4>
+                        <p class="text-gray-300 text-sm leading-relaxed">Professional sign language interpretation for events, broadcasts, and individual consultations.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 relative bg-white overflow-hidden border-t border-gray-100">
+            <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+                <h2 class="text-3xl md:text-5xl font-black text-[#0a1f44] mb-6">Ready to start your project?</h2>
+                <p class="text-xl text-gray-600 mb-10">Create an account today to submit requests, track progress, and communicate directly with our language experts.</p>
+                <Link :href="route('login')" class="inline-block bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-10 py-4 rounded-full transition shadow-lg transform hover:-translate-y-1 text-lg">
+                    Access the Client Portal
+                </Link>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer id="contact" class="bg-[#0a1f44] text-white pt-16">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8 pb-12 grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <img src="/msu-logo-2.png" alt="MSU Logo" class="h-10 w-auto bg-white p-1 rounded shadow-sm" />
+                        <div>
+                            <h2 class="text-lg font-black tracking-wider">MSUNLI</h2>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+                        Midlands State University National Language Institute is dedicated to providing world-class language solutions, fostering communication, and promoting inclusivity.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-[#f5c242] font-bold uppercase tracking-wider text-sm mb-6">Quick Links</h3>
+                    <ul class="space-y-3">
+                        <li><Link :href="route('login')" class="text-gray-400 hover:text-white transition text-sm">Client Portal Login</Link></li>
+                        <li><a href="#services" @click.prevent="toggleServices" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Our Services</a></li>
+                        <li><button @click="showAbout = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">About Us</button></li>
+                        <li><button @click="showTerms = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Terms &amp; Conditions</button></li>
+                        <li><button @click="showPrivacy = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Privacy Policy</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-[#f5c242] font-bold uppercase tracking-wider text-sm mb-6">Contact Us</h3>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span>P Bag 9055, Senga Road<br/>Gweru<br/>Zimbabwe</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            <span>info@languageinstitute.msu.ac.zw</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                            <span>+263 54 2260000</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Strip: Zim Flag colors representation -->
+            <div class="h-2 w-full flex">
+                <div class="h-full flex-1 bg-green-600"></div>
+                <div class="h-full flex-1 bg-yellow-400"></div>
+                <div class="h-full flex-1 bg-red-600"></div>
+                <div class="h-full flex-1 bg-black"></div>
+                <div class="h-full flex-1 bg-red-600"></div>
+                <div class="h-full flex-1 bg-yellow-400"></div>
+                <div class="h-full flex-1 bg-green-600"></div>
+            </div>
+            <div class="bg-black/90 py-4 text-center text-xs text-gray-500">
+                &copy; {{ new Date().getFullYear() }} Midlands State University. All rights reserved.
             </div>
         </footer>
+        
+        <!-- Modals -->
+        <!-- About Us Modal -->
+        <div v-if="showAbout" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showAbout = false">
+            <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto shadow-2xl">
+                <div class="sticky top-0 bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center z-10">
+                    <h2 class="text-2xl font-black text-[#0a1f44]">About Us</h2>
+                    <button @click="showAbout = false" class="text-gray-400 hover:text-red-500 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-8 prose prose-blue max-w-none text-gray-600">
+                    <p>Welcome to the Midlands State University National Language Institute (MSUNLI) Integrated Language Services and Operations Management System. MSUNLI is a national centre of excellence dedicated to promoting language development, research, innovation, translation, brailling, consultancy, and sign language services across Zimbabwe’s sixteen officially recognized languages.</p>
+                    <p>Our mission is to enhance communication, inclusivity, and accessibility through professional language services supported by modern digital solutions. This platform was developed to streamline service delivery, improve operational efficiency, strengthen collaboration, and provide clients with a centralized and transparent system for accessing language-related services.</p>
+                    <p>Through this system, clients can conveniently submit service requests, track progress, receive quotations, and engage with qualified language experts while enabling the Institute to maintain high standards of accountability, quality, and performance monitoring.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms & Conditions Modal -->
+        <div v-if="showTerms" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showTerms = false">
+            <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto shadow-2xl">
+                <div class="sticky top-0 bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center z-10">
+                    <h2 class="text-2xl font-black text-[#0a1f44]">Terms & Conditions</h2>
+                    <button @click="showTerms = false" class="text-gray-400 hover:text-red-500 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-8 prose prose-blue max-w-none text-gray-600">
+                    <p>By accessing and using the MSUNLI Integrated Language Services and Operations Management System, you agree to comply with the following terms and conditions:</p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>The platform is intended for authorized use by MSUNLI staff, stakeholders, clients, and approved service providers only.</li>
+                        <li>Users are responsible for providing accurate and complete information when submitting service requests, quotations, or documentation.</li>
+                        <li>All service requests submitted through the platform are subject to review, approval processes, and institutional policies of Midlands State University National Language Institute.</li>
+                        <li>Unauthorized access, misuse of the system, or attempts to compromise system security are strictly prohibited and may result in disciplinary or legal action.</li>
+                        <li>MSUNLI reserves the right to modify, suspend, or update system functionalities and services without prior notice when necessary for operational improvements or security purposes.</li>
+                        <li>All uploaded documents, translations, reports, and communications within the system remain subject to confidentiality, institutional regulations, and applicable intellectual property laws.</li>
+                        <li>Users are responsible for maintaining the confidentiality of their login credentials and account activities.</li>
+                        <li>The Institute does not guarantee uninterrupted availability of the platform due to possible maintenance, infrastructure limitations, or technical failures.</li>
+                        <li>Continued use of the system constitutes acceptance of these terms and conditions.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Policy Modal -->
+        <div v-if="showPrivacy" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showPrivacy = false">
+            <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto shadow-2xl">
+                <div class="sticky top-0 bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center z-10">
+                    <h2 class="text-2xl font-black text-[#0a1f44]">Privacy Policy</h2>
+                    <button @click="showPrivacy = false" class="text-gray-400 hover:text-red-500 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-8 prose prose-blue max-w-none text-gray-600">
+                    <p>The Midlands State University National Language Institute (MSUNLI) is committed to protecting the privacy, confidentiality, and security of all users and information processed through this platform.</p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>The system collects and stores information necessary for managing language service requests, operational workflows, reporting, and communication purposes.</li>
+                        <li>Personal information such as names, contact details, uploaded documents, and service records will only be used for legitimate institutional and operational purposes.</li>
+                        <li>MSUNLI implements role-based access controls and security measures to protect user data from unauthorized access, disclosure, alteration, or loss.</li>
+                        <li>Information submitted through the platform will not be shared with unauthorized third parties except where required by law, institutional policy, or official service delivery processes.</li>
+                        <li>Users are responsible for safeguarding their account credentials and immediately reporting any suspected unauthorized access.</li>
+                        <li>System activity, transactions, and operational records may be logged for security monitoring, auditing, performance measurement, and service improvement purposes.</li>
+                        <li>MSUNLI may update this Privacy Policy periodically to align with institutional requirements, legal obligations, and technological developments.</li>
+                        <li>By using this platform, users consent to the collection, processing, and secure storage of information necessary for the effective delivery of MSUNLI services.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
     </div>
 </template>
 
 <script setup>
 import { Head, Link } from '@inertiajs/inertia-vue3';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 
-defineProps({
-    canLogin: Boolean,
-    canRegister: Boolean,
+const scrolled = ref(false);
+const showServices = ref(false);
+const showAbout = ref(false);
+const showTerms = ref(false);
+const showPrivacy = ref(false);
+
+const toggleServices = () => {
+    showServices.value = !showServices.value;
+    if (showServices.value) {
+        nextTick(() => {
+            document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+};
+
+const handleScroll = () => {
+    scrolled.value = window.scrollY > 20;
+};
+
+onMounted(() => {
+    window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
 });
 </script>

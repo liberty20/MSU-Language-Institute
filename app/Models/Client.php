@@ -4,30 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'organization',
-        'contact_person',
-        'email',
-        'phone',
-        'address',
-        'client_type',
-        'status',
+        'client_type', 'organization', 'contact_person',
+        'email', 'phone', 'address', 'status',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function serviceRequests()
     {
         return $this->hasMany(ServiceRequest::class);
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->organization ?? $this->contact_person;
     }
 }
