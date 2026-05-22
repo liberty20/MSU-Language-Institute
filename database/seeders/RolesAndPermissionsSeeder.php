@@ -17,19 +17,20 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissions = [
             'manage users', 'manage roles', 'manage clients', 'manage service requests',
             'create service requests', 'view service requests', 'manage quotations',
-            'approve quotations', 'manage assignments', 'view assignments', 'manage tasks',
-            'view tasks', 'manage procurement', 'approve procurement', 'view reports', 'manage system',
+            'view quotations', 'approve quotations', 'manage assignments', 'view assignments',
+            'manage tasks', 'view tasks', 'manage procurement', 'approve procurement',
+            'view reports', 'manage system',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
         $roles = [
             'executive_director' => Permission::all(),
-            'deputy_director'    => ['view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement'],
-            'admin_assistant'    => ['manage procurement', 'view reports', 'manage clients'],
-            'secretary'          => ['manage service requests', 'view reports', 'manage assignments', 'view tasks'],
+            'deputy_director'    => ['view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement', 'view quotations'],
+            'admin_assistant'    => ['manage procurement', 'view reports', 'manage clients', 'manage quotations', 'view quotations'],
+            'secretary'          => ['manage service requests', 'view reports', 'manage assignments', 'view tasks', 'view quotations'],
             'receptionist'       => ['manage clients', 'create service requests', 'view service requests'],
             'language_expert'    => ['view assignments', 'view tasks', 'manage tasks'],
             'part_time_staff'    => ['view assignments', 'view tasks', 'manage tasks'],
@@ -38,8 +39,8 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {
-            $role = Role::create(['name' => $roleName]);
-            $role->givePermissionTo($rolePermissions);
+            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            $role->syncPermissions($rolePermissions);
         }
 
         $users = [
@@ -55,13 +56,15 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($users as $userData) {
-            $user = User::create([
-                'name'      => $userData['name'],
-                'email'     => $userData['email'],
-                'password'  => Hash::make('password'),
-                'is_active' => true,
-            ]);
-            $user->assignRole($userData['role']);
+            $user = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name'      => $userData['name'],
+                    'password'  => Hash::make('password'),
+                    'is_active' => true,
+                ]
+            );
+            $user->syncRoles([$userData['role']]);
         }
     }
 }

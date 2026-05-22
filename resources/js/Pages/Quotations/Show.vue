@@ -13,14 +13,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
-                        :class="{
-                            'bg-green-100 text-green-800': quotation.status === 'approved',
-                            'bg-yellow-100 text-yellow-800': quotation.status === 'pending_approval',
-                            'bg-gray-100 text-gray-600': quotation.status === 'draft',
-                            'bg-red-100 text-red-700': quotation.status === 'rejected',
-                            'bg-orange-100 text-orange-700': quotation.status === 'expired',
-                        }">
-                        {{ quotation.status.replace(/_/g, ' ') }}
+                        :class="mappedStatus.class">
+                        {{ mappedStatus.label }}
                     </span>
                     <button @click="printQuotation"
                             class="flex items-center gap-1.5 text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition font-medium">
@@ -164,22 +158,54 @@
 
             <!-- Sidebar -->
             <div class="space-y-6">
-                <!-- Approval Actions -->
-                <div v-if="quotation.status === 'pending_approval'" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Approval Decision</h3>
+                <!-- Creator Actions -->
+                <div v-if="quotation.status === 'draft' && quotation.prepared_by === $page.props.auth.user.id" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Creator Actions</h3>
+                    <div class="space-y-2">
+                        <Link :href="route('quotations.edit', quotation.id)"
+                              class="w-full bg-[#f5c242] text-[#0a1f44] py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-yellow-400 transition flex items-center justify-center gap-2 shadow-sm shadow-yellow-100">
+                            ✎ Edit Quotation
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Deputy Director Recommendation -->
+                <div v-if="quotation.status === 'submitted' && $page.props.auth.roles.includes('deputy_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Deputy Director Recommendation</h3>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Comments</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Comments / Recommendations</label>
                             <textarea v-model="approvalComment" rows="3"
                                       class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm resize-none"
                                       placeholder="Optional remarks…"></textarea>
                         </div>
                         <button @click="submitApproval('approved')"
-                                class="w-full bg-green-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-green-700 transition">
+                                class="w-full bg-green-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm shadow-green-100">
+                            ✓ Recommend &amp; Push to Director
+                        </button>
+                        <button @click="submitApproval('review')"
+                                class="w-full bg-amber-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-amber-700 transition flex items-center justify-center gap-2 shadow-sm shadow-amber-100">
+                            ⟲ Return for Revision
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Executive Director Final Approval -->
+                <div v-if="(quotation.status === 'pending_approval' || quotation.status === 'submitted') && ($page.props.auth.roles.includes('executive_director') || $page.props.auth.roles.includes('ict_administrator'))" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Executive Director Final Approval</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Approval Comments</label>
+                            <textarea v-model="approvalComment" rows="3"
+                                      class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm resize-none"
+                                      placeholder="Optional remarks…"></textarea>
+                        </div>
+                        <button @click="submitApproval('approved')"
+                                class="w-full bg-green-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm shadow-green-100">
                             ✓ Approve Quotation
                         </button>
                         <button @click="submitApproval('rejected')"
-                                class="w-full bg-red-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-red-700 transition">
+                                class="w-full bg-red-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-red-700 transition flex items-center justify-center gap-2 shadow-sm shadow-red-100">
                             ✗ Reject Quotation
                         </button>
                     </div>
@@ -218,6 +244,27 @@ const props = defineProps({
 });
 
 const approvalComment = ref('');
+
+const mappedStatus = computed(() => {
+    if (props.quotation.status === 'draft') {
+        return props.quotation.approvals && props.quotation.approvals.length > 0
+            ? { label: 'Needs Revision', class: 'bg-orange-100 text-orange-800' }
+            : { label: 'Draft', class: 'bg-gray-100 text-gray-700' };
+    }
+    if (props.quotation.status === 'submitted') {
+        return { label: 'Pending Recommendation', class: 'bg-blue-100 text-blue-800' };
+    }
+    if (props.quotation.status === 'pending_approval') {
+        return { label: 'Recommended', class: 'bg-yellow-100 text-yellow-800' };
+    }
+    if (props.quotation.status === 'approved') {
+        return { label: 'Approved', class: 'bg-green-100 text-green-800' };
+    }
+    if (props.quotation.status === 'rejected') {
+        return { label: 'Rejected', class: 'bg-red-100 text-red-800' };
+    }
+    return { label: props.quotation.status.replace(/_/g, ' '), class: 'bg-gray-100 text-gray-700' };
+});
 
 const parsedLineItems = computed(() => {
     if (!props.quotation.line_items) return [];

@@ -10,7 +10,7 @@
                             <img src="/msu-logo-2.png" alt="MSU Logo" class="h-6 w-auto object-contain" />
                         </div>
                         <div>
-                            <h1 class="text-2xl font-black bg-gradient-to-r from-purple-700 via-indigo-650 to-blue-700 bg-clip-text text-transparent tracking-tight">Reports & Performance Analytics</h1>
+                            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Reports & Performance Analytics</h1>
                             <p class="text-xs text-slate-500 mt-0.5 font-medium">Real-time institutional performance insights & operational metric monitoring</p>
                         </div>
                     </div>
@@ -36,11 +36,11 @@
                         </button>
                     </div>
 
-                    <!-- Glowing Master Gradient Button -->
+                    <!-- Modern Clean Neutral Button -->
                     <button @click="openGenerateModal = true" 
-                            class="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white hover:text-white px-6 py-3 rounded-2xl font-black text-sm transition-all duration-300 shadow-[0_4px_20px_rgba(168,85,247,0.2)] hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)] hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 overflow-hidden group">
-                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full group-hover:animate-shimmer"></span>
-                        <svg class="w-4.5 h-4.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="relative bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2.5 rounded-xl font-black text-xs transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center gap-1.5 overflow-hidden group">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer"></span>
+                        <svg class="w-3.5 h-3.5 stroke-[2.5] text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                         </svg>
                         Compile Report
@@ -49,142 +49,136 @@
             </div>
         </template>
 
-        <div class="flex flex-col lg:flex-row gap-6 pb-16 animate-fade-in-up">
-            
-            <!-- Left Sub-Navigation Sidebar -->
-            <div class="w-full lg:w-72 flex-shrink-0 space-y-4">
-                <div class="neo-glass-card rounded-3xl p-5 border border-slate-200/80">
-                    <h3 class="text-[10px] font-black text-purple-650 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
-                        </svg>
-                        REPORTING SCOPES
-                    </h3>
-                    <div class="space-y-2">
-                        <!-- Client Services -->
-                        <button @click="selectScope('client_services')" :class="scopeClass('client_services')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'client_services' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'client_services' ? 'text-purple-900' : 'text-slate-700'">Client Services</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'client_services' ? 'text-purple-650' : 'text-slate-550'">Client Volume & Intake</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'client_services' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-
-                        <!-- Quotation Audit -->
-                        <button @click="selectScope('quotations')" :class="scopeClass('quotations')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'quotations' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'quotations' ? 'text-purple-900' : 'text-slate-700'">Quotation Audit</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'quotations' ? 'text-purple-650' : 'text-slate-550'">Financial & Billing Audit</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'quotations' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-
-                        <!-- Workflow Progress -->
-                        <button @click="selectScope('workflow_progress')" :class="scopeClass('workflow_progress')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'workflow_progress' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'workflow_progress' ? 'text-purple-900' : 'text-slate-700'">Workflow Progress</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'workflow_progress' ? 'text-purple-650' : 'text-slate-550'">Task & Operations Velocity</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'workflow_progress' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-
-                        <!-- Staff Workload -->
-                        <button @click="selectScope('staff_workload')" :class="scopeClass('staff_workload')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'staff_workload' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'staff_workload' ? 'text-purple-900' : 'text-slate-700'">Staff Workload</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'staff_workload' ? 'text-purple-650' : 'text-slate-550'">Capacity & Productivity</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'staff_workload' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-
-                        <!-- KPI Performance -->
-                        <button @click="selectScope('kpi_performance')" :class="scopeClass('kpi_performance')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'kpi_performance' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'kpi_performance' ? 'text-purple-900' : 'text-slate-700'">KPI Performance</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'kpi_performance' ? 'text-purple-650' : 'text-slate-550'">Quality & Satisfaction</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'kpi_performance' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-
-                        <!-- Administrative Overview -->
-                        <button @click="selectScope('administrative')" :class="scopeClass('administrative')">
-                            <div class="flex items-center gap-3">
-                                <span class="p-2.5 rounded-xl transition-colors duration-300" :class="activeScope === 'administrative' ? 'bg-purple-50 text-purple-650' : 'bg-slate-100 text-slate-500'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                    </svg>
-                                </span>
-                                <div class="text-left">
-                                    <span class="block text-xs font-black" :class="activeScope === 'administrative' ? 'text-purple-900' : 'text-slate-700'">Administrative Overview</span>
-                                    <span class="block text-[9px] font-bold" :class="activeScope === 'administrative' ? 'text-purple-650' : 'text-slate-550'">System Operational Ledger</span>
-                                </div>
-                            </div>
-                            <svg class="w-3 h-3 opacity-40 transition-transform duration-300" :class="activeScope === 'administrative' ? 'translate-x-0.5 text-purple-600 opacity-100' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        </button>
+        <div class="w-full space-y-6 pb-16 animate-fade-in-up">
+            <!-- Executive KPI Deck (6 Cards) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                <!-- Card 1: Total Intake Requests -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Intake</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.total_requests }}</span>
+                        </div>
+                        <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Intake Volume</span>
+                        <span class="text-blue-650 font-black">All requests</span>
                     </div>
                 </div>
 
-                <!-- Live Performance Insight / Compliance Glass Widget -->
-                <div class="neo-glass-card rounded-3xl p-5 border border-slate-200/80 bg-gradient-to-br from-purple-50/50 via-blue-50/50 to-transparent relative overflow-hidden group">
-                    <div class="absolute -top-12 -right-12 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                    <h4 class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                        Operational Quality
-                    </h4>
-                    <p class="text-[11px] text-slate-650 font-semibold leading-relaxed">
-                        MSUNLI analytical pipeline continuously compiles and audits language execution service queues in real-time.
-                    </p>
-                    <div class="mt-4 flex items-center justify-between border-t border-slate-200/60 pt-3">
-                        <span class="text-[10px] text-slate-500 font-bold">System Compliance</span>
-                        <span class="text-xs font-black text-emerald-600">{{ animatedTotals.kpi_performance }}%</span>
+                <!-- Card 2: Active Work Queue -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Queue</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.active_assignments }}</span>
+                        </div>
+                        <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Under Development</span>
+                        <span class="text-indigo-650 font-black">Active tasks</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Completed Output -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Completed</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.completed_services }}</span>
+                        </div>
+                        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Closed Services</span>
+                        <span class="text-emerald-650 font-black">Delivered</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Avg Turnaround Speed -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Turnaround</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.avg_turnaround }}d</span>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Calendar Baseline</span>
+                        <span class="text-amber-650 font-black">Avg duration</span>
+                    </div>
+                </div>
+
+                <!-- Card 5: Client Satisfaction -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Satisfaction</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.client_satisfaction }}%</span>
+                        </div>
+                        <div class="p-2.5 bg-teal-50 text-teal-600 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Post-Service Review</span>
+                        <span class="text-teal-650 font-black">Rating score</span>
+                    </div>
+                </div>
+
+                <!-- Card 6: Operational Quality -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-sky-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Quality KPI</span>
+                            <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.kpi_performance }}%</span>
+                        </div>
+                        <div class="p-2.5 bg-sky-50 text-sky-650 rounded-xl">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                        <span>Compliance Rate</span>
+                        <span class="text-sky-700 font-black">Audit score</span>
                     </div>
                 </div>
             </div>
-
-            <!-- Right Workspace Pane -->
-            <div class="flex-grow space-y-6">
                 <!-- 1. Frosted Glassmorphic Filter Card -->
                 <div class="neo-glass-card rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-200/80 transition-all duration-500 relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 opacity-85"></div>
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-slate-400 via-slate-600 to-blue-600 opacity-85"></div>
                     
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                 <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
                                 </svg>
@@ -195,8 +189,7 @@
                             </div>
                         </div>
                         
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
-                              :class="isManagement ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200'">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200 bg-slate-100 text-slate-700">
                             {{ isManagement ? 'Administrative Scope' : 'Restricted Staff Scope' }}
                         </span>
                     </div>
@@ -209,7 +202,7 @@
                                 Start Date
                             </label>
                             <input type="date" v-model="filters.date_start" @change="applyFilters" 
-                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
+                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
                         </div>
 
                         <!-- Date Range End -->
@@ -219,7 +212,7 @@
                                 End Date
                             </label>
                             <input type="date" v-model="filters.date_end" @change="applyFilters" 
-                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
+                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
                         </div>
 
                         <!-- Department -->
@@ -229,7 +222,7 @@
                                 Department
                             </label>
                             <select v-model="filters.department_id" @change="applyFilters" :disabled="!isManagement" 
-                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed">
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed">
                                 <option value="">All Departments</option>
                                 <option v-for="dept in filterOptions.departments" :key="dept.id" :value="dept.id">{{ dept.name }} ({{ dept.code }})</option>
                             </select>
@@ -242,7 +235,7 @@
                                 Category
                             </label>
                             <select v-model="filters.service_category" @change="applyFilters" 
-                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
                                 <option value="">All Categories</option>
                                 <option v-for="cat in filterOptions.categories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
                             </select>
@@ -255,32 +248,32 @@
                                 Assigned Staff
                             </label>
                             <select v-model="filters.assigned_to" @change="applyFilters" :disabled="!isManagement" 
-                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed">
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed">
                                 <option value="">All Staff</option>
                                 <option v-for="s in filterOptions.staff" :key="s.id" :value="s.id">{{ s.name }}</option>
                             </select>
                         </div>
 
-                        <!-- Task Status -->
+                        <!-- Request Status -->
                         <div class="space-y-1.5">
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                 <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Task Status
+                                Request Status
                             </label>
                             <select v-model="filters.task_status" @change="applyFilters" 
-                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
                                 <option value="">All Statuses</option>
-                                <option value="todo">Pending (Todo)</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="review">Under Review</option>
                                 <option value="completed">Completed</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="pending">Pending</option>
+                                <option value="overdue">Overdue</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-6 pt-5 border-t border-slate-100">
                         <span class="text-[10px] text-slate-500 font-semibold flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
                             All analytical metrics update automatically based on operational queue coordinates.
                         </span>
                         <button @click="resetAllFilters" 
@@ -293,180 +286,38 @@
                     </div>
                 </div>
 
-                <!-- 2. Tactile Gradient KPI Cards Row -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <!-- A. Total Volume / Client Services -->
-                    <div @click="selectScope('client_services')" :class="kpiCardClass('client_services')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-purple-600 uppercase tracking-widest">Service Volume</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.total_requests }}</h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-purple-600">+12.4% vs last month</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>Intake</span>
-                        </div>
-                    </div>
-
-                    <!-- B. Active Tasks / Staff Workload -->
-                    <div @click="selectScope('staff_workload')" :class="kpiCardClass('staff_workload')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-blue-600 uppercase tracking-widest">Active Operations</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.active_assignments }}</h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-blue-600">+4.1% queue velocity</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Live</span>
-                        </div>
-                    </div>
-
-                    <!-- C. Completed Tasks / Workflow Progress -->
-                    <div @click="selectScope('workflow_progress')" :class="kpiCardClass('workflow_progress')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Completed Tasks</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.completed_services }}</h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-emerald-600">94.2% completion rate</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Success</span>
-                        </div>
-                    </div>
-
-                    <!-- D. Turnaround Speed / KPI Performance -->
-                    <div @click="selectScope('kpi_performance')" :class="kpiCardClass('kpi_performance')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Turnaround Time</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.avg_turnaround }}<span class="text-sm font-bold"> days</span></h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-indigo-600">-1.2 days speed boost</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>Velocity</span>
-                        </div>
-                    </div>
-
-                    <!-- E. Stakeholder Satisfaction / KPI Performance -->
-                    <div @click="selectScope('kpi_performance')" :class="kpiCardClass('kpi_performance')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Satisfaction Score</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.client_satisfaction }}<span class="text-sm font-bold">/5.0</span></h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
-                                <svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-amber-650">+0.4 client rating index</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Rating</span>
-                        </div>
-                    </div>
-
-                    <!-- F. Consolidated KPI score / Administrative -->
-                    <div @click="selectScope('administrative')" :class="kpiCardClass('administrative')">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-[9px] font-black text-purple-600 uppercase tracking-widest">Aggregate KPI Score</p>
-                                <h3 class="text-3xl font-black text-slate-850 mt-1 tracking-tight">{{ animatedTotals.kpi_performance }}%</h3>
-                            </div>
-                            <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm border border-purple-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] text-slate-500 font-bold">
-                            <span class="text-purple-600">+2.8% target variance</span>
-                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>Master</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Dynamic Interactive Visual Charts Grid -->
-                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    <!-- A. Task Statuses Donut Chart -->
+                <!-- 2. Two Core Analysis Charts - Pie & Line -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- A. Service Requests Status Pie Chart -->
                     <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[420px] group">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h3 class="text-base font-black text-slate-850 tracking-tight">Task Allocation & Status</h3>
-                                <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Real-time distribution of assignment operational state</p>
+                                <h3 class="text-base font-black text-slate-850 tracking-tight">Service Requests Allocation</h3>
+                                <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Real-time distribution of request operational state</p>
                             </div>
-                            <span class="p-2 bg-purple-50 rounded-xl text-purple-600 border border-purple-100">
+                            <span class="p-2 bg-blue-550/10 rounded-xl text-blue-600 border border-blue-100">
                                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
                             </span>
                         </div>
-
+ 
                         <!-- Chart Container -->
                         <div class="flex-grow flex items-center justify-center relative min-h-[220px]">
                             <div id="pie-chart" class="w-full"></div>
                             <div v-if="!chartsLoaded" class="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-xs rounded-xl">
-                                <span class="text-xs font-black text-purple-600 flex items-center gap-2">
-                                    <svg class="animate-spin h-5 w-5 text-purple-650" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span class="text-xs font-black text-blue-600 flex items-center gap-2">
+                                    <svg class="animate-spin h-5 w-5 text-blue-650" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                     Orchestrating Matrix...
                                 </span>
                             </div>
                         </div>
-
+ 
                         <div class="text-[10px] text-slate-500 font-bold text-center border-t border-slate-100 pt-4 flex justify-between items-center px-2">
-                            <span>Total Tasks Counted:</span>
-                            <span class="font-black text-purple-650 px-2.5 py-0.5 bg-purple-50 border border-purple-100 rounded-full">{{ totalTasksCount }} active</span>
+                            <span>Total Requests Counted:</span>
+                            <span class="font-black text-blue-650 px-2.5 py-0.5 bg-blue-50 border border-blue-100 rounded-full">{{ totalRequestsCount }} active</span>
                         </div>
                     </div>
-
-                    <!-- B. Column category turnaround times -->
-                    <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[420px] group">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-base font-black text-slate-850 tracking-tight">Turnaround times by Category</h3>
-                                <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Average speed (duration in calendar days) per service type</p>
-                            </div>
-                            <span class="p-2 bg-blue-550/10 rounded-xl text-blue-600 border border-blue-100">
-                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                            </span>
-                        </div>
-
-                        <!-- Chart Container -->
-                        <div class="flex-grow flex items-center justify-center relative min-h-[220px]">
-                            <div id="bar-chart" class="w-full"></div>
-                            <div v-if="!chartsLoaded" class="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-xs rounded-xl">
-                                <span class="text-xs font-black text-blue-600 flex items-center gap-2">
-                                    <svg class="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    Compiling category vectors...
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-slate-100 pt-4 flex justify-between items-center text-[10px] text-slate-500 font-bold px-2">
-                            <span>Speed Baseline Index:</span>
-                            <span class="font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>Target &lt; 7 Days
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- C. Dynamic Trend Fills -->
+ 
+                    <!-- C. Line Chart - Influx Trend & Velocity -->
                     <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[420px] group">
                         <div class="flex justify-between items-start mb-4">
                             <div>
@@ -477,7 +328,7 @@
                                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </span>
                         </div>
-
+ 
                         <!-- Chart Container -->
                         <div class="flex-grow flex items-center justify-center relative min-h-[220px]">
                             <div id="line-chart" class="w-full"></div>
@@ -488,16 +339,123 @@
                                 </span>
                             </div>
                         </div>
-
+ 
                         <div class="border-t border-slate-100 pt-4 text-[10px] text-slate-500 font-bold text-center flex items-center justify-center gap-1">
-                            <svg class="w-3.5 h-3.5 text-purple-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <svg class="w-3.5 h-3.5 text-indigo-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             Calculated monthly totals for the past six active billing cycles.
                         </div>
                     </div>
                 </div>
 
-                <!-- 4. Staff Productivity & Reports History -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 2.5 Filtered Service Requests Registry Table -->
+                <div class="neo-glass-card rounded-3xl shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between min-h-[400px]">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                                </span>
+                                <h3 class="text-base font-black text-slate-850 tracking-tight">Service Requests Registry</h3>
+                            </div>
+                            <p class="text-[10px] text-slate-550 font-semibold mt-0.5">Detailed operational workflow tracking log matched to active filters</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span v-if="filters.task_status" class="text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                Filter: {{ getStatusLabel({ status: filters.task_status }) }}
+                                <button @click="filters.task_status = ''; applyFilters();" class="hover:text-blue-900 font-extrabold ml-1 font-mono">×</button>
+                            </span>
+                            <span class="text-xs font-black text-blue-650 bg-blue-50 border border-blue-100 px-3 py-1 rounded-xl shadow-xs">
+                                Total Filtered: {{ props.serviceRequests?.total || 0 }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50 border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-500 font-black">
+                                    <th class="px-6 py-4">Reference</th>
+                                    <th class="px-6 py-4">Service Category</th>
+                                    <th class="px-6 py-4">Title</th>
+                                    <th class="px-6 py-4">Client</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4">Deadline</th>
+                                    <th class="px-6 py-4">Assigned Staff</th>
+                                    <th class="px-6 py-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-xs">
+                                <tr v-for="req in props.serviceRequests?.data" :key="req.id" class="hover:bg-slate-50/50 transition-all duration-150">
+                                    <td class="px-6 py-4.5 font-black text-slate-800">{{ req.reference_number }}</td>
+                                    <td class="px-6 py-4.5 text-slate-550 font-semibold capitalize">{{ req.service_category.replace(/_/g, ' ') }}</td>
+                                    <td class="px-6 py-4.5 font-extrabold text-slate-800 max-w-[200px] truncate">{{ req.title }}</td>
+                                    <td class="px-6 py-4.5 text-slate-650 font-bold">{{ req.client?.organization || req.client?.contact_person || 'N/A' }}</td>
+                                    <td class="px-6 py-4.5">
+                                        <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-xs"
+                                              :class="getStatusBadgeClass(req)">
+                                            {{ getStatusLabel(req) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4.5">
+                                        <span v-if="req.deadline" class="font-semibold" :class="getCategorizedStatus(req) === 'overdue' ? 'text-red-650 font-black' : 'text-slate-500'">
+                                            {{ formatDate(req.deadline) }}
+                                        </span>
+                                        <span v-else class="text-slate-400 font-medium italic">No Deadline</span>
+                                    </td>
+                                    <td class="px-6 py-4.5">
+                                        <div class="flex items-center gap-2" v-if="req.assigned_to || req.assignedTo">
+                                            <div class="w-5 h-5 rounded-full bg-slate-900 text-white font-black text-[9px] flex items-center justify-center">
+                                                {{ (req.assigned_to?.name || req.assignedTo?.name || 'U').charAt(0).toUpperCase() }}
+                                            </div>
+                                            <span class="font-extrabold text-slate-700 text-[11px]">
+                                                {{ req.assigned_to?.name || req.assignedTo?.name }}
+                                            </span>
+                                        </div>
+                                        <span v-else class="text-slate-400 font-medium italic">Unassigned</span>
+                                    </td>
+                                    <td class="px-6 py-4.5 text-right">
+                                        <Link :href="route('service-requests.show', req.id)" 
+                                              class="inline-flex items-center gap-1.5 text-blue-650 hover:text-blue-500 font-black text-xs transition duration-200 transform hover:scale-105">
+                                            View Details
+                                            <svg class="w-3 h-3 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                        </Link>
+                                    </td>
+                                </tr>
+                                <tr v-if="!props.serviceRequests?.data || props.serviceRequests?.data.length === 0">
+                                    <td colspan="8" class="px-6 py-16 text-center text-slate-400 text-xs font-bold bg-slate-50/10">
+                                        No service requests found matching the active analytical scope.<br/>
+                                        <span class="text-[10px] text-slate-555 font-medium mt-1 block">Try clearing status slice filters or resetting filters.</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <span class="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">
+                            Showing {{ props.serviceRequests?.from || 0 }} to {{ props.serviceRequests?.to || 0 }} of {{ props.serviceRequests?.total || 0 }} service requests
+                        </span>
+                        <div class="flex items-center gap-1.5" v-if="props.serviceRequests?.links && props.serviceRequests?.links.length > 3">
+                            <Link v-for="(link, idx) in props.serviceRequests?.links" :key="idx" 
+                                  :href="link.url || '#'" 
+                                  preserve-state 
+                                  preserve-scroll
+                                  class="px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition duration-200" 
+                                  :class="link.active 
+                                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                                      : !link.url 
+                                          ? 'text-slate-350 border-slate-100 cursor-not-allowed bg-transparent' 
+                                          : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-50 hover:text-black hover:border-slate-300'"
+                                  v-html="link.label">
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Staff Productivity & Reports History -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display:none;">
                     <!-- Staff Productivity (Podium style Leaderboard) -->
                     <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 lg:col-span-1 flex flex-col justify-between">
                         <div>
@@ -506,7 +464,7 @@
                                     <h3 class="text-base font-black text-slate-850 tracking-tight">Staff Productivity Log</h3>
                                     <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Top performing language specialists & coordinators</p>
                                 </div>
-                                <span class="bg-purple-50 text-purple-600 text-[9px] font-black uppercase px-2.5 py-1 rounded-full border border-purple-100">Leaderboard</span>
+                                <span class="bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase px-2.5 py-1 rounded-full border border-indigo-100">Leaderboard</span>
                             </div>
 
                             <!-- Leaderboard List -->
@@ -533,14 +491,14 @@
                                         </div>
 
                                         <div class="text-right">
-                                            <span class="text-xs font-black text-purple-600 block">{{ expert.score }} pts</span>
+                                            <span class="text-xs font-black text-indigo-600 block">{{ expert.score }} pts</span>
                                             <span class="text-[9px] text-slate-500 font-bold">{{ expert.tasks_completed }} tasks &bull; {{ expert.requests_completed }} SR</span>
                                         </div>
                                     </div>
                                     <!-- Progress Bar Indicator -->
                                     <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
                                         <div class="h-full rounded-full transition-all duration-1000 bg-gradient-to-r"
-                                             :class="idx === 0 ? 'from-amber-400 to-yellow-500' : 'from-purple-500 to-blue-500'"
+                                             :class="idx === 0 ? 'from-amber-400 to-yellow-500' : 'from-indigo-500 to-blue-500'"
                                              :style="{ width: `${Math.min(100, (expert.score / (staffProductivity[0]?.score || 1)) * 100)}%` }">
                                         </div>
                                     </div>
@@ -564,7 +522,7 @@
                                 <h3 class="text-base font-black text-slate-850 tracking-tight">Generated Reports Archive</h3>
                                 <p class="text-[10px] text-slate-550 font-semibold mt-0.5">Persistent PDF and Excel operational audit registries</p>
                             </div>
-                            <span class="text-xs font-black text-purple-650 bg-purple-50 border border-purple-100 px-3 py-1 rounded-xl shadow-xs">Total Saved: {{ reports.total || 0 }}</span>
+                            <span class="text-xs font-black text-blue-650 bg-blue-50 border border-blue-100 px-3 py-1 rounded-xl shadow-xs">Total Saved: {{ reports.total || 0 }}</span>
                         </div>
 
                         <!-- Modern Search & Category Filter panel inside table row -->
@@ -574,12 +532,12 @@
                                     <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </span>
                                 <input v-model="filters.search" @keyup.enter="applyFilters" type="text" placeholder="Search archive by report title..." 
-                                       class="block w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition shadow-xs" />
+                                       class="block w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-xs" />
                             </div>
                             
                             <div class="w-full sm:w-48">
                                 <select v-model="filters.archive_type" @change="applyFilters" 
-                                        class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition shadow-xs">
+                                        class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-xs">
                                     <option value="">Filter by Type</option>
                                     <option value="client_services">Client Service Reports</option>
                                     <option value="quotations">Quotation Reports</option>
@@ -591,7 +549,7 @@
                             </div>
 
                             <button @click="applyFilters" 
-                                    class="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl text-xs font-black hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition shadow-sm transform active:scale-95">
+                                    class="w-full sm:w-auto px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition shadow-sm transform active:scale-95">
                                 Search
                             </button>
                         </div>
@@ -620,7 +578,7 @@
                                         <td class="px-6 py-4.5 text-slate-500 font-semibold">{{ formatDate(report.created_at) }}</td>
                                         <td class="px-6 py-4.5 text-right">
                                             <a :href="report.file_path" 
-                                               class="inline-flex items-center gap-1.5 text-purple-650 hover:text-purple-500 font-black text-xs transition duration-200 transform hover:scale-105" 
+                                               class="inline-flex items-center gap-1.5 text-blue-650 hover:text-blue-500 font-black text-xs transition duration-200 transform hover:scale-105" 
                                                download>
                                                 <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                                 Deliver
@@ -639,7 +597,6 @@
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- 5. Report Generation Glassmorphic Modal -->
         <div v-if="openGenerateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -647,7 +604,7 @@
             <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300" @click="openGenerateModal = false"></div>
             
             <div class="bg-white border border-slate-200/80 rounded-[2rem] shadow-2xl w-full max-w-lg z-10 overflow-hidden transform transition-all duration-300 scale-100 relative animate-fade-in-up text-slate-800">
-                <div class="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500"></div>
+                <div class="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-slate-400 via-slate-650 to-blue-600"></div>
                 
                 <div class="bg-slate-50/80 px-8 py-6 flex justify-between items-center relative border-b border-slate-100">
                     <div>
@@ -666,13 +623,13 @@
                      <div class="space-y-1.5">
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Custom Title</label>
                         <input type="text" v-model="form.title" placeholder="e.g. Q2 Performance Overview" required 
-                               class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-xs" />
+                               class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs" />
                     </div>
 
                     <div class="space-y-1.5">
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Aggregation Type</label>
                         <select v-model="form.report_type" 
-                                class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 hover:bg-slate-50/50 shadow-xs">
+                                class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs">
                             <option value="client_services">Client Service Report</option>
                             <option value="quotations">Quotation Report</option>
                             <option value="workflow_progress">Workflow Progress Report</option>
@@ -685,9 +642,9 @@
                     <div class="space-y-2">
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Target Export Format</label>
                         <div class="grid grid-cols-2 gap-4">
-                            <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-purple-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
-                                   :class="form.format === 'pdf' ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500/20' : ''">
-                                <input type="radio" v-model="form.format" value="pdf" class="text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
+                            <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-indigo-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
+                                   :class="form.format === 'pdf' ? 'border-indigo-500 bg-indigo-50/40 ring-2 ring-indigo-500/10' : ''">
+                                <input type="radio" v-model="form.format" value="pdf" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
                                 <span class="text-xs font-black text-slate-800">PDF Document</span>
                             </label>
                             
@@ -699,8 +656,8 @@
                         </div>
                     </div>
 
-                    <div class="bg-purple-50/50 border-l-4 border-purple-500 p-4 rounded-r-2xl text-[10px] text-purple-950 font-bold flex gap-2">
-                        <svg class="w-4.5 h-4.5 text-purple-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    <div class="bg-slate-50 border-l-4 border-slate-600 p-4 rounded-r-2xl text-[10px] text-slate-800 font-bold flex gap-2">
+                        <svg class="w-4.5 h-4.5 text-slate-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
                         <div>
                             <strong>Active Filters Bound:</strong> All active filter variables set in the dashboard panel will be mirrored in the generated report.
                         </div>
@@ -711,7 +668,7 @@
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-2xl text-xs font-black hover:shadow-[0_0_20px_rgba(168,85,247,0.25)] transition-all duration-300 shadow-md flex items-center gap-1.5 transform active:scale-95">
+                                class="bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black hover:bg-slate-800 transition-all duration-300 shadow-md flex items-center gap-1.5 transform active:scale-95">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                             Compile & Save
                         </button>
@@ -724,7 +681,7 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/inertia-vue3';
+import { Head, Link } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 
@@ -733,6 +690,7 @@ const props = defineProps({
     categoryTurnaround: Object,
     byStatus: Object,
     monthly: Array,
+    serviceRequests: Object,
     totals: Object,
     staffProductivity: Array,
     reports: Object,
@@ -740,6 +698,54 @@ const props = defineProps({
     currentFilters: Object,
     isManagement: Boolean
 });
+
+const getCategorizedStatus = (req) => {
+    if (!req) return 'pending';
+    const now = new Date().toISOString().split('T')[0];
+    const status = req.status;
+    const deadline = req.deadline;
+    
+    if (status === 'completed') return 'completed';
+    
+    if (status !== 'completed' && status !== 'cancelled' && deadline && deadline < now) {
+        return 'overdue';
+    }
+    
+    if (['in_progress', 'review'].includes(status)) {
+        return 'in_progress';
+    }
+    
+    if (['pending', 'quoted', 'approved'].includes(status)) {
+        return 'pending';
+    }
+    
+    return status;
+};
+
+const getStatusBadgeClass = (req) => {
+    const cat = getCategorizedStatus(req);
+    switch (cat) {
+        case 'completed':
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'in_progress':
+            return 'bg-blue-50 text-blue-750 border-blue-200';
+        case 'pending':
+            return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        case 'overdue':
+            return 'bg-rose-50 text-rose-700 border-rose-200';
+        default:
+            return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+};
+
+const getStatusLabel = (req) => {
+    const cat = getCategorizedStatus(req);
+    if (cat === 'in_progress') return 'In Progress';
+    if (cat === 'pending') return 'Pending';
+    if (cat === 'completed') return 'Completed';
+    if (cat === 'overdue') return 'Overdue';
+    return typeof cat === 'string' ? cat.replace('_', ' ') : '';
+};
 
 // Setup filters including searchable fields
 const filters = reactive({
@@ -768,7 +774,7 @@ const scopeClass = (scopeId) => {
     return [
         'w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-black transition-all duration-300 transform active:scale-98 border',
         isActive
-            ? 'bg-purple-100 border-purple-500 text-black shadow-sm'
+            ? 'bg-indigo-100 border-indigo-500 text-black shadow-sm'
             : 'text-black bg-white hover:bg-slate-100 hover:text-black border-slate-200'
     ];
 };
@@ -778,7 +784,7 @@ const kpiCardClass = (targetScope) => {
     return [
         'relative overflow-hidden rounded-3xl p-6 border flex flex-col justify-between min-h-[140px] transition-all duration-500 hover:-translate-y-1 group cursor-pointer bg-white',
         isActive 
-            ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-4 ring-purple-100 scale-[1.03] text-black font-black' 
+            ? 'border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.15)] ring-4 ring-indigo-100 scale-[1.03] text-black font-black' 
             : 'border-slate-200 shadow-sm hover:border-slate-350 text-black font-semibold'
     ];
 };
@@ -884,7 +890,7 @@ const triggerQuickExport = (formatType) => {
     window.open(url.toString(), '_blank');
 };
 
-const totalTasksCount = computed(() => {
+const totalRequestsCount = computed(() => {
     return (props.byStatus.completed || 0) + 
            (props.byStatus.in_progress || 0) + 
            (props.byStatus.pending || 0) + 
@@ -894,7 +900,6 @@ const totalTasksCount = computed(() => {
 // --- Dynamic ApexCharts Implementation ---
 const chartsLoaded = ref(false);
 let pieChartInstance = null;
-let barChartInstance = null;
 let lineChartInstance = null;
 
 // Dynamically fetch and install ApexCharts script tag from JSDelivr CDN
@@ -917,13 +922,28 @@ const loadApexChartsScript = () => {
 const renderCharts = () => {
     if (!window.ApexCharts) return;
 
-    // A. Pie/Donut Chart (Task Statuses) with Premium Colors & Labels
+    // A. Pie/Donut Chart (Service Request Statuses) with Premium Colors & Labels
     const pieOptions = {
         chart: {
             type: 'donut',
             height: 250,
             fontFamily: 'Outfit, Inter, sans-serif',
             background: 'transparent',
+            events: {
+                dataPointSelection: (event, chartContext, config) => {
+                    const idx = config.dataPointIndex;
+                    if (idx !== undefined && idx !== null && idx >= 0) {
+                        const statusMap = ['completed', 'in_progress', 'pending', 'overdue'];
+                        const clickedStatus = statusMap[idx];
+                        if (filters.task_status === clickedStatus) {
+                            filters.task_status = ''; // toggle-clear
+                        } else {
+                            filters.task_status = clickedStatus;
+                        }
+                        applyFilters();
+                    }
+                }
+            },
             dropShadow: {
                 enabled: true,
                 top: 4,
@@ -940,8 +960,8 @@ const renderCharts = () => {
             width: 2,
             colors: ['#ffffff']
         },
-        colors: ['#10b981', '#3b82f6', '#a855f7', '#f43f5e'],
-        labels: ['Completed', 'In Progress', 'Pending (Todo)', 'Overdue'],
+        colors: ['#10b981', '#3b82f6', '#6366f1', '#f43f5e'],
+        labels: ['Completed', 'In Progress', 'Pending', 'Overdue'],
         series: [
             props.byStatus.completed || 0,
             props.byStatus.in_progress || 0,
@@ -988,9 +1008,9 @@ const renderCharts = () => {
                         },
                         total: {
                             show: true,
-                            label: 'Total Tasks',
+                            label: 'Total Requests',
                             color: '#000000',
-                            formatter: () => totalTasksCount.value
+                            formatter: () => totalRequestsCount.value
                         }
                     }
                 }
@@ -999,7 +1019,7 @@ const renderCharts = () => {
         tooltip: {
             theme: 'light',
             y: {
-                formatter: (val) => `${val} active assignments`
+                formatter: (val) => `${val} requests`
             }
         }
     };
@@ -1011,127 +1031,6 @@ const renderCharts = () => {
         if (pieEl) {
             pieChartInstance = new window.ApexCharts(pieEl, pieOptions);
             pieChartInstance.render();
-        }
-    }
-
-    // B. Bar/Column Chart (Category Turnaround) with Premium Gradient Column
-    const barLabels = Object.keys(props.categoryTurnaround);
-    const barSeriesData = Object.values(props.categoryTurnaround);
-
-    const barOptions = {
-        chart: {
-            type: 'bar',
-            height: 250,
-            toolbar: { show: false },
-            fontFamily: 'Outfit, Inter, sans-serif',
-            background: 'transparent',
-            dropShadow: {
-                enabled: true,
-                top: 2,
-                left: 0,
-                blur: 4,
-                color: '#000',
-                opacity: 0.03
-            }
-        },
-        theme: {
-            mode: 'light'
-        },
-        colors: ['#3b82f6'],
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shade: 'light',
-                type: 'vertical',
-                shadeIntensity: 0.5,
-                inverseColors: false,
-                opacityFrom: 0.95,
-                opacityTo: 0.5,
-                colorStops: [
-                    {
-                        offset: 0,
-                        color: '#a855f7',
-                        opacity: 1
-                    },
-                    {
-                        offset: 100,
-                        color: '#3b82f6',
-                        opacity: 0.8
-                    }
-                ]
-            }
-        },
-        series: [{
-            name: 'Turnaround Speed',
-            data: barSeriesData
-        }],
-        plotOptions: {
-            bar: {
-                borderRadius: 6,
-                columnWidth: '40%',
-                distributed: false,
-                dataLabels: { position: 'top' }
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: (val) => `${val}d`,
-            offsetY: -20,
-            style: { 
-                colors: ['#000000'], 
-                fontSize: '10px',
-                fontFamily: 'Outfit, Inter, sans-serif',
-                fontWeight: 'bold'
-            }
-        },
-        xaxis: {
-            categories: barLabels,
-            labels: { 
-                style: { 
-                    colors: '#000000', 
-                    fontSize: '9px',
-                    fontWeight: 700
-                } 
-            },
-            axisBorder: { show: false },
-            axisTicks: { show: false }
-        },
-        yaxis: {
-            title: { 
-                text: 'Average Duration (Days)', 
-                style: { 
-                    color: '#000000',
-                    fontSize: '10px',
-                    fontWeight: 750
-                } 
-            },
-            labels: { 
-                style: { 
-                    colors: '#000000',
-                    fontSize: '9px',
-                    fontWeight: 700
-                } 
-            }
-        },
-        grid: { 
-            borderColor: '#e2e8f0',
-            strokeDashArray: 4
-        },
-        tooltip: {
-            theme: 'light',
-            y: {
-                formatter: (val) => `${val} calendar days on average`
-            }
-        }
-    };
-
-    if (barChartInstance) {
-        barChartInstance.updateOptions(barOptions);
-    } else {
-        const barEl = document.querySelector('#bar-chart');
-        if (barEl) {
-            barChartInstance = new window.ApexCharts(barEl, barOptions);
-            barChartInstance.render();
         }
     }
 
@@ -1159,7 +1058,7 @@ const renderCharts = () => {
         theme: {
             mode: 'light'
         },
-        colors: ['#a855f7', '#3b82f6'],
+        colors: ['#2563eb', '#10b981'],
         stroke: { 
             width: [3, 3], 
             curve: 'smooth'
@@ -1273,7 +1172,7 @@ const formatDate = (dateStr) => {
 }
 
 :deep(main) {
-    background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.02) 0%, transparent 40%),
+    background: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.02) 0%, transparent 40%),
                 radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.02) 0%, transparent 40%),
                 #f8fafc !important;
     color: #000000 !important;
@@ -1320,7 +1219,7 @@ const formatDate = (dateStr) => {
     border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(168, 85, 247, 0.25);
+    background: rgba(37, 99, 235, 0.25);
 }
 
 /* Animation utilities */

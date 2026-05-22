@@ -80,9 +80,31 @@ class ReportController extends Controller
             });
         }
 
-        // 4. Apply Task Status Filter
+        // 4. Clone main query for Pie Chart aggregates before applying status filter
+        $baseQueryForStatus = clone $query;
+
+        // Apply Service Request Status Filter directly to the main query
         if ($request->filled('task_status')) {
-            $taskQuery->where('status', $request->task_status);
+            $statusFilter = $request->task_status;
+            $now = Carbon::now()->toDateString();
+            
+            if ($statusFilter === 'completed') {
+                $query->where('status', 'completed');
+            } elseif ($statusFilter === 'in_progress') {
+                $query->whereIn('status', ['in_progress', 'review'])
+                      ->where(function($q) use ($now) {
+                          $q->whereNull('deadline')->orWhere('deadline', '>=', $now);
+                      });
+            } elseif ($statusFilter === 'pending') {
+                $query->whereIn('status', ['pending', 'quoted', 'approved'])
+                      ->where(function($q) use ($now) {
+                          $q->whereNull('deadline')->orWhere('deadline', '>=', $now);
+                      });
+            } elseif ($statusFilter === 'overdue') {
+                $query->whereNotIn('status', ['completed', 'cancelled'])
+                      ->whereNotNull('deadline')
+                      ->where('deadline', '<', $now);
+            }
         }
 
         // --- Aggregating Dashboard Widget Metrics ---
@@ -112,13 +134,9 @@ class ReportController extends Controller
                 ->where('approver_id', $user->id)->count();
         }
 
-        // Calculate KPI Performance Percentage
+        // Calculate KPI Performance Percentage based on Service Request completions
         $completionRate = ($totalRequests > 0) ? round(($completedServices / $totalRequests) * 100, 1) : 100.0;
-        $totalTasks = (clone $taskQuery)->count();
-        $completedTasksCount = (clone $taskQuery)->where('status', 'completed')->count();
-        $taskCompletionRate = ($totalTasks > 0) ? round(($completedTasksCount / $totalTasks) * 100, 1) : 100.0;
-        
-        $kpiPercentage = round(($completionRate + $taskCompletionRate) / 2, 1);
+        $kpiPercentage = $completionRate;
 
         // Turnaround Time calculation
         $completedRequests = (clone $query)->where('status', 'completed')->whereNotNull('completed_at')->get();
@@ -128,12 +146,21 @@ class ReportController extends Controller
         }
         $avgTurnaroundTime = count($turnaroundDays) > 0 ? round(array_sum($turnaroundDays) / count($turnaroundDays), 1) : 0.0;
 
-        // --- Task Status counts for Pie Chart ---
+        // --- Service Request Status counts for Pie/Donut Chart ---
+        $nowStr = Carbon::now()->toDateString();
         $taskStatuses = [
-            'completed' => (clone $taskQuery)->where('status', 'completed')->count(),
-            'in_progress' => (clone $taskQuery)->where('status', 'in_progress')->count(),
-            'pending' => (clone $taskQuery)->where('status', 'todo')->count(),
-            'overdue' => (clone $taskQuery)->where('status', '!=', 'completed')->where('due_date', '<', Carbon::now()->toDateString())->count(),
+            'completed' => (clone $baseQueryForStatus)->where('status', 'completed')->count(),
+            'in_progress' => (clone $baseQueryForStatus)->whereIn('status', ['in_progress', 'review'])
+                ->where(function($q) use ($nowStr) {
+                    $q->whereNull('deadline')->orWhere('deadline', '>=', $nowStr);
+                })->count(),
+            'pending' => (clone $baseQueryForStatus)->whereIn('status', ['pending', 'quoted', 'approved'])
+                ->where(function($q) use ($nowStr) {
+                    $q->whereNull('deadline')->orWhere('deadline', '>=', $nowStr);
+                })->count(),
+            'overdue' => (clone $baseQueryForStatus)->whereNotIn('status', ['completed', 'cancelled'])
+                ->whereNotNull('deadline')
+                ->where('deadline', '<', $nowStr)->count(),
         ];
 
         // --- Category Volume and Performance for Bar Chart ---
@@ -195,12 +222,12 @@ class ReportController extends Controller
         usort($staffProductivity, fn($a, $b) => $b['score'] <=> $a['score']);
 
         // --- Client Satisfaction Metrics ---
-        $avgSatisfaction = KpiRecord::where('metric_type', 'client_satisfaction');
+        $avgSatisfaction = ServiceRequest::whereNotNull('rating');
         if (!$isManagement) {
-            $avgSatisfaction->where('user_id', $user->id);
+            $avgSatisfaction->where('assigned_to', $user->id);
         }
-        $avgSatisfactionScore = $avgSatisfaction->avg('metric_value');
-        $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore, 1) : 4.7;
+        $avgSatisfactionScore = $avgSatisfaction->avg('rating');
+        $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore * 20, 1) : 94.0;
 
         // --- Trend Analysis over 6 months ---
         $monthlyTrends = [];
@@ -255,6 +282,7 @@ class ReportController extends Controller
             'categoryTurnaround' => $categoryTurnaround,
             'byStatus' => $taskStatuses,
             'monthly' => $monthlyTrends,
+            'serviceRequests' => (clone $query)->with(['client', 'assignedTo'])->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
             'totals' => [
                 'total_requests' => $totalRequests,
                 'active_assignments' => $activeAssignments,
@@ -580,8 +608,28 @@ class ReportController extends Controller
                 $q->where('service_category', $cat);
             });
         }
+        // Apply Service Request Status Filter directly to the main query
         if (!empty($filters['task_status'])) {
-            $taskQuery->where('status', $filters['task_status']);
+            $statusFilter = $filters['task_status'];
+            $now = Carbon::now()->toDateString();
+            
+            if ($statusFilter === 'completed') {
+                $query->where('status', 'completed');
+            } elseif ($statusFilter === 'in_progress') {
+                $query->whereIn('status', ['in_progress', 'review'])
+                      ->where(function($q) use ($now) {
+                          $q->whereNull('deadline')->orWhere('deadline', '>=', $now);
+                      });
+            } elseif ($statusFilter === 'pending') {
+                $query->whereIn('status', ['pending', 'quoted', 'approved'])
+                      ->where(function($q) use ($now) {
+                          $q->whereNull('deadline')->orWhere('deadline', '>=', $now);
+                      });
+            } elseif ($statusFilter === 'overdue') {
+                $query->whereNotIn('status', ['completed', 'cancelled'])
+                      ->whereNotNull('deadline')
+                      ->where('deadline', '<', $now);
+            }
         }
 
         // Totals
@@ -610,10 +658,7 @@ class ReportController extends Controller
         }
 
         $completionRate = ($totalRequests > 0) ? round(($completedServices / $totalRequests) * 100, 1) : 100.0;
-        $totalTasks = (clone $taskQuery)->count();
-        $completedTasksCount = (clone $taskQuery)->where('status', 'completed')->count();
-        $taskCompletionRate = ($totalTasks > 0) ? round(($completedTasksCount / $totalTasks) * 100, 1) : 100.0;
-        $kpiPercentage = round(($completionRate + $taskCompletionRate) / 2, 1);
+        $kpiPercentage = $completionRate;
 
         // Turnaround Time
         $completedRequests = (clone $query)->where('status', 'completed')->whereNotNull('completed_at')->get();
@@ -624,12 +669,12 @@ class ReportController extends Controller
         $avgTurnaroundTime = count($turnaroundDays) > 0 ? round(array_sum($turnaroundDays) / count($turnaroundDays), 1) : 0.0;
 
         // Satisfaction Score
-        $avgSatisfaction = KpiRecord::where('metric_type', 'client_satisfaction');
+        $avgSatisfaction = ServiceRequest::whereNotNull('rating');
         if (!$isManagement) {
-            $avgSatisfaction->where('user_id', $user->id);
+            $avgSatisfaction->where('assigned_to', $user->id);
         }
-        $avgSatisfactionScore = $avgSatisfaction->avg('metric_value');
-        $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore, 1) : 4.7;
+        $avgSatisfactionScore = $avgSatisfaction->avg('rating');
+        $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore * 20, 1) : 94.0;
 
         // --- Core Multi-Type Data Fetch Pipelines ---
         $requests = [];

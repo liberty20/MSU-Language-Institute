@@ -13,6 +13,7 @@ class ServiceRequest extends Model
         'reference_number', 'client_id', 'service_category', 'title',
         'description', 'source_language', 'target_language', 'priority',
         'status', 'submitted_by', 'assigned_to', 'deadline', 'notes',
+        'rating', 'review_comments',
     ];
 
     protected $casts = [
@@ -57,5 +58,10 @@ class ServiceRequest extends Model
     public function getServiceLabelAttribute()
     {
         return ucwords(str_replace('_', ' ', $this->service_category));
+    }
+
+    public function documents()
+    {
+        return $this->morphMany(UploadedDocument::class, 'documentable');
     }
 }

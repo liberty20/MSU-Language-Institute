@@ -8,12 +8,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AssignmentController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = Assignment::with(['serviceRequest.client', 'assignedTo', 'assignedBy']);
+
+        if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+            $query->where('assigned_to', $user->id);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -55,8 +61,55 @@ class AssignmentController extends Controller
 
     public function show(Assignment $assignment)
     {
-        $assignment->load(['serviceRequest.client', 'assignedTo', 'assignedBy', 'tasks']);
+        $user = Auth::user();
+        if (($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $assignment->load(['serviceRequest.client', 'serviceRequest.documents.uploader', 'assignedTo', 'assignedBy', 'tasks', 'documents.uploader']);
         return Inertia::render('Assignments/Show', ['assignment' => $assignment]);
+    }
+
+    public function completeAssignment(Request $request, Assignment $assignment)
+    {
+        $user = Auth::user();
+        if (($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $request->validate([
+            'file'  => 'required|file|max:10240', // max 10MB
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            $filePath = $file->store('documents', 'public');
+            $fileSize = $file->getSize();
+            $mimeType = $file->getMimeType();
+
+            $assignment->documents()->create([
+                'uploaded_by' => $user->id,
+                'filename'    => $filename,
+                'file_path'   => $filePath,
+                'file_size'   => $fileSize,
+                'mime_type'   => $mimeType,
+                'description' => $request->input('notes', 'Assignment deliverable submission'),
+            ]);
+        }
+
+        $assignment->update([
+            'status'       => 'completed',
+            'completed_at' => now(),
+            'notes'        => $request->input('notes', $assignment->notes),
+        ]);
+
+        if ($assignment->serviceRequest) {
+            $assignment->serviceRequest->update(['status' => 'review']);
+        }
+
+        return redirect()->back()->with('success', 'Assignment completed and deliverable submitted successfully.');
     }
 
     public function edit(Assignment $assignment)

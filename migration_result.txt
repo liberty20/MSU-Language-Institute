@@ -1,0 +1,8 @@
+Starting migrations...
+Migration output:
+Nothing to migrate.
+
+
+Starting seeding...
+Seeder output:
+Database seeding completed successfully.

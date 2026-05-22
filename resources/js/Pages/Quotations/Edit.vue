@@ -1,14 +1,16 @@
 <template>
-    <Head title="Create Quotation" />
+    <Head title="Edit Quotation" />
 
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center gap-3">
-                <Link :href="route('quotations.index')" class="text-gray-400 hover:text-[#0a1f44] transition">
+                <Link :href="route('quotations.show', quotation.id)" class="text-gray-400 hover:text-[#0a1f44] transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </Link>
                 <span class="text-gray-400">/</span>
-                <span>New Quotation</span>
+                <span class="text-gray-400">Quotation {{ quotation.reference_number }}</span>
+                <span class="text-gray-400">/</span>
+                <span>Edit</span>
             </div>
         </template>
 
@@ -26,7 +28,7 @@
                             class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
                         <option value="">Select a service request…</option>
                         <option v-for="sr in serviceRequests" :key="sr.id" :value="sr.id">
-                            {{ sr.reference_number }} — {{ sr.title }} ({{ sr.client?.organization || sr.client?.contact_person }})
+                            {{ sr.reference_number }} — {{ sr.title }}
                         </option>
                     </select>
                     <p v-if="form.errors.service_request_id" class="text-red-500 text-xs mt-1">{{ form.errors.service_request_id }}</p>
@@ -145,12 +147,11 @@
 
             <!-- Actions -->
             <div class="flex items-center justify-end gap-3 pb-6">
-                <Link :href="route('quotations.index')"
+                <Link :href="route('quotations.show', quotation.id)"
                       class="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
                     Cancel
                 </Link>
                 <button type="submit" :disabled="form.processing"
-                        name="status" value="draft"
                         @click="form.status = 'draft'"
                         class="px-5 py-2.5 border border-[#0a1f44] text-[#0a1f44] rounded-xl text-sm font-semibold hover:bg-[#0a1f44]/5 transition disabled:opacity-50">
                     Save as Draft
@@ -171,22 +172,33 @@ import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
+    quotation: Object,
     serviceRequests: Array,
-    preselectedServiceRequestId: [String, Number],
 });
 
-const lineItems = ref([
-    { description: '', qty: 1, unit_price: 0 }
-]);
+// Helper function to safely parse line items
+const initialLineItems = () => {
+    if (!props.quotation.line_items) return [{ description: '', qty: 1, unit_price: 0 }];
+    try {
+        const items = typeof props.quotation.line_items === 'string'
+            ? JSON.parse(props.quotation.line_items)
+            : props.quotation.line_items;
+        return Array.isArray(items) && items.length > 0 ? items : [{ description: '', qty: 1, unit_price: 0 }];
+    } catch {
+        return [{ description: '', qty: 1, unit_price: 0 }];
+    }
+};
+
+const lineItems = ref(initialLineItems());
 
 const form = useForm({
-    service_request_id: props.preselectedServiceRequestId || '',
-    currency: 'USD',
-    valid_until: '',
-    description: '',
-    notes: '',
-    status: 'draft',
-    amount: 0,
+    service_request_id: props.quotation.service_request_id || '',
+    currency: props.quotation.currency || 'USD',
+    valid_until: props.quotation.valid_until || '',
+    description: props.quotation.description || '',
+    notes: props.quotation.notes || '',
+    status: props.quotation.status || 'draft',
+    amount: props.quotation.amount || 0,
     line_items: [],
 });
 
@@ -205,6 +217,6 @@ const removeItem = (index) => {
 const submit = () => {
     form.amount = grandTotal.value;
     form.line_items = lineItems.value;
-    form.post(route('quotations.store'));
+    form.put(route('quotations.update', props.quotation.id));
 };
 </script>

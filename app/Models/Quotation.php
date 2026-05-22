@@ -11,12 +11,13 @@ class Quotation extends Model
 
     protected $fillable = [
         'reference_number', 'service_request_id', 'prepared_by',
-        'description', 'amount', 'currency', 'valid_until', 'status', 'notes',
+        'description', 'amount', 'currency', 'valid_until', 'status', 'notes', 'line_items',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
         'amount'      => 'decimal:2',
+        'line_items'  => 'array',
     ];
 
     protected static function boot()
@@ -37,5 +38,10 @@ class Quotation extends Model
     public function preparedBy()
     {
         return $this->belongsTo(User::class, 'prepared_by');
+    }
+
+    public function approvals()
+    {
+        return $this->morphMany(Approval::class, 'approvable');
     }
 }

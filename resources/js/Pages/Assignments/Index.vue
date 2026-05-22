@@ -5,9 +5,9 @@
         <template #header>
             <div class="flex justify-between items-center">
                 <span>Assignments Board</span>
-                <button class="bg-[#0a1f44] text-white hover:bg-[#152a4d] px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('assignments.create')" class="bg-[#0a1f44] text-white hover:bg-[#152a4d] px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm inline-block">
                     + New Assignment
-                </button>
+                </Link>
             </div>
         </template>
 
@@ -30,7 +30,7 @@
                             <th class="px-6 py-4 font-semibold">Service Request</th>
                             <th class="px-6 py-4 font-semibold">Assigned To</th>
                             <th class="px-6 py-4 font-semibold">Role</th>
-                            <th class="px-6 py-4 font-semibold">Rate / Fee</th>
+                            <th class="px-6 py-4 font-semibold">Assigned By</th>
                             <th class="px-6 py-4 font-semibold">Status</th>
                             <th class="px-6 py-4 font-semibold text-right">Actions</th>
                         </tr>
@@ -44,20 +44,19 @@
                             <td class="px-6 py-4 text-gray-600">
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold">
-                                        {{ assignment.user?.name?.charAt(0) || 'U' }}
+                                        {{ assignment.assigned_to?.name?.charAt(0) || 'U' }}
                                     </div>
-                                    {{ assignment.user?.name }}
+                                    {{ assignment.assigned_to?.name }}
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-gray-600 capitalize">{{ assignment.role_type.replace('_', ' ') }}</td>
+                            <td class="px-6 py-4 text-gray-600 capitalize">{{ (assignment.role_in_task || 'Staff').replace('_', ' ') }}</td>
                             <td class="px-6 py-4 text-gray-900">
-                                <span v-if="assignment.agreed_fee">${{ assignment.agreed_fee }}</span>
-                                <span v-else class="text-gray-400">N/A</span>
+                                {{ assignment.assigned_by?.name || 'Director' }}
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize"
                                     :class="{
-                                        'bg-yellow-100 text-yellow-800': assignment.status === 'pending',
+                                        'bg-yellow-100 text-yellow-800': assignment.status === 'assigned' || assignment.status === 'pending',
                                         'bg-blue-100 text-blue-800': assignment.status === 'accepted' || assignment.status === 'in_progress',
                                         'bg-green-100 text-green-800': assignment.status === 'completed',
                                         'bg-red-100 text-red-800': assignment.status === 'rejected'

@@ -32,7 +32,7 @@ class ReportTest extends TestCase
 
         // 1. Setup Roles
         $permissions = [
-            'view reports', 'manage service requests', 'manage quotations', 'view service requests', 'view assignments'
+            'view reports', 'manage service requests', 'manage quotations', 'view service requests', 'view assignments', 'manage tasks'
         ];
 
         foreach ($permissions as $p) {

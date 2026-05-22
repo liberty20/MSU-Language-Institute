@@ -7,12 +7,28 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceRequestController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = ServiceRequest::with(['client', 'submittedBy']);
+
+        // Scope queries so clients only see their own service requests
+        if ($user->hasRole('client')) {
+            $query->where('submitted_by', $user->id);
+        }
+
+        // Scope queries so staff only see their assigned requests where quotation is approved
+        if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+            $query->whereHas('assignments', function ($q) use ($user) {
+                $q->where('assigned_to', $user->id);
+            })->whereHas('quotations', function ($q) {
+                $q->where('status', 'approved');
+            });
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -64,8 +80,72 @@ class ServiceRequestController extends Controller
 
     public function show(ServiceRequest $serviceRequest)
     {
-        $serviceRequest->load(['client', 'submittedBy', 'assignedTo', 'quotations.preparedBy', 'assignments.assignedTo']);
+        $user = Auth::user();
+        
+        // Scope checks for show
+        if ($user->hasRole('client') && $serviceRequest->submitted_by !== $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+            $hasAccess = $serviceRequest->assignments()->where('assigned_to', $user->id)->exists() &&
+                         $serviceRequest->quotations()->where('status', 'approved')->exists();
+            if (!$hasAccess) {
+                abort(403, 'Unauthorized.');
+            }
+        }
+
+        if ($user->hasRole('client')) {
+            $serviceRequest->load([
+                'client', 
+                'submittedBy', 
+                'assignedTo', 
+                'quotations' => function ($q) {
+                    $q->where('status', 'approved')->with('preparedBy');
+                }, 
+                'assignments.assignedTo',
+                'documents.uploader',
+                'assignments.documents.uploader'
+            ]);
+        } else {
+            $serviceRequest->load([
+                'client', 
+                'submittedBy', 
+                'assignedTo', 
+                'quotations.preparedBy', 
+                'quotations.approvals.approver', 
+                'assignments.assignedTo',
+                'documents.uploader',
+                'assignments.documents.uploader'
+            ]);
+        }
         return Inertia::render('ServiceRequests/Show', ['serviceRequest' => $serviceRequest]);
+    }
+
+    public function rate(Request $request, ServiceRequest $serviceRequest)
+    {
+        $user = Auth::user();
+
+        // Enforce authorization
+        if ($serviceRequest->submitted_by !== $user->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($serviceRequest->status !== 'completed') {
+            return redirect()->back()->with('error', 'Only completed service requests can be rated.');
+        }
+
+        $validated = $request->validate([
+            'rating'          => 'required|integer|min:1|max:5',
+            'review_comments' => 'nullable|string|max:1000',
+        ]);
+
+        $serviceRequest->update([
+            'rating'          => $validated['rating'],
+            'review_comments' => $validated['review_comments'],
+        ]);
+
+        return redirect()->back()->with('success', 'Thank you for your rating and feedback!');
     }
 
     public function edit(ServiceRequest $serviceRequest)
@@ -94,5 +174,102 @@ class ServiceRequestController extends Controller
     {
         $serviceRequest->delete();
         return redirect()->route('service-requests.index')->with('success', 'Service request deleted.');
+    }
+
+    public function reviews()
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('client')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $serviceRequests = ServiceRequest::with('client')
+             ->where('submitted_by', $user->id)
+             ->where('status', 'completed')
+             ->orderBy('created_at', 'desc')
+             ->get();
+
+        return Inertia::render('Reviews/Index', [
+            'serviceRequests' => $serviceRequests
+        ]);
+    }
+
+    public function attachDocument(Request $request, ServiceRequest $serviceRequest)
+    {
+        $user = Auth::user();
+        
+        // Scope checks for attach
+        if ($user->hasRole('client') && $serviceRequest->submitted_by !== $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $request->validate([
+            'file'        => 'required|file|max:10240', // max 10MB
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            $filePath = $file->store('documents', 'public');
+            $fileSize = $file->getSize();
+            $mimeType = $file->getMimeType();
+
+            $serviceRequest->documents()->create([
+                'uploaded_by' => $user->id,
+                'filename'    => $filename,
+                'file_path'   => $filePath,
+                'file_size'   => $fileSize,
+                'mime_type'   => $mimeType,
+                'description' => $request->input('description', 'Client uploaded attachment'),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Document attached successfully.');
+    }
+
+    public function deliverRequest(Request $request, ServiceRequest $serviceRequest)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('executive_director') && !$user->hasRole('deputy_director')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $serviceRequest->update([
+            'status' => 'completed',
+            'notes'  => $request->input('notes', $serviceRequest->notes),
+        ]);
+
+        return redirect()->back()->with('success', 'Completed task successfully sent to the client.');
+    }
+
+    public function completedTasksIndex(Request $request)
+    {
+        $user = Auth::user();
+        $allowedRoles = ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'];
+        
+        $hasAllowedRole = false;
+        foreach ($allowedRoles as $role) {
+            if ($user->hasRole($role)) {
+                $hasAllowedRole = true;
+                break;
+            }
+        }
+        
+        if (!$hasAllowedRole) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $query = ServiceRequest::with(['client', 'submittedBy', 'assignedTo', 'documents.uploader', 'assignments.documents.uploader', 'assignments.assignedTo'])
+            ->whereIn('status', ['review', 'completed']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        return Inertia::render('ServiceRequests/CompletedTasks', [
+            'serviceRequests' => $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString(),
+            'filters'         => $request->only(['status']),
+        ]);
     }
 }

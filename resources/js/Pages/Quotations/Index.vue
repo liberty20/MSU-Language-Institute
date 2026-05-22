@@ -3,11 +3,13 @@
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center w-full">
                 <span>Quotations Dashboard</span>
-                <button class="bg-[#f5c242] text-[#0a1f44] hover:bg-yellow-500 px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
+                <Link v-if="($page.props.auth.permissions.includes('manage quotations') || $page.props.auth.permissions.includes('manage system')) && !$page.props.auth.roles.includes('executive_director') && !$page.props.auth.roles.includes('deputy_director')"
+                      :href="route('quotations.create')"
+                      class="bg-brand-gold hover:bg-brand-gold-dark text-brand-blue font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center gap-1">
                     + Generate Quotation
-                </button>
+                </Link>
             </div>
         </template>
 
@@ -47,13 +49,8 @@
                             <td class="px-6 py-4 font-semibold text-[#0a1f44]">{{ quotation.currency }} {{ parseFloat(quotation.amount).toFixed(2) }}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize"
-                                    :class="{
-                                        'bg-yellow-100 text-yellow-800': quotation.status === 'pending_approval',
-                                        'bg-green-100 text-green-800': quotation.status === 'approved',
-                                        'bg-red-100 text-red-800': quotation.status === 'rejected',
-                                        'bg-gray-100 text-gray-800': ['draft', 'expired'].includes(quotation.status)
-                                    }">
-                                    {{ quotation.status.replace('_', ' ') }}
+                                    :class="getQuotationStatus(quotation).class">
+                                    {{ getQuotationStatus(quotation).label }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-gray-500">{{ new Date(quotation.valid_until).toLocaleDateString() }}</td>
@@ -88,4 +85,25 @@ import { Head, Link } from '@inertiajs/inertia-vue3';
 defineProps({
     quotations: Object
 });
+
+const getQuotationStatus = (quotation) => {
+    if (quotation.status === 'draft') {
+        return quotation.approvals && quotation.approvals.length > 0
+            ? { label: 'Needs Revision', class: 'bg-orange-100 text-orange-800' }
+            : { label: 'Draft', class: 'bg-gray-100 text-gray-700' };
+    }
+    if (quotation.status === 'submitted') {
+        return { label: 'Pending Recommendation', class: 'bg-blue-100 text-blue-800' };
+    }
+    if (quotation.status === 'pending_approval') {
+        return { label: 'Recommended', class: 'bg-yellow-100 text-yellow-800' };
+    }
+    if (quotation.status === 'approved') {
+        return { label: 'Approved', class: 'bg-green-100 text-green-800' };
+    }
+    if (quotation.status === 'rejected') {
+        return { label: 'Rejected', class: 'bg-red-100 text-red-800' };
+    }
+    return { label: quotation.status.replace(/_/g, ' '), class: 'bg-gray-100 text-gray-700' };
+};
 </script>

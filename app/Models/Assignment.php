@@ -38,4 +38,9 @@ class Assignment extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function documents()
+    {
+        return $this->morphMany(UploadedDocument::class, 'documentable');
+    }
 }
