@@ -50,8 +50,8 @@
         </template>
 
         <div class="w-full space-y-6 pb-16 animate-fade-in-up">
-            <!-- Executive KPI Deck (6 Cards) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+            <!-- Executive KPI Deck (7 Cards) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-5">
                 <!-- Card 1: Total Intake Requests -->
                 <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -169,6 +169,34 @@
                     <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
                         <span>Compliance Rate</span>
                         <span class="text-sky-700 font-black">Audit score</span>
+                    </div>
+                </div>
+
+                <!-- Card 7: Total Revenue Generated -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-500"></div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Generated</span>
+                            <div class="flex flex-col gap-0.5 mt-1">
+                                <span v-for="(amount, curr) in animatedRevenue" :key="curr" class="block text-sm font-black text-emerald-600 font-mono leading-none">
+                                    {{ curr }} {{ Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                </span>
+                                <span v-if="Object.keys(animatedRevenue).length === 0" class="block text-sm font-black text-emerald-600 font-mono leading-none">
+                                    USD 0.00
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold relative z-10">
+                        <span>Verified Inflow</span>
+                        <span class="text-emerald-650 font-black">Live Stats</span>
                     </div>
                 </div>
             </div>
@@ -799,6 +827,8 @@ const animatedTotals = reactive({
     kpi_performance: 0
 });
 
+const animatedRevenue = reactive({});
+
 const animateValue = (key, target, duration = 800) => {
     const startValue = animatedTotals[key] || 0;
     const startTime = performance.now();
@@ -827,6 +857,28 @@ const animateValue = (key, target, duration = 800) => {
     requestAnimationFrame(step);
 };
 
+const animateRevenueValue = (curr, target, duration = 800) => {
+    const startValue = animatedRevenue[curr] || 0;
+    const startTime = performance.now();
+    
+    const step = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = progress * (2 - progress); // easeOutQuad
+        
+        let currentVal = startValue + (target - startValue) * ease;
+        animatedRevenue[curr] = parseFloat(currentVal.toFixed(2));
+        
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            animatedRevenue[curr] = target;
+        }
+    };
+    
+    requestAnimationFrame(step);
+};
+
 const triggerAnimations = () => {
     animateValue('total_requests', props.totals.total_requests || 0);
     animateValue('active_assignments', props.totals.active_assignments || 0);
@@ -834,6 +886,18 @@ const triggerAnimations = () => {
     animateValue('avg_turnaround', props.totals.avg_turnaround || 0);
     animateValue('client_satisfaction', props.totals.client_satisfaction || 0);
     animateValue('kpi_performance', props.totals.kpi_performance || 0);
+    
+    const revGen = props.totals.revenue_generated || {};
+    // Remove any currency keys that are no longer in revGen
+    Object.keys(animatedRevenue).forEach(key => {
+        if (!(key in revGen)) {
+            delete animatedRevenue[key];
+        }
+    });
+    // Animate each active currency key
+    Object.entries(revGen).forEach(([curr, amount]) => {
+        animateRevenueValue(curr, parseFloat(amount) || 0);
+    });
 };
 
 const applyFilters = () => {

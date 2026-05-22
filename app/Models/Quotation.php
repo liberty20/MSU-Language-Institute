@@ -44,4 +44,9 @@ class Quotation extends Model
     {
         return $this->morphMany(Approval::class, 'approvable');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

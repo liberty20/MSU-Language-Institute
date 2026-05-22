@@ -40,7 +40,7 @@
                     Clients
                 </Link>
 
-                <Link v-if="can('view assignments')" :href="route('assignments.index')" :class="navClass('assignments.*')">
+                <Link v-if="can('view assignments') || can('manage assignments')" :href="route('assignments.index')" :class="navClass('assignments.*')">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     Assignments
                 </Link>
@@ -50,6 +50,15 @@
                     Completed Tasks
                 </Link>
 
+                <Link v-if="$page.props.auth.roles.includes('client')" :href="route('payments.index')" :class="navClass('payments.*')">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    Payment Details
+                </Link>
+
+                <Link v-if="['executive_director', 'deputy_director'].some(r => $page.props.auth.roles.includes(r))" :href="route('finance.index')" :class="navClass('finance.*')">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Finance
+                </Link>
 
                 <a v-if="can('manage procurement') || can('approve procurement')" href="https://procurementreq.msu.ac.zw/" :class="navClass('procurement-requests.*')">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
@@ -73,9 +82,9 @@
             </nav>
 
             <!-- User Profile Bottom -->
-            <div class="p-4 border-t border-brand-blue-light">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-brand-gold text-brand-blue flex items-center justify-center font-bold text-lg shadow">
+            <div class="p-4 border-t border-brand-blue-light flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-full bg-brand-gold text-brand-blue flex items-center justify-center font-bold text-lg shadow flex-shrink-0">
                         {{ $page.props.auth.user.name.charAt(0) }}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -83,6 +92,9 @@
                         <p class="text-xs text-gray-300 truncate uppercase">{{ $page.props.auth.roles[0] ? $page.props.auth.roles[0].replace('_', ' ') : 'User' }}</p>
                     </div>
                 </div>
+                <Link :href="route('profile.edit')" class="p-1.5 text-gray-300 hover:text-brand-gold rounded-lg hover:bg-white/5 transition flex-shrink-0" title="Edit Profile">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </Link>
             </div>
         </aside>
 
@@ -126,6 +138,10 @@
                                 </button>
                             </template>
                             <template #content>
+                                <DropdownLink :href="route('profile.edit')" class="text-gray-750 hover:bg-gray-50 font-medium">
+                                    Edit Profile
+                                </DropdownLink>
+                                <div class="border-t border-gray-100 my-1"></div>
                                 <DropdownLink :href="route('logout')" method="post" as="button" class="text-red-600 font-medium">
                                     Log Out
                                 </DropdownLink>

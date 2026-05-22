@@ -291,6 +291,12 @@ class ReportController extends Controller
                 'kpi_performance' => $kpiPercentage,
                 'avg_turnaround' => $avgTurnaroundTime,
                 'client_satisfaction' => $avgSatisfactionScore,
+                'revenue_generated' => \App\Models\Payment::where('payments.status', 'verified')
+                    ->join('quotations', 'payments.quotation_id', '=', 'quotations.id')
+                    ->selectRaw('quotations.currency, SUM(payments.amount_paid) as total')
+                    ->groupBy('quotations.currency')
+                    ->pluck('total', 'currency')
+                    ->toArray(),
             ],
             'staffProductivity' => $staffProductivity,
             'reports' => $reports,

@@ -64,4 +64,9 @@ class ServiceRequest extends Model
     {
         return $this->morphMany(UploadedDocument::class, 'documentable');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

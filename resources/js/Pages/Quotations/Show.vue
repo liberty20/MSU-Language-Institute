@@ -31,14 +31,17 @@
             <div class="lg:col-span-2 space-y-6">
 
                 <!-- Header Block -->
-                <div id="quotation-print" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div id="quotation-print" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
                     <!-- MSU Header -->
                     <div class="bg-[#0a1f44] text-white p-8">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <h1 class="text-2xl font-black tracking-tight">MSUNLI</h1>
-                                <p class="text-[#f5c242] font-semibold text-sm">Midlands State University National Language Institute</p>
-                                <p class="text-white/60 text-xs mt-2">Senga Road, Gweru, Zimbabwe</p>
+                            <div class="flex items-center gap-4">
+                                <img src="/msu-logo-2.png" alt="MSU Logo" class="h-16 w-auto object-contain bg-white p-1.5 rounded-xl shadow-sm flex-shrink-0" />
+                                <div>
+                                    <h1 class="text-2xl font-black tracking-tight">MSUNLI</h1>
+                                    <p class="text-[#f5c242] font-semibold text-sm">Midlands State University National Language Institute</p>
+                                    <p class="text-white/60 text-xs mt-1">Senga Road, Gweru, Zimbabwe</p>
+                                </div>
                             </div>
                             <div class="text-right">
                                 <p class="text-3xl font-black text-[#f5c242] tracking-widest">QUOTATION</p>
@@ -122,6 +125,16 @@
                         <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Terms &amp; Notes</p>
                         <p class="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed">{{ quotation.notes }}</p>
                     </div>
+
+                    <!-- Official Digital Approval Stamp -->
+                    <div v-if="quotation.status === 'approved'" class="absolute bottom-6 right-8 pointer-events-none select-none print:block z-10">
+                        <div class="border-4 border-double border-emerald-600 text-emerald-600 rounded-xl px-5 py-2.5 font-black text-center uppercase tracking-widest bg-white/95 shadow-sm rotate-[-6deg] flex flex-col items-center justify-center space-y-1 transform hover:scale-105 transition-transform duration-300">
+                            <div class="text-[9px] tracking-wide text-emerald-500 font-bold uppercase">Midlands State University</div>
+                            <div class="text-[8px] tracking-wide text-emerald-500 font-semibold uppercase">National Language Institute</div>
+                            <div class="border-y-2 border-emerald-600 py-0.5 px-4 my-1 text-sm font-black tracking-widest">APPROVED</div>
+                            <div class="text-[10px] tracking-widest text-emerald-700 font-black">DIRECTOR</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Approvals -->
@@ -167,6 +180,16 @@
                             ✎ Edit Quotation
                         </Link>
                     </div>
+                </div>
+
+                <!-- Proceed to Payment Action for Clients -->
+                <div v-if="quotation.status === 'approved' && $page.props.auth.roles.includes('client')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-3">Payment Details</h3>
+                    <p class="text-xs text-gray-500 mb-4">Proceed to view our active MSU bank details and upload your transaction receipt to secure your request.</p>
+                    <Link :href="route('payments.create', { quotation_id: quotation.id })"
+                          class="w-full bg-[#f5c242] text-[#0a1f44] py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-yellow-400 transition flex items-center justify-center gap-2 shadow-sm hover:scale-[1.01] transform">
+                        💳 Proceed to Payment
+                    </Link>
                 </div>
 
                 <!-- Deputy Director Recommendation -->

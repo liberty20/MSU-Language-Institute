@@ -1,5 +1,5 @@
 <template>
-    <Head title="Create User" />
+    <Head title="Edit User" />
 
     <AuthenticatedLayout>
         <template #header>
@@ -8,7 +8,9 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </Link>
                 <span class="text-gray-400">/</span>
-                <span>Add User</span>
+                <span class="text-gray-400">Users</span>
+                <span class="text-gray-400">/</span>
+                <span>Edit User</span>
             </div>
         </template>
 
@@ -31,14 +33,14 @@
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
-                            <input v-model="form.password" type="password" required
+                            <label class="block text-sm font-medium text-gray-700 mb-1">New Password <span class="text-gray-400">(leave blank to keep current)</span></label>
+                            <input v-model="form.password" type="password"
                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm" />
                             <p v-if="form.errors.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password <span class="text-red-500">*</span></label>
-                            <input v-model="form.password_confirmation" type="password" required
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                            <input v-model="form.password_confirmation" type="password"
                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm" />
                             <p v-if="form.errors.password_confirmation" class="text-red-500 text-xs mt-1">{{ form.errors.password_confirmation }}</p>
                         </div>
@@ -80,7 +82,7 @@
                     <button type="submit" :disabled="form.processing"
                             class="px-6 py-2.5 bg-[#0a1f44] text-white rounded-xl text-sm font-bold hover:bg-[#0a1f44]/80 transition disabled:opacity-50 shadow-sm flex items-center gap-2">
                         <svg v-if="form.processing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        Save User
+                        Update User
                     </button>
                 </div>
             </form>
@@ -91,22 +93,24 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
+import { onMounted } from 'vue';
 
-defineProps({
+const props = defineProps({
+    user: Object,
     roles: Array,
 });
 
 const form = useForm({
-    name: '',
-    email: '',
+    name: props.user.name,
+    email: props.user.email,
     password: '',
     password_confirmation: '',
-    phone: '',
-    role: '',
-    is_active: true,
+    phone: props.user.phone || '',
+    role: props.user.roles && props.user.roles.length > 0 ? props.user.roles[0].name : '',
+    is_active: props.user.is_active === 1 || props.user.is_active === true,
 });
 
 const submit = () => {
-    form.post(route('admin.users.store'));
+    form.put(route('admin.users.update', props.user.id));
 };
 </script>

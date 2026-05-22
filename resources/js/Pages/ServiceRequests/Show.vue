@@ -163,7 +163,7 @@
                                             <p class="text-[10px] text-gray-400 font-medium truncate">{{ doc.description || 'Client upload' }} • By {{ doc.uploader?.name || 'Client' }}</p>
                                         </div>
                                     </div>
-                                    <a :href="'/storage/' + doc.file_path" :download="doc.filename" class="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
+                                    <a :href="route('documents.download', doc.id)" class="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition" target="_blank"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
                                 </div>
                             </div>
                         </div>
@@ -183,7 +183,7 @@
                                             <p class="text-[10px] text-gray-500 font-medium truncate">{{ doc.description || 'Completed Deliverable' }} • By {{ doc.uploader?.name || 'Staff' }}</p>
                                         </div>
                                     </div>
-                                    <a :href="'/storage/' + doc.file_path" :download="doc.filename" class="p-1.5 hover:bg-green-100 rounded text-green-700 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
+                                    <a :href="route('documents.download', doc.id)" class="p-1.5 hover:bg-green-100 rounded text-green-700 transition" target="_blank"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
                                 </div>
                             </div>
                         </div>
@@ -282,9 +282,21 @@
                     <p class="text-xs text-gray-700 leading-relaxed">
                         The assigned staff members have uploaded the final deliverables and completed their task. Review the files on the left and click below to send them to the client.
                     </p>
+
+                    <!-- Lock Warning if payment is not verified yet -->
+                    <div v-if="!hasVerifiedPayment" class="p-3 bg-amber-50 border border-amber-250 rounded-xl flex items-start gap-2.5">
+                        <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div class="text-xs">
+                            <p class="font-bold text-amber-850">Delivery Locked</p>
+                            <p class="text-amber-750 mt-0.5">Client has not uploaded proof of payment or the transaction is pending verification in the Finance module.</p>
+                        </div>
+                    </div>
+
                     <form @submit.prevent="deliverCompletedTask" class="space-y-3">
-                        <textarea v-model="deliveryForm.notes" placeholder="Optional delivery notes for the client..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
-                        <button type="submit" :disabled="deliveryForm.processing" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
+                        <textarea v-model="deliveryForm.notes" placeholder="Optional delivery notes for the client..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue" :disabled="!hasVerifiedPayment"></textarea>
+                        <button type="submit" :disabled="deliveryForm.processing || !hasVerifiedPayment" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
                             <span v-if="deliveryForm.processing" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                             <span>Approve & Send to Client</span>
                         </button>
@@ -349,6 +361,11 @@ const deliverCompletedTask = () => {
 const staffDeliverables = computed(() => {
     if (!props.serviceRequest.assignments) return [];
     return props.serviceRequest.assignments.flatMap(a => a.documents || []);
+});
+
+const hasVerifiedPayment = computed(() => {
+    if (!props.serviceRequest.payments) return false;
+    return props.serviceRequest.payments.some(p => p.status === 'verified');
 });
 
 const canManage = computed(() => {

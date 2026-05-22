@@ -105,7 +105,8 @@ class ServiceRequestController extends Controller
                 }, 
                 'assignments.assignedTo',
                 'documents.uploader',
-                'assignments.documents.uploader'
+                'assignments.documents.uploader',
+                'payments.quotation'
             ]);
         } else {
             $serviceRequest->load([
@@ -116,7 +117,9 @@ class ServiceRequestController extends Controller
                 'quotations.approvals.approver', 
                 'assignments.assignedTo',
                 'documents.uploader',
-                'assignments.documents.uploader'
+                'assignments.documents.uploader',
+                'payments.verifiedBy',
+                'payments.quotation'
             ]);
         }
         return Inertia::render('ServiceRequests/Show', ['serviceRequest' => $serviceRequest]);
@@ -235,10 +238,15 @@ class ServiceRequestController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $serviceRequest->update([
-            'status' => 'completed',
-            'notes'  => $request->input('notes', $serviceRequest->notes),
-        ]);
+        $hasVerifiedPayment = $serviceRequest->payments()->where('status', 'verified')->exists();
+        if (!$hasVerifiedPayment) {
+            return redirect()->back()->with('error', 'Cannot deliver task: No verified proof of payment has been uploaded or verified for this service request.');
+        }
+
+        $serviceRequest->status = 'completed';
+        $serviceRequest->notes = $request->input('notes', $serviceRequest->notes);
+        $serviceRequest->completed_at = now();
+        $serviceRequest->save();
 
         return redirect()->back()->with('success', 'Completed task successfully sent to the client.');
     }
@@ -270,6 +278,59 @@ class ServiceRequestController extends Controller
         return Inertia::render('ServiceRequests/CompletedTasks', [
             'serviceRequests' => $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString(),
             'filters'         => $request->only(['status']),
+        ]);
+    }
+
+    public function downloadDocument(\App\Models\UploadedDocument $document)
+    {
+        $user = Auth::user();
+        
+        // Administrative roles can access any documents
+        if ($user->hasRole('executive_director') || 
+            $user->hasRole('deputy_director') || 
+            $user->hasRole('ict_administrator') || 
+            $user->hasRole('admin_assistant')) {
+            // Authorized
+        } else if ($user->hasRole('client')) {
+            $parent = $document->documentable;
+            if ($parent instanceof \App\Models\ServiceRequest) {
+                if ($parent->submitted_by !== $user->id) {
+                    abort(403, 'Unauthorized.');
+                }
+            } elseif ($parent instanceof \App\Models\Assignment) {
+                if ($parent->serviceRequest->submitted_by !== $user->id) {
+                    abort(403, 'Unauthorized.');
+                }
+            } else {
+                abort(403, 'Unauthorized.');
+            }
+        } else if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+            $parent = $document->documentable;
+            if ($parent instanceof \App\Models\ServiceRequest) {
+                $hasAccess = $parent->assignments()->where('assigned_to', $user->id)->exists();
+                if (!$hasAccess) {
+                    abort(403, 'Unauthorized.');
+                }
+            } elseif ($parent instanceof \App\Models\Assignment) {
+                if ($parent->assigned_to !== $user->id) {
+                    abort(403, 'Unauthorized.');
+                }
+            } else {
+                abort(403, 'Unauthorized.');
+            }
+        } else {
+            abort(403, 'Unauthorized.');
+        }
+
+        $path = $document->file_path;
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File not found.');
+        }
+
+        $absolutePath = Storage::disk('public')->path($path);
+        
+        return response()->file($absolutePath, [
+            'Content-Disposition' => 'inline; filename="' . $document->filename . '"',
         ]);
     }
 }
