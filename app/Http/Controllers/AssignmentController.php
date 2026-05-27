@@ -25,9 +25,19 @@ class AssignmentController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('client')) {
+            $query->whereHas('serviceRequest.client', function ($q) use ($request) {
+                $q->where('contact_person', 'like', '%'.$request->client.'%')
+                  ->orWhere('organization', 'like', '%'.$request->client.'%');
+            });
+        }
+
         return Inertia::render('Assignments/Index', [
             'assignments' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
-            'filters'     => $request->only(['status']),
+            'filters'     => [
+                'status' => $request->status,
+                'client' => $request->client,
+            ],
         ]);
     }
 

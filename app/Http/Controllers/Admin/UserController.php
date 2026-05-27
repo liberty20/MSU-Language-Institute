@@ -11,6 +11,16 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+                abort(403, 'Unauthorized.');
+            }
+            return $next($request);
+        });
+    }
     public function index(Request $request)
     {
         $query = User::with('roles');
@@ -51,7 +61,7 @@ class UserController extends Controller
             'email'     => $validated['email'],
             'password'  => Hash::make($validated['password']),
             'phone'     => $validated['phone'] ?? null,
-            'is_active' => $validated['is_active'] ?? true,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : true,
         ]);
 
         $user->assignRole($validated['role']);
@@ -85,11 +95,23 @@ class UserController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $authUser = auth()->user();
+
+        // Prevent self-suspension
+        if ($user->id === $authUser->id && $request->has('is_active') && !$request->boolean('is_active')) {
+            return redirect()->back()->withErrors(['is_active' => 'You cannot suspend your own account.']);
+        }
+
+        // Prevent Deputy Director from suspending Executive Director
+        if ($authUser->hasRole('deputy_director') && $user->hasRole('executive_director') && $request->has('is_active') && !$request->boolean('is_active')) {
+            return redirect()->back()->withErrors(['is_active' => 'As Deputy Director, you do not have permission to suspend the Executive Director account.']);
+        }
+
         $user->update([
             'name'      => $validated['name'],
             'email'     => $validated['email'],
             'phone'     => $validated['phone'] ?? null,
-            'is_active' => $validated['is_active'] ?? $user->is_active,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : $user->is_active,
             'password'  => $validated['password'] ? Hash::make($validated['password']) : $user->password,
         ]);
 
@@ -102,5 +124,26 @@ class UserController extends Controller
     {
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted.');
+    }
+
+    public function toggle(User $user)
+    {
+        $authUser = auth()->user();
+
+        // Don't let users suspend themselves!
+        if ($user->id === $authUser->id) {
+            return redirect()->back()->with('error', 'You cannot suspend your own account.');
+        }
+
+        // Prevent Deputy Director from suspending Executive Director
+        if ($authUser->hasRole('deputy_director') && $user->hasRole('executive_director')) {
+            return redirect()->back()->with('error', 'As Deputy Director, you do not have permission to suspend the Executive Director account.');
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        $status = $user->is_active ? 'activated' : 'suspended';
+        return redirect()->back()->with('success', "User account {$status} successfully.");
     }
 }

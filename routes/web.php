@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('finance/payments/{payment}/verify', [FinanceController::class, 'verifyPayment'])->name('finance.payments.verify');
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::resource('users', UserController::class);
     });
 

@@ -63,7 +63,7 @@
                             </td>
                             <td class="px-6 py-4 text-right space-x-3">
                                 <Link :href="route('clients.show', client.id)" class="text-brand-blue hover:text-brand-gold-dark font-medium text-sm">View</Link>
-                                <Link v-if="$page.props.auth.permissions.includes('manage clients') || $page.props.auth.permissions.includes('manage system')" 
+                                <Link v-if="$page.props.auth.permissions.includes('manage clients') || $page.props.auth.permissions.includes('manage system') || ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" 
                                       :href="route('clients.edit', client.id)" 
                                       class="text-gray-500 hover:text-gray-900 font-medium text-sm">Edit</Link>
                             </td>

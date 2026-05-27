@@ -18,16 +18,30 @@ class ProfileController extends Controller
 
     public function update(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        $validated = $request->validate([
+        $canEditEmail = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator']);
+
+        if (!$canEditEmail && $request->has('email') && $request->input('email') !== $user->email) {
+            return redirect()->back()->withErrors(['email' => 'Only the Executive Director, Deputy Director, or ICT Administrator can update the email address.']);
+        }
+
+        $rules = [
             'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
-        ]);
+        ];
+
+        if ($canEditEmail) {
+            $rules['email'] = 'required|email|max:255|unique:users,email,' . $user->id;
+        }
+
+        $validated = $request->validate($rules);
 
         $user->name = $validated['name'];
-        $user->email = $validated['email'];
+        if ($canEditEmail) {
+            $user->email = $request->input('email');
+        }
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);

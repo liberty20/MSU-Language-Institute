@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Hash;
 
 class ClientController extends Controller
 {
@@ -41,13 +43,24 @@ class ClientController extends Controller
             'client_type'    => 'required|in:individual,organization',
             'organization'   => 'nullable|string|max:255',
             'contact_person' => 'required|string|max:255',
-            'email'          => 'required|email|unique:clients,email',
+            'email'          => 'required|email|unique:clients,email|unique:users,email',
             'phone'          => 'nullable|string|max:30',
             'address'        => 'nullable|string',
             'status'         => 'required|in:active,inactive',
+            'password'       => 'required|string|min:8|confirmed',
         ]);
 
-        Client::create($validated);
+        $client = Client::create($request->except(['password', 'password_confirmation']));
+
+        $user = User::create([
+            'name'      => $validated['organization'] ?: $validated['contact_person'],
+            'email'     => $validated['email'],
+            'password'  => Hash::make($validated['password']),
+            'phone'     => $validated['phone'] ?? null,
+            'is_active' => $validated['status'] === 'active',
+        ]);
+
+        $user->assignRole('client');
 
         return redirect()->route('clients.index')->with('success', 'Client created successfully.');
     }
@@ -75,13 +88,28 @@ class ClientController extends Controller
             'status'         => 'required|in:active,inactive',
         ]);
 
+        $oldEmail = $client->email;
         $client->update($validated);
+
+        $user = User::where('email', $oldEmail)->first();
+        if ($user) {
+            $user->update([
+                'name'      => $validated['organization'] ?: $validated['contact_person'],
+                'email'     => $validated['email'],
+                'phone'     => $validated['phone'] ?? null,
+                'is_active' => $validated['status'] === 'active',
+            ]);
+        }
 
         return redirect()->route('clients.index')->with('success', 'Client updated successfully.');
     }
 
     public function destroy(Client $client)
     {
+        $user = User::where('email', $client->email)->first();
+        if ($user) {
+            $user->delete();
+        }
         $client->delete();
         return redirect()->route('clients.index')->with('success', 'Client deleted.');
     }

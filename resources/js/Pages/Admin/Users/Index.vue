@@ -39,11 +39,17 @@
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase"
                                       :class="user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                                    {{ user.is_active ? 'Active' : 'Inactive' }}
+                                    {{ user.is_active ? 'Active' : 'Suspended' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right space-x-3">
-                                <Link :href="route('admin.users.edit', user.id)" class="text-gray-500 hover:text-gray-900 font-medium text-sm transition">Edit</Link>
+                                <Link :href="route('admin.users.edit', user.id)" class="text-[#0a1f44] hover:text-[#f5c242] font-semibold text-sm transition">Edit</Link>
+                                <button v-if="user.id !== $page.props.auth.user.id && !($page.props.auth.roles.includes('deputy_director') && user.roles.some(r => r.name === 'executive_director'))" 
+                                        @click="toggleUserStatus(user)"
+                                        :class="user.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'"
+                                        class="font-semibold text-sm transition focus:outline-none">
+                                    {{ user.is_active ? 'Suspend' : 'Activate' }}
+                                </button>
                             </td>
                         </tr>
                         <tr v-if="users.data.length === 0">
@@ -72,8 +78,15 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
+import { Inertia } from '@inertiajs/inertia';
 
 defineProps({
     users: Object,
 });
+
+const toggleUserStatus = (user) => {
+    if (confirm(`Are you sure you want to ${user.is_active ? 'suspend' : 'activate'} this user?`)) {
+        Inertia.patch(route('admin.users.toggle', user.id));
+    }
+};
 </script>

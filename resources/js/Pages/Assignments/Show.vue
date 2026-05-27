@@ -181,27 +181,37 @@
                         <div class="space-y-4">
                             <!-- State 1: Assigned / Pending -->
                             <div v-if="assignment.status === 'assigned' || assignment.status === 'pending'" class="space-y-4">
-                                <div class="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm border border-amber-100 leading-relaxed">
-                                    This task has been assigned to you. Click <strong>Start Task</strong> to change the status to "In Progress" and begin work.
+                                <div v-if="(assignment.assigned_to?.id || assignment.assigned_to) === $page.props.auth.user.id" class="space-y-4">
+                                    <div class="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm border border-amber-100 leading-relaxed">
+                                        This task has been assigned to you. Click <strong>Start Task</strong> to change the status to "In Progress" and begin work.
+                                    </div>
+                                    <button @click="startWork" :disabled="submitting" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-5 py-3 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2">
+                                        <span v-if="submitting" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                        <span>Accept & Start Task</span>
+                                    </button>
                                 </div>
-                                <button @click="startWork" :disabled="submitting" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-5 py-3 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2">
-                                    <span v-if="submitting" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                    <span>Accept & Start Task</span>
-                                </button>
+                                <div v-else class="bg-amber-50 text-amber-850 p-4 rounded-xl text-sm border border-amber-200 leading-relaxed font-semibold">
+                                    Awaiting action from Assigned Specialist ({{ assignment.assigned_to?.name || 'Staff' }}).
+                                </div>
                             </div>
 
                             <!-- State 2: In Progress -->
                             <div v-else-if="assignment.status === 'in_progress' || assignment.status === 'accepted'" class="space-y-4">
-                                <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm border border-blue-100 leading-relaxed">
-                                    You are currently working on this task. Once you have finished, upload the final files and submit them for Director review.
-                                </div>
+                                <div v-if="(assignment.assigned_to?.id || assignment.assigned_to) === $page.props.auth.user.id" class="space-y-4">
+                                    <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm border border-blue-100 leading-relaxed">
+                                        You are currently working on this task. Once you have finished, upload the final files and submit them for Director review.
+                                    </div>
 
-                                <button @click="showUploadModal = true" class="w-full bg-green-600 text-white hover:bg-green-700 px-5 py-3 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Submit Final Deliverable
-                                </button>
+                                    <button @click="showUploadModal = true" class="w-full bg-green-600 text-white hover:bg-green-700 px-5 py-3 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Submit Final Deliverable
+                                    </button>
+                                </div>
+                                <div v-else class="bg-blue-50 text-blue-850 p-4 rounded-xl text-sm border border-blue-200 leading-relaxed font-semibold">
+                                    Assigned Specialist ({{ assignment.assigned_to?.name || 'Staff' }}) is actively working on this task.
+                                </div>
                             </div>
 
                             <!-- State 3: Completed -->

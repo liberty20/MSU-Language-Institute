@@ -360,6 +360,9 @@ const deliverCompletedTask = () => {
 
 const staffDeliverables = computed(() => {
     if (!props.serviceRequest.assignments) return [];
+    if (page.props.value.auth.roles.includes('client') && props.serviceRequest.status !== 'completed') {
+        return [];
+    }
     return props.serviceRequest.assignments.flatMap(a => a.documents || []);
 });
 

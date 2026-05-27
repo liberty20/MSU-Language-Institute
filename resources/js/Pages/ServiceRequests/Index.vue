@@ -5,7 +5,7 @@
         <template #header>
             <div class="flex justify-between items-center">
                 <span>Service Requests</span>
-                <Link :href="route('service-requests.create')" class="bg-[#f5c242] text-[#0a1f44] hover:bg-yellow-500 px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
+                <Link v-if="!['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" :href="route('service-requests.create')" class="bg-[#f5c242] text-[#0a1f44] hover:bg-yellow-500 px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
                     + New Request
                 </Link>
             </div>
@@ -13,14 +13,44 @@
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <!-- Filter Bar -->
-            <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex gap-4">
-                <input type="text" placeholder="Search requests..." class="border-gray-300 rounded-md shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500 w-64" />
-                <select class="border-gray-300 rounded-md shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                </select>
+            <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <input v-model="form.search" @input="debouncedSearch" type="text" placeholder="Search by title or reference..." 
+                           class="w-full border-gray-300 rounded-xl shadow-sm text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" />
+                </div>
+                
+                <div class="w-48">
+                    <select v-model="form.status" @change="submitFilters"
+                            class="w-full border-gray-300 rounded-xl shadow-sm text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] capitalize">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="quoted">Quoted</option>
+                        <option value="approved">Approved</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="review">Review</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="w-48">
+                    <select v-model="form.category" @change="submitFilters"
+                            class="w-full border-gray-300 rounded-xl shadow-sm text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] capitalize">
+                        <option value="">All Services</option>
+                        <option value="translation">Translation</option>
+                        <option value="editing">Editing</option>
+                        <option value="brailling">Brailling</option>
+                        <option value="sign_language">Sign Language</option>
+                        <option value="consultancy">Consultancy</option>
+                        <option value="short_courses">Short Courses</option>
+                    </select>
+                </div>
+
+                <button v-if="form.search || form.status || form.category" @click="resetFilters"
+                        class="px-4 py-2 text-sm text-[#0a1f44] hover:text-[#0a1f44]/80 font-bold flex items-center gap-1.5 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Clear Filters
+                </button>
             </div>
 
             <div class="overflow-x-auto">
@@ -93,9 +123,38 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
+import { reactive } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
+import { debounce } from 'lodash';
 
-defineProps({
+const props = defineProps({
     serviceRequests: Object,
     filters: Object
 });
+
+const form = reactive({
+    search: props.filters?.search || '',
+    status: props.filters?.status || '',
+    category: props.filters?.category || '',
+});
+
+const submitFilters = () => {
+    Inertia.get(route('service-requests.index'), {
+        search: form.search,
+        status: form.status,
+        category: form.category
+    }, {
+        preserveState: true,
+        replace: true
+    });
+};
+
+const debouncedSearch = debounce(submitFilters, 300);
+
+const resetFilters = () => {
+    form.search = '';
+    form.status = '';
+    form.category = '';
+    submitFilters();
+};
 </script>

@@ -37,9 +37,25 @@ class QuotationController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('reference_number', 'like', '%'.$request->search.'%')
+                  ->orWhereHas('serviceRequest.client', function ($sq) use ($request) {
+                      $sq->where('contact_person', 'like', '%'.$request->search.'%')
+                        ->orWhere('organization', 'like', '%'.$request->search.'%');
+                  })
+                  ->orWhereHas('serviceRequest', function ($sq) use ($request) {
+                      $sq->where('reference_number', 'like', '%'.$request->search.'%');
+                  });
+            });
+        }
+
         return Inertia::render('Quotations/Index', [
             'quotations' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
-            'filters'    => $request->only(['status']),
+            'filters'    => [
+                'status' => $request->status,
+                'search' => $request->search,
+            ],
         ]);
     }
 

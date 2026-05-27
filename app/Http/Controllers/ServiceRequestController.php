@@ -41,23 +41,64 @@ class ServiceRequestController extends Controller
         }
         if ($request->filled('category')) {
             $query->where('service_category', $request->category);
+        } elseif ($request->filled('service')) {
+            $query->where('service_category', $request->service);
         }
 
         return Inertia::render('ServiceRequests/Index', [
             'serviceRequests' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
-            'filters'         => $request->only(['status', 'search', 'category']),
+            'filters'         => [
+                'status'   => $request->status,
+                'search'   => $request->search,
+                'category' => $request->category ?? $request->service,
+                'service'  => $request->service ?? $request->category,
+            ],
         ]);
     }
 
     public function create()
     {
+        $user = Auth::user();
+        if ($user->hasRole('client')) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client) {
+                $client = Client::create([
+                    'client_type' => 'individual',
+                    'contact_person' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'status' => 'active',
+                ]);
+            }
+            return Inertia::render('ServiceRequests/Create', [
+                'clients' => $client ? [$client] : [],
+                'default_client_id' => $client ? $client->id : null,
+            ]);
+        }
+
         return Inertia::render('ServiceRequests/Create', [
             'clients' => Client::where('status', 'active')->orderBy('contact_person')->get(),
+            'default_client_id' => null,
         ]);
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        if ($user->hasRole('client')) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client) {
+                $client = Client::create([
+                    'client_type' => 'individual',
+                    'contact_person' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'status' => 'active',
+                ]);
+            }
+            $request->merge(['client_id' => $client->id]);
+        }
+
         $validated = $request->validate([
             'client_id'        => 'required|exists:clients,id',
             'service_category' => 'required|in:translation,editing,brailling,sign_language,consultancy,short_courses',
@@ -68,12 +109,31 @@ class ServiceRequestController extends Controller
             'priority'         => 'required|in:low,medium,high,urgent',
             'deadline'         => 'nullable|date|after:today',
             'notes'            => 'nullable|string',
+            'files.*'          => 'nullable|file|max:10240', // max 10MB each
         ]);
 
         $validated['submitted_by'] = Auth::id();
         $validated['status']       = 'pending';
 
-        ServiceRequest::create($validated);
+        $serviceRequest = ServiceRequest::create($validated);
+
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $filename = $file->getClientOriginalName();
+                $filePath = $file->store('documents', 'public');
+                $fileSize = $file->getSize();
+                $mimeType = $file->getMimeType();
+
+                $serviceRequest->documents()->create([
+                    'uploaded_by' => Auth::id(),
+                    'filename'    => $filename,
+                    'file_path'   => $filePath,
+                    'file_size'   => $fileSize,
+                    'mime_type'   => $mimeType,
+                    'description' => 'Attached with service request creation',
+                ]);
+            }
+        }
 
         return redirect()->route('service-requests.index')->with('success', 'Service request submitted successfully.');
     }
@@ -254,7 +314,7 @@ class ServiceRequestController extends Controller
     public function completedTasksIndex(Request $request)
     {
         $user = Auth::user();
-        $allowedRoles = ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'];
+        $allowedRoles = ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'client'];
         
         $hasAllowedRole = false;
         foreach ($allowedRoles as $role) {
@@ -268,16 +328,21 @@ class ServiceRequestController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $query = ServiceRequest::with(['client', 'submittedBy', 'assignedTo', 'documents.uploader', 'assignments.documents.uploader', 'assignments.assignedTo'])
-            ->whereIn('status', ['review', 'completed']);
+        $query = ServiceRequest::with(['client', 'submittedBy', 'assignedTo', 'documents.uploader', 'assignments.documents.uploader', 'assignments.assignedTo']);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($user->hasRole('client')) {
+            $query->where('submitted_by', $user->id)
+                  ->where('status', 'completed');
+        } else {
+            $query->whereIn('status', ['review', 'completed']);
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
         }
 
         return Inertia::render('ServiceRequests/CompletedTasks', [
             'serviceRequests' => $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString(),
-            'filters'         => $request->only(['status']),
+            'filters'         => $user->hasRole('client') ? [] : $request->only(['status']),
         ]);
     }
 
@@ -300,6 +365,9 @@ class ServiceRequestController extends Controller
             } elseif ($parent instanceof \App\Models\Assignment) {
                 if ($parent->serviceRequest->submitted_by !== $user->id) {
                     abort(403, 'Unauthorized.');
+                }
+                if ($parent->serviceRequest->status !== 'completed') {
+                    abort(403, 'Unauthorized. Completed deliverables are pending review and have not been delivered to you yet.');
                 }
             } else {
                 abort(403, 'Unauthorized.');

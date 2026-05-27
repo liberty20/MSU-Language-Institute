@@ -67,9 +67,19 @@
                             </select>
                             <p v-if="form.errors.role" class="text-red-500 text-xs mt-1">{{ form.errors.role }}</p>
                         </div>
-                        <div class="flex items-center">
-                            <input id="is_active" v-model="form.is_active" type="checkbox" class="rounded text-[#0a1f44] focus:ring-[#0a1f44]">
-                            <label for="is_active" class="ml-2 text-sm text-gray-700">Account is Active</label>
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-150">
+                            <div>
+                                <span class="block text-sm font-semibold text-gray-800">Account Status</span>
+                                <span class="text-xs text-gray-500">Uncheck to suspend the user and immediately block their login access.</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span :class="form.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2.5 py-1 rounded-full text-xs font-bold uppercase">
+                                    {{ form.is_active ? 'Active' : 'Suspended' }}
+                                </span>
+                                <input id="is_active" v-model="form.is_active" type="checkbox" 
+                                       :disabled="user.id === $page.props.auth.user.id || ($page.props.auth.roles.includes('deputy_director') && user.roles.some(r => r.name === 'executive_director'))"
+                                       class="rounded text-[#0a1f44] focus:ring-[#0a1f44] w-5 h-5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
                         </div>
                     </div>
                 </div>

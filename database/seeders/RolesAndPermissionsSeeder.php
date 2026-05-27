@@ -28,7 +28,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $roles = [
             'executive_director' => Permission::all(),
-            'deputy_director'    => ['view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement', 'view quotations'],
+            'deputy_director'    => ['manage users', 'view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement', 'view quotations'],
             'admin_assistant'    => ['manage procurement', 'view reports', 'manage clients', 'manage quotations', 'view quotations'],
             'secretary'          => ['manage service requests', 'view reports', 'manage assignments', 'view assignments', 'view tasks', 'view quotations'],
             'receptionist'       => ['manage clients', 'create service requests', 'view service requests'],

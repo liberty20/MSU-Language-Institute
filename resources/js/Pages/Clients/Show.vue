@@ -45,7 +45,7 @@
                         </span>
                     </div>
 
-                    <div class="pt-6 mt-6 border-t border-gray-100 flex gap-3" v-if="$page.props.auth.permissions.includes('manage clients') || $page.props.auth.permissions.includes('manage system')">
+                    <div class="pt-6 mt-6 border-t border-gray-100 flex gap-3" v-if="$page.props.auth.permissions.includes('manage clients') || $page.props.auth.permissions.includes('manage system') || ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))">
                         <Link :href="route('clients.edit', client.id)" class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg font-semibold transition text-sm">
                             Edit Profile
                         </Link>

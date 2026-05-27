@@ -7,8 +7,8 @@
         <div class="space-y-8">
             <!-- Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Total Clients -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                <!-- Total Clients (Hidden for clients) -->
+                <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
                     <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </div>
@@ -18,7 +18,7 @@
                     </div>
                 </div>
 
-                <!-- Active Requests -->
+                <!-- Active Requests (Shown for everyone) -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
                     <div class="w-14 h-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -29,31 +29,65 @@
                     </div>
                 </div>
 
-                <!-- Pending Tasks -->
+                <!-- Pending Tasks / Requests (Shown for everyone) -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
                     <div class="w-14 h-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Pending Tasks</p>
+                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                            {{ $page.props.auth.roles.includes('client') ? 'Pending Requests' : 'Pending Tasks' }}
+                        </p>
                         <h3 class="text-2xl font-bold text-brand-blue">{{ stats.pending_tasks }}</h3>
                     </div>
                 </div>
 
-                <!-- Approved Revenue -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                <!-- Assigned Tasks (Shown for all administrative and staff users) -->
+                <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                    <div class="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assigned Tasks</p>
+                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.assigned_tasks }}</h3>
+                    </div>
+                </div>
+
+                <!-- In Progress Requests (Only shown for clients) -->
+                <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                    <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">In Progress</p>
+                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.in_progress_requests }}</h3>
+                    </div>
+                </div>
+
+                <!-- Approved Value (Only shown for clients) -->
+                <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex items-center gap-4 transition hover:shadow-md">
                     <div class="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Approved Value</p>
-                        <h3 class="text-2xl font-bold text-brand-blue">${{ Number(stats.total_revenue).toLocaleString(undefined, {minimumFractionDigits: 2}) }}</h3>
+                        <div v-if="typeof stats.total_revenue === 'object' && stats.total_revenue !== null" class="space-y-0.5">
+                            <h3 v-for="(amount, curr) in stats.total_revenue" :key="curr" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
+                                {{ curr }} {{ Number(amount).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+                            </h3>
+                            <h3 v-if="Object.keys(stats.total_revenue).length === 0" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
+                                USD 0.00
+                            </h3>
+                        </div>
+                        <h3 v-else class="text-2xl font-bold text-brand-blue">
+                            ${{ Number(stats.total_revenue).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+                        </h3>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Requests Table -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <!-- Recent Requests Table (Only shown for non-clients) -->
+            <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg font-bold text-brand-blue">Recent Service Requests</h3>
                     <Link :href="route('service-requests.index')" class="text-sm text-brand-gold-dark hover:text-brand-gold font-semibold transition">

@@ -4,16 +4,16 @@
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center">
-                <span>Completed Tasks Registry</span>
+                <span>{{ $page.props.auth.roles.includes('client') ? 'My Completed Tasks' : 'Completed Tasks Registry' }}</span>
                 <span class="text-xs bg-[#d4af37]/25 text-[#d4af37] border border-[#d4af37]/35 px-3 py-1 rounded-full font-semibold uppercase tracking-wider">
-                    Administrative View
+                    {{ $page.props.auth.roles.includes('client') ? 'Client View' : 'Administrative View' }}
                 </span>
             </div>
         </template>
 
         <div class="space-y-6 max-w-7xl mx-auto pb-12">
             <!-- Filter Bar -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex flex-wrap items-center gap-3">
                     <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Filter Registry:</span>
                     <Link :href="route('completed-tasks.index')" 
@@ -134,7 +134,7 @@
                                 <td class="px-6 py-4 text-right">
                                     <Link :href="route('service-requests.show', request.id)" 
                                           class="inline-flex items-center gap-1 bg-[#0a1f44] hover:bg-[#152a4d] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
-                                        <span>Manage & Deliver</span>
+                                        <span>{{ $page.props.auth.roles.includes('client') ? 'View Details' : 'Manage & Deliver' }}</span>
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                         </svg>

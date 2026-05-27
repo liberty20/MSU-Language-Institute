@@ -22,6 +22,7 @@ class DummyDataSeeder extends Seeder
             ['client_type' => 'individual', 'organization' => null, 'contact_person' => 'Tinashe Ndlovu', 'email' => 'tinashe@gmail.com', 'phone' => '0773456789', 'status' => 'active'],
             ['client_type' => 'organization', 'organization' => 'NSSA', 'contact_person' => 'Peter Chigumba', 'email' => 'peter@nssa.org.zw', 'phone' => '0774567890', 'status' => 'active'],
             ['client_type' => 'individual', 'organization' => null, 'contact_person' => 'Grace Chikwanha', 'email' => 'grace@yahoo.com', 'phone' => '0775678901', 'status' => 'active'],
+            ['client_type' => 'individual', 'organization' => null, 'contact_person' => 'Test Client', 'email' => 'client@example.com', 'phone' => '0776789012', 'status' => 'active'],
         ];
 
         foreach ($clients as $clientData) {

@@ -44,7 +44,7 @@
             <div class="relative max-w-7xl mx-auto px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-center gap-12">
                 <div class="text-center z-10 max-w-4xl">
                     <span class="inline-block py-1.5 px-4 rounded-full bg-white/10 text-[#f5c242] text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm border border-white/10">
-                        Bridging Language Barriers
+                        Language for national development
                     </span>
                     <h2 class="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] mb-6">
                         Official Language <br/>
@@ -70,7 +70,7 @@
         <section class="py-12 bg-white border-b border-gray-100 relative z-20 -mt-10 mx-6 lg:mx-auto max-w-6xl rounded-2xl shadow-xl">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 px-8 text-center">
                 <div>
-                    <p class="text-4xl font-black text-[#0a1f44]">16+</p>
+                    <p class="text-4xl font-black text-[#0a1f44]">16</p>
                     <p class="text-sm text-gray-500 font-medium mt-1">Supported Languages</p>
                 </div>
                 <div>
@@ -183,9 +183,13 @@
                             <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             <span>info@languageinstitute.msu.ac.zw</span>
                         </li>
-                        <li class="flex items-center gap-3">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                            <span>+263 54 2260000</span>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                            <span>
+                                Telephone: +263 54 231583<br/>
+                                Fax: +263 54 260233/260311<br/>
+                                Mobile: +263 77 288 3047 / +263 71 680 0586
+                            </span>
                         </li>
                     </ul>
                 </div>

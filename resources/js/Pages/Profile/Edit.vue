@@ -28,9 +28,13 @@
                         <div class="sm:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span class="text-red-500">*</span></label>
                             <input v-model="form.email" type="email" required
-                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm"
+                                   :disabled="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))"
+                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-70 disabled:bg-gray-50 disabled:cursor-not-allowed"
                                    placeholder="name@example.com" />
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
+                            <p v-if="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))" class="text-gray-400 text-xs mt-1.5">
+                                Email editing is restricted to Executive Director, Deputy Director, and ICT Administrator roles only.
+                            </p>
                         </div>
                     </div>
 

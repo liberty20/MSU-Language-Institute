@@ -180,7 +180,13 @@
                         <div>
                             <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Generated</span>
                             <div class="flex flex-col gap-0.5 mt-1">
-                                <span v-for="(amount, curr) in animatedRevenue" :key="curr" class="block text-sm font-black text-emerald-600 font-mono leading-none">
+                                <span v-for="(amount, curr) in animatedRevenue" :key="curr" class="block text-sm font-black font-mono leading-none"
+                                      :class="{
+                                          'text-emerald-600': curr === 'USD',
+                                          'text-blue-600': curr === 'ZAR',
+                                          'text-[#d4af37]': curr === 'ZWL',
+                                          'text-slate-800': !['USD', 'ZAR', 'ZWL'].includes(curr)
+                                      }">
                                     {{ curr }} {{ Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                                 </span>
                                 <span v-if="Object.keys(animatedRevenue).length === 0" class="block text-sm font-black text-emerald-600 font-mono leading-none">
