@@ -11,6 +11,16 @@ use Illuminate\Support\Facades\Storage;
 
 class ServiceRequestController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (Auth::user() && Auth::user()->hasRole('student')) {
+                abort(403, 'Unauthorized. Students cannot access client modules.');
+            }
+            return $next($request);
+        });
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -28,6 +38,11 @@ class ServiceRequestController extends Controller
             })->whereHas('quotations', function ($q) {
                 $q->where('status', 'approved');
             });
+        }
+
+        // Scope by department if staff user belongs to a specific unit
+        if (!$user->hasRole('client') && $user->department_id) {
+            $query->where('department_id', $user->department_id);
         }
 
         if ($request->filled('status')) {
@@ -114,6 +129,23 @@ class ServiceRequestController extends Controller
 
         $validated['submitted_by'] = Auth::id();
         $validated['status']       = 'pending';
+
+        // Auto-assign department based on service category
+        $deptCode = null;
+        if (in_array($validated['service_category'], ['translation', 'editing', 'consultancy'])) {
+            $deptCode = 'LCSU';
+        } elseif (in_array($validated['service_category'], ['brailling', 'sign_language'])) {
+            $deptCode = 'SNSU';
+        } elseif ($validated['service_category'] === 'short_courses') {
+            $deptCode = 'ILASU';
+        }
+        
+        if ($deptCode) {
+            $dept = \DB::table('departments')->where('code', $deptCode)->first();
+            if ($dept) {
+                $validated['department_id'] = $dept->id;
+            }
+        }
 
         $serviceRequest = ServiceRequest::create($validated);
 
@@ -337,6 +369,9 @@ class ServiceRequestController extends Controller
             $query->whereIn('status', ['review', 'completed']);
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
+            }
+            if ($user->department_id) {
+                $query->where('department_id', $user->department_id);
             }
         }
 

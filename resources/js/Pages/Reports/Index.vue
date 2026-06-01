@@ -50,8 +50,34 @@
         </template>
 
         <div class="w-full space-y-6 pb-16 animate-fade-in-up">
-            <!-- Executive KPI Deck (7 Cards) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-5">
+            <!-- Premium Navigation Tabs for Analytics Scopes -->
+            <div class="flex border-b border-slate-200 gap-4 mb-6">
+                <button @click="selectScope('client_services')"
+                        :class="[
+                            'px-5 py-3 text-xs uppercase tracking-wider font-black transition-all duration-300 border-b-2 -mb-[2px] flex items-center gap-2',
+                            activeScope === 'client_services' || !activeScope
+                                ? 'border-[#0a1f44] text-[#0a1f44]'
+                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                    Language Services & Quotations
+                </button>
+                <button @click="selectScope('student_enrollment')"
+                        :class="[
+                            'px-5 py-3 text-xs uppercase tracking-wider font-black transition-all duration-300 border-b-2 -mb-[2px] flex items-center gap-2',
+                            activeScope === 'student_enrollment'
+                                ? 'border-[#0a1f44] text-[#0a1f44]'
+                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222M12 20v-7.5l4-2.222"/></svg>
+                    Short Courses Enrollments
+                </button>
+            </div>
+
+            <!-- Language Services Scope Dashboard Content -->
+            <div v-if="activeScope === 'client_services' || !activeScope" class="space-y-6">
+                <!-- Executive KPI Deck (7 Cards) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-5">
                 <!-- Card 1: Total Intake Requests -->
                 <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -487,6 +513,295 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Student Enrollments Scope Dashboard Content -->
+            <div v-else-if="activeScope === 'student_enrollment'" class="space-y-6 animate-fade-in-up">
+                <!-- Short Course Enrollment KPI Deck -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                    <!-- Card 1: Total Enrolled -->
+                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Enrolled</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.total }}</span>
+                            </div>
+                            <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                            <span>Database Ledger</span>
+                            <span class="text-blue-650 font-black">All registrations</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Active Enrolled -->
+                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Students</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.active }}</span>
+                            </div>
+                            <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                            <span>Currently Learning</span>
+                            <span class="text-emerald-650 font-black">Active state</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Pending Payment/Verification -->
+                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.pending }}</span>
+                            </div>
+                            <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                            <span>Requires Verification</span>
+                            <span class="text-amber-650 font-black">Pending review</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Completed -->
+                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-[3px] bg-[#d4af37]"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Completed</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.completed }}</span>
+                            </div>
+                            <div class="p-2.5 bg-yellow-50 text-[#d4af37] rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                            <span>Alumni Graduates</span>
+                            <span class="text-[#d4af37] font-black">Issued Certificates</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 5: Dropped -->
+                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-full h-[3px] bg-red-500"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Dropped</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.dropped }}</span>
+                            </div>
+                            <div class="p-2.5 bg-red-50 text-red-650 rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 21h6v-1a6 6 0 00-9-5.197M15 21h6v-1a6 6 0 00-9-5.197"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold">
+                            <span>Deactivated / Suspended</span>
+                            <span class="text-red-650 font-black">Inactive</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Short Course Enrollment Filters Card -->
+                <div class="neo-glass-card rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-200/80 transition-all duration-500 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-[#0a1f44] opacity-85"></div>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Short Courses Analytics Filter</h3>
+                                <p class="text-[10px] text-slate-550 font-medium">Dynamically filter community student enrollment database parameters</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                        <!-- Select Course -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                Select Course
+                            </label>
+                            <select v-model="filters.student_course_id" @change="applyFilters" 
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
+                                <option value="">All Courses</option>
+                                <option v-for="course in filterOptions.courses" :key="course.id" :value="course.id">
+                                    [{{ course.code }}] {{ course.title }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Select Unit -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                MSUNLI Unit
+                            </label>
+                            <select v-model="filters.student_unit_id" @change="applyFilters" 
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
+                                <option value="">All Units</option>
+                                <option v-for="unit in filterOptions.departments" :key="unit.id" :value="unit.id">
+                                    {{ unit.code }} - {{ unit.name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Enrollment Status -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Status
+                            </label>
+                            <select v-model="filters.student_enrollment_status" @change="applyFilters" 
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm">
+                                <option value="">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="pending">Pending Review</option>
+                                <option value="completed">Completed</option>
+                                <option value="dropped">Dropped</option>
+                            </select>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Start Date
+                            </label>
+                            <input type="date" v-model="filters.date_start" @change="applyFilters" 
+                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
+                        </div>
+
+                        <!-- End Date -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                End Date
+                            </label>
+                            <input type="date" v-model="filters.date_end" @change="applyFilters" 
+                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-sm" />
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <button @click="resetAllFilters" class="px-5 py-2.5 text-xs font-black text-red-650 hover:bg-red-50 rounded-xl transition duration-300 transform active:scale-95 flex items-center gap-1.5">
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Enrolled Students Table -->
+                <div class="neo-glass-card rounded-3xl shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between min-h-[400px]">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="p-1.5 bg-[#0a1f44] text-[#f5c242] rounded-lg">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222M12 20v-7.5l4-2.222"/></svg>
+                                </span>
+                                <h3 class="text-base font-black text-slate-850 tracking-tight">Short Course Student Enrollments Register</h3>
+                            </div>
+                            <p class="text-[10px] text-slate-550 font-semibold mt-0.5 font-medium">Real-time dynamic student enrollment logs and tuition payment tracking</p>
+                        </div>
+                        <span class="text-xs font-black text-blue-650 bg-blue-50 border border-blue-100 px-3 py-1 rounded-xl shadow-xs">
+                            Total Filtered: {{ props.enrolledStudents?.total || 0 }}
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50 border-b border-slate-100 text-[9px] uppercase tracking-wider text-slate-500 font-black">
+                                    <th class="px-6 py-4">Student</th>
+                                    <th class="px-6 py-4">Course Details</th>
+                                    <th class="px-6 py-4">MSUNLI Unit</th>
+                                    <th class="px-6 py-4 text-right">Tuition Paid</th>
+                                    <th class="px-6 py-4">Payment</th>
+                                    <th class="px-6 py-4">Enrollment Status</th>
+                                    <th class="px-6 py-4">Enrolled Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-xs">
+                                <tr v-for="se in props.enrolledStudents?.data" :key="se.id" class="hover:bg-slate-50/50 transition duration-150">
+                                    <td class="px-6 py-4">
+                                        <div class="font-black text-slate-850 text-sm">{{ se.user?.name || 'N/A' }}</div>
+                                        <div class="text-[10px] text-slate-400 font-bold">{{ se.user?.email || 'N/A' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-extrabold text-slate-800">{{ se.intake?.course?.title || 'N/A' }}</div>
+                                        <div class="text-[10px] text-slate-550 font-semibold">Intake: {{ se.intake?.name || 'N/A' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-black text-[#0a1f44]">
+                                        {{ se.intake?.course?.department?.code || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono font-bold text-slate-800 font-mono font-bold">
+                                        ${{ Number(se.amount_paid || 0).toFixed(2) }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-xs"
+                                              :class="se.payment_status === 'verified' 
+                                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                  : 'bg-amber-50 text-amber-700 border-amber-200'">
+                                            {{ se.payment_status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-xs"
+                                              :class="se.enrollment_status === 'active' 
+                                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                  : se.enrollment_status === 'pending'
+                                                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                      : se.enrollment_status === 'completed'
+                                                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                          : 'bg-red-50 text-red-700 border-red-200'">
+                                            {{ se.enrollment_status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-500 font-bold">
+                                        {{ formatDate(se.created_at) }}
+                                    </td>
+                                </tr>
+                                <tr v-if="!props.enrolledStudents?.data || props.enrolledStudents?.data.length === 0">
+                                    <td colspan="7" class="px-6 py-16 text-center text-slate-400 text-xs font-bold bg-slate-50/10">
+                                        No student enrollments found matching the active analytical filters.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <span class="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">
+                            Showing {{ props.enrolledStudents?.from || 0 }} to {{ props.enrolledStudents?.to || 0 }} of {{ props.enrolledStudents?.total || 0 }} students
+                        </span>
+                        <div class="flex items-center gap-1.5" v-if="props.enrolledStudents?.links && props.enrolledStudents?.links.length > 3">
+                            <Link v-for="(link, idx) in props.enrolledStudents?.links" :key="idx" 
+                                  :href="link.url || '#'" 
+                                  preserve-state 
+                                  preserve-scroll
+                                  class="px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition duration-200" 
+                                  :class="link.active 
+                                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                                      : !link.url 
+                                          ? 'text-slate-350 border-slate-100 cursor-not-allowed bg-transparent' 
+                                          : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-50 hover:text-black hover:border-slate-300'"
+                                  v-html="link.label">
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                 <!-- 3. Staff Productivity & Reports History -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display:none;">
@@ -579,6 +894,7 @@
                                     <option value="staff_workload">Staff Workload</option>
                                     <option value="kpi_performance">KPI Performance</option>
                                     <option value="administrative">Administrative Reports</option>
+                                    <option value="student_enrollment">Student Enrollment Reports</option>
                                 </select>
                             </div>
 
@@ -670,6 +986,7 @@
                             <option value="staff_workload">Staff Workload Report</option>
                             <option value="kpi_performance">KPI Performance Report</option>
                             <option value="administrative">Administrative Report</option>
+                            <option value="student_enrollment">Student Enrollment Report</option>
                         </select>
                     </div>
 
@@ -730,7 +1047,9 @@ const props = defineProps({
     reports: Object,
     filterOptions: Object,
     currentFilters: Object,
-    isManagement: Boolean
+    isManagement: Boolean,
+    studentEnrollmentStats: Object,
+    enrolledStudents: Object
 });
 
 const getCategorizedStatus = (req) => {
@@ -790,7 +1109,10 @@ const filters = reactive({
     assigned_to: props.currentFilters.assigned_to || '',
     task_status: props.currentFilters.task_status || '',
     search: props.currentFilters.search || '',
-    archive_type: props.currentFilters.archive_type || ''
+    archive_type: props.currentFilters.archive_type || '',
+    student_course_id: props.currentFilters.student_course_id || '',
+    student_unit_id: props.currentFilters.student_unit_id || '',
+    student_enrollment_status: props.currentFilters.student_enrollment_status || ''
 });
 
 const activeScope = ref(filters.archive_type || 'client_services');
@@ -922,7 +1244,10 @@ const resetAllFilters = () => {
     filters.assigned_to = '';
     filters.task_status = '';
     filters.search = '';
-    filters.archive_type = '';
+    filters.archive_type = activeScope.value;
+    filters.student_course_id = '';
+    filters.student_unit_id = '';
+    filters.student_enrollment_status = '';
     applyFilters();
 };
 
@@ -956,6 +1281,9 @@ const triggerQuickExport = (formatType) => {
     if (filters.service_category) url.searchParams.append('service_category', filters.service_category);
     if (filters.assigned_to) url.searchParams.append('assigned_to', filters.assigned_to);
     if (filters.task_status) url.searchParams.append('task_status', filters.task_status);
+    if (filters.student_course_id) url.searchParams.append('student_course_id', filters.student_course_id);
+    if (filters.student_unit_id) url.searchParams.append('student_unit_id', filters.student_unit_id);
+    if (filters.student_enrollment_status) url.searchParams.append('student_enrollment_status', filters.student_enrollment_status);
     
     window.open(url.toString(), '_blank');
 };

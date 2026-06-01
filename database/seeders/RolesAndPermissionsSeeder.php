@@ -20,6 +20,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view quotations', 'approve quotations', 'manage assignments', 'view assignments',
             'manage tasks', 'view tasks', 'manage procurement', 'approve procurement',
             'view reports', 'manage system',
+            'manage schedule', 'manage correspondence', 'manage inquiries',
+            'manage executive communications', 'manage administrative documentation',
+            'manage executive notifications',
         ];
 
         foreach ($permissions as $permission) {
@@ -30,12 +33,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'executive_director' => Permission::all(),
             'deputy_director'    => ['manage users', 'view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement', 'view quotations'],
             'admin_assistant'    => ['manage procurement', 'view reports', 'manage clients', 'manage quotations', 'view quotations'],
-            'secretary'          => ['manage service requests', 'view reports', 'manage assignments', 'view assignments', 'view tasks', 'view quotations'],
+            'secretary'          => [
+                'manage service requests', 'view reports', 'manage assignments', 'view assignments', 
+                'view tasks', 'view quotations', 'manage schedule', 'manage correspondence', 
+                'manage inquiries', 'manage executive communications', 'manage administrative documentation', 
+                'manage executive notifications'
+            ],
             'receptionist'       => ['manage clients', 'create service requests', 'view service requests'],
             'language_expert'    => ['view assignments', 'view tasks', 'manage tasks'],
             'part_time_staff'    => ['view assignments', 'view tasks', 'manage tasks'],
             'ict_administrator'  => Permission::all(),
             'client'             => ['create service requests', 'view service requests'],
+            'student'            => [],
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {

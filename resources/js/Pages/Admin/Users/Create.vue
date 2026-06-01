@@ -52,20 +52,48 @@
                 </div>
 
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Access & Roles</h2>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Institutional Assignment</h2>
                     <div class="space-y-4">
+                        <!-- Select Unit -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Assign Role <span class="text-red-500">*</span></label>
-                            <select v-model="form.role" required
-                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm capitalize">
-                                <option value="" disabled>Select a role...</option>
-                                <option v-for="role in roles" :key="role.id" :value="role.name">
-                                    {{ role.name.replace(/_/g, ' ') }}
+                            <label class="block text-sm font-medium text-gray-700 mb-1">MSUNLI Unit <span class="text-red-500">*</span></label>
+                            <select v-model="form.unit_id" required @change="onUnitChange"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
+                                <option value="" disabled>Select parent Unit...</option>
+                                <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                                    {{ unit.code }} - {{ unit.name }}
                                 </option>
                             </select>
-                            <p v-if="form.errors.role" class="text-red-500 text-xs mt-1">{{ form.errors.role }}</p>
+                            <p v-if="form.errors.unit_id" class="text-red-500 text-xs mt-1">{{ form.errors.unit_id }}</p>
                         </div>
-                        <div class="flex items-center">
+
+                        <!-- Select Department/Section -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Department / Section <span class="text-red-500">*</span></label>
+                            <select v-model="form.section_id" required :disabled="!form.unit_id" @change="onSectionChange"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-50">
+                                <option value="" disabled>Choose Department/Section...</option>
+                                <option v-for="sec in filteredSections" :key="sec.id" :value="sec.id">
+                                    {{ sec.name }}
+                                </option>
+                            </select>
+                            <p v-if="form.errors.section_id" class="text-red-500 text-xs mt-1">{{ form.errors.section_id }}</p>
+                        </div>
+
+                        <!-- Select Role -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role Assignment <span class="text-red-500">*</span></label>
+                            <select v-model="form.msunli_role_id" required :disabled="!form.section_id"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-50">
+                                <option value="" disabled>Select role...</option>
+                                <option v-for="role in filteredRoles" :key="role.id" :value="role.id">
+                                    {{ role.name }}
+                                </option>
+                            </select>
+                            <p v-if="form.errors.msunli_role_id" class="text-red-500 text-xs mt-1">{{ form.errors.msunli_role_id }}</p>
+                        </div>
+
+                        <div class="flex items-center pt-2">
                             <input id="is_active" v-model="form.is_active" type="checkbox" class="rounded text-[#0a1f44] focus:ring-[#0a1f44]">
                             <label for="is_active" class="ml-2 text-sm text-gray-700">Account is Active</label>
                         </div>
@@ -90,11 +118,16 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
+import { computed, ref } from 'vue';
 
-defineProps({
-    roles: Array,
+const props = defineProps({
+    units: Array,
+    sections: Array,
+    msunli_roles: Array,
 });
+
+const page = usePage();
 
 const form = useForm({
     name: '',
@@ -102,9 +135,40 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     phone: '',
-    role: '',
+    unit_id: '',
+    section_id: '',
+    msunli_role_id: '',
     is_active: true,
 });
+
+const filteredSections = computed(() => {
+    if (!form.unit_id) return [];
+    return props.sections.filter(s => Number(s.unit_id) === Number(form.unit_id));
+});
+
+const filteredRoles = computed(() => {
+    if (!form.section_id) return [];
+    let roles = props.msunli_roles.filter(r => Number(r.section_id) === Number(form.section_id));
+    
+    const authRoles = page.props.value.auth.roles || [];
+    const isAuthorized = authRoles.includes('ict_administrator') || authRoles.includes('executive_director');
+    
+    // Hide both Executive Director and Deputy Director roles from unauthorized users
+    if (!isAuthorized) {
+        roles = roles.filter(r => r.name !== 'Executive Director' && r.name !== 'Deputy Director');
+    }
+    
+    return roles;
+});
+
+const onUnitChange = () => {
+    form.section_id = '';
+    form.msunli_role_id = '';
+};
+
+const onSectionChange = () => {
+    form.msunli_role_id = '';
+};
 
 const submit = () => {
     form.post(route('admin.users.store'));

@@ -44,10 +44,8 @@ class ReportController extends Controller
             // Management can filter by department and staff members
             if ($request->filled('department_id')) {
                 $deptId = $request->department_id;
-                $query->whereHas('assignedTo', function ($q) use ($deptId) {
-                    $q->where('department_id', $deptId);
-                });
-                $taskQuery->whereHas('assignment.assignedTo', function ($q) use ($deptId) {
+                $query->where('department_id', $deptId);
+                $taskQuery->whereHas('assignment.serviceRequest', function ($q) use ($deptId) {
                     $q->where('department_id', $deptId);
                 });
             }
@@ -268,9 +266,59 @@ class ReportController extends Controller
 
         $reports = $reportsQuery->orderBy('created_at', 'desc')->paginate(10);
 
+        // Fetch student enrollment stats & list
+        $seBase = \App\Models\CourseEnrollment::query();
+        if ($request->filled('student_course_id')) {
+            $seBase->whereHas('intake.course', function($q) use ($request) {
+                $q->where('id', $request->student_course_id);
+            });
+        }
+        if ($request->filled('student_unit_id')) {
+            $seBase->whereHas('intake.course.department', function($q) use ($request) {
+                $q->where('id', $request->student_unit_id);
+            });
+        }
+        if ($request->filled('date_start')) {
+            $seBase->where('created_at', '>=', $request->date_start . ' 00:00:00');
+        }
+        if ($request->filled('date_end')) {
+            $seBase->where('created_at', '<=', $request->date_end . ' 23:59:59');
+        }
+
+        $studentEnrollmentStats = [
+            'total' => (clone $seBase)->count(),
+            'active' => (clone $seBase)->where('enrollment_status', 'active')->count(),
+            'pending' => (clone $seBase)->where('enrollment_status', 'pending')->count(),
+            'completed' => (clone $seBase)->where('enrollment_status', 'completed')->count(),
+            'dropped' => (clone $seBase)->where('enrollment_status', 'dropped')->count(),
+        ];
+
+        $seQuery = \App\Models\CourseEnrollment::with(['user', 'intake.course.department']);
+        if ($request->filled('student_course_id')) {
+            $seQuery->whereHas('intake.course', function($q) use ($request) {
+                $q->where('id', $request->student_course_id);
+            });
+        }
+        if ($request->filled('student_unit_id')) {
+            $seQuery->whereHas('intake.course.department', function($q) use ($request) {
+                $q->where('id', $request->student_unit_id);
+            });
+        }
+        if ($request->filled('student_enrollment_status')) {
+            $seQuery->where('enrollment_status', $request->student_enrollment_status);
+        }
+        if ($request->filled('date_start')) {
+            $seQuery->where('created_at', '>=', $request->date_start . ' 00:00:00');
+        }
+        if ($request->filled('date_end')) {
+            $seQuery->where('created_at', '<=', $request->date_end . ' 23:59:59');
+        }
+        $enrolledStudents = $seQuery->orderBy('created_at', 'desc')->paginate(10, ['*'], 'students_page')->withQueryString();
+
         // Fetch supporting filter options
         $filterOptions = [
             'departments' => Department::select('id', 'name', 'code')->get(),
+            'courses' => \App\Models\Course::select('id', 'title', 'code')->get(),
             'staff' => User::whereHas('roles', function($q) {
                 $q->whereNotIn('name', ['client']);
             })->select('id', 'name', 'email')->get(),
@@ -298,10 +346,12 @@ class ReportController extends Controller
                     ->pluck('total', 'currency')
                     ->toArray(),
             ],
+            'studentEnrollmentStats' => $studentEnrollmentStats,
+            'enrolledStudents' => $enrolledStudents,
             'staffProductivity' => $staffProductivity,
             'reports' => $reports,
             'filterOptions' => $filterOptions,
-            'currentFilters' => $request->only(['date_start', 'date_end', 'department_id', 'service_category', 'assigned_to', 'task_status', 'search', 'archive_type']),
+            'currentFilters' => $request->only(['date_start', 'date_end', 'department_id', 'service_category', 'assigned_to', 'task_status', 'search', 'archive_type', 'student_course_id', 'student_unit_id', 'student_enrollment_status']),
             'isManagement' => $isManagement
         ]);
     }
@@ -345,12 +395,21 @@ class ReportController extends Controller
             fputcsv($csvStream, ['Compilation Date:', $data['generated_date']]);
             fputcsv($csvStream, []);
 
-            fputcsv($csvStream, ['KEY PERFORMANCE METRICS']);
-            fputcsv($csvStream, ['Total Volumetric requests', $data['totals']['total_requests']]);
-            fputcsv($csvStream, ['Active Assignments', $data['totals']['active_assignments']]);
-            fputcsv($csvStream, ['Completed Operations', $data['totals']['completed_services']]);
-            fputcsv($csvStream, ['Avg Turnaround Speed (Days)', $data['totals']['avg_turnaround']]);
-            fputcsv($csvStream, ['Customer Satisfaction Index', $data['totals']['client_satisfaction']]);
+            if ($type === 'student_enrollment') {
+                fputcsv($csvStream, ['STUDENT ENROLLMENT METRICS']);
+                fputcsv($csvStream, ['Total Enrolled', $data['enrollment_stats']['total']]);
+                fputcsv($csvStream, ['Active Students', $data['enrollment_stats']['active']]);
+                fputcsv($csvStream, ['Pending Students', $data['enrollment_stats']['pending']]);
+                fputcsv($csvStream, ['Completed Students', $data['enrollment_stats']['completed']]);
+                fputcsv($csvStream, ['Dropped Students', $data['enrollment_stats']['dropped']]);
+            } else {
+                fputcsv($csvStream, ['KEY PERFORMANCE METRICS']);
+                fputcsv($csvStream, ['Total Volumetric requests', $data['totals']['total_requests']]);
+                fputcsv($csvStream, ['Active Assignments', $data['totals']['active_assignments']]);
+                fputcsv($csvStream, ['Completed Operations', $data['totals']['completed_services']]);
+                fputcsv($csvStream, ['Avg Turnaround Speed (Days)', $data['totals']['avg_turnaround']]);
+                fputcsv($csvStream, ['Customer Satisfaction Index', $data['totals']['client_satisfaction']]);
+            }
             fputcsv($csvStream, []);
 
             // Dynamic Excel column builder based on report type
@@ -397,9 +456,24 @@ class ReportController extends Controller
                 foreach ($data['kpis'] as $kpi) {
                     fputcsv($csvStream, [
                         ucwords(str_replace('_', ' ', $kpi->metric_type)),
-                        $kpi->user ? $kpi->user->name : 'General NLI',
+                        $kpi->user ? $kpi->user->name : 'General MSULI',
                         $kpi->metric_value,
                         $kpi->created_at->format('Y-m-d H:i')
+                    ]);
+                }
+            } elseif ($type === 'student_enrollment') {
+                fputcsv($csvStream, ['STUDENT ENROLLMENT REGISTER']);
+                fputcsv($csvStream, ['Student Name', 'Email Address', 'Course Name', 'MSUNLI Unit', 'Tuition Paid', 'Payment Status', 'Enrollment Status', 'Enrolled Date']);
+                foreach ($data['student_enrollments'] as $se) {
+                    fputcsv($csvStream, [
+                        $se->user ? $se->user->name : 'N/A',
+                        $se->user ? $se->user->email : 'N/A',
+                        $se->intake && $se->intake->course ? $se->intake->course->title : 'N/A',
+                        ($se->intake && $se->intake->course && $se->intake->course->department) ? $se->intake->course->department->code : 'N/A',
+                        $se->amount_paid ?? '0.00',
+                        ucwords($se->payment_status),
+                        ucwords($se->enrollment_status),
+                        $se->created_at->format('Y-m-d')
                     ]);
                 }
             } else {
@@ -446,7 +520,7 @@ class ReportController extends Controller
         ]);
 
         $type = $request->get('report_type', 'client_services');
-        $filters = $request->only(['date_start', 'date_end', 'department_id', 'service_category', 'assigned_to', 'task_status']);
+        $filters = $request->only(['date_start', 'date_end', 'department_id', 'service_category', 'assigned_to', 'task_status', 'student_course_id', 'student_unit_id', 'student_enrollment_status']);
         
         $data = $this->aggregateReportData($filters, $type);
         $data['title'] = 'Dynamic ' . ucwords(str_replace('_', ' ', $type)) . ' Report';
@@ -471,12 +545,21 @@ class ReportController extends Controller
                 fputcsv($file, ['Date:', $data['generated_date']]);
                 fputcsv($file, []);
 
-                fputcsv($file, ['KPI METRIC SUMMARY']);
-                fputcsv($file, ['Total Volumetric Requests', $data['totals']['total_requests']]);
-                fputcsv($file, ['Active Assignments', $data['totals']['active_assignments']]);
-                fputcsv($file, ['Completed Services', $data['totals']['completed_services']]);
-                fputcsv($file, ['KPI Performance Score', $data['totals']['kpi_performance'] . '%']);
-                fputcsv($file, ['Avg Turnaround Speed (Days)', $data['totals']['avg_turnaround']]);
+                if ($type === 'student_enrollment') {
+                    fputcsv($file, ['STUDENT ENROLLMENT METRICS']);
+                    fputcsv($file, ['Total Enrolled', $data['enrollment_stats']['total']]);
+                    fputcsv($file, ['Active Students', $data['enrollment_stats']['active']]);
+                    fputcsv($file, ['Pending Students', $data['enrollment_stats']['pending']]);
+                    fputcsv($file, ['Completed Students', $data['enrollment_stats']['completed']]);
+                    fputcsv($file, ['Dropped Students', $data['enrollment_stats']['dropped']]);
+                } else {
+                    fputcsv($file, ['KPI METRIC SUMMARY']);
+                    fputcsv($file, ['Total Volumetric Requests', $data['totals']['total_requests']]);
+                    fputcsv($file, ['Active Assignments', $data['totals']['active_assignments']]);
+                    fputcsv($file, ['Completed Services', $data['totals']['completed_services']]);
+                    fputcsv($file, ['KPI Performance Score', $data['totals']['kpi_performance'] . '%']);
+                    fputcsv($file, ['Avg Turnaround Speed (Days)', $data['totals']['avg_turnaround']]);
+                }
                 fputcsv($file, []);
 
                 // Column maps matching report type
@@ -523,9 +606,24 @@ class ReportController extends Controller
                     foreach ($data['kpis'] as $kpi) {
                         fputcsv($file, [
                             ucwords(str_replace('_', ' ', $kpi->metric_type)),
-                            $kpi->user ? $kpi->user->name : 'General NLI',
+                            $kpi->user ? $kpi->user->name : 'General MSULI',
                             $kpi->metric_value,
                             $kpi->created_at->format('Y-m-d H:i')
+                        ]);
+                    }
+                } elseif ($type === 'student_enrollment') {
+                    fputcsv($file, ['STUDENT ENROLLMENT REGISTER']);
+                    fputcsv($file, ['Student Name', 'Email Address', 'Course Name', 'MSUNLI Unit', 'Tuition Paid', 'Payment Status', 'Enrollment Status', 'Enrolled Date']);
+                    foreach ($data['student_enrollments'] as $se) {
+                        fputcsv($file, [
+                            $se->user ? $se->user->name : 'N/A',
+                            $se->user ? $se->user->email : 'N/A',
+                            $se->intake && $se->intake->course ? $se->intake->course->title : 'N/A',
+                            ($se->intake && $se->intake->course && $se->intake->course->department) ? $se->intake->course->department->code : 'N/A',
+                            $se->amount_paid ?? '0.00',
+                            ucwords($se->payment_status),
+                            ucwords($se->enrollment_status),
+                            $se->created_at->format('Y-m-d')
                         ]);
                     }
                 } else {
@@ -582,10 +680,8 @@ class ReportController extends Controller
         } else {
             if (!empty($filters['department_id'])) {
                 $deptId = $filters['department_id'];
-                $query->whereHas('assignedTo', function ($q) use ($deptId) {
-                    $q->where('department_id', $deptId);
-                });
-                $taskQuery->whereHas('assignment.assignedTo', function ($q) use ($deptId) {
+                $query->where('department_id', $deptId);
+                $taskQuery->whereHas('assignment.serviceRequest', function ($q) use ($deptId) {
                     $q->where('department_id', $deptId);
                 });
             }
@@ -688,6 +784,14 @@ class ReportController extends Controller
         $tasks = [];
         $staffWorkload = [];
         $kpis = [];
+        $studentEnrollments = [];
+        $enrollmentStats = [
+            'total' => 0,
+            'active' => 0,
+            'pending' => 0,
+            'completed' => 0,
+            'dropped' => 0,
+        ];
 
         // 1. Client Service reports always fetch matching requests
         if ($reportType === 'client_services' || $reportType === 'administrative') {
@@ -786,12 +890,66 @@ class ReportController extends Controller
             $kpis = $kpiQuery->orderBy('created_at', 'desc')->take(50)->get();
         }
 
+        // 6. Student Enrollment Report type pipeline
+        if ($reportType === 'student_enrollment') {
+            $seQuery = \App\Models\CourseEnrollment::with(['user', 'intake.course.department']);
+            if (!empty($filters['student_course_id'])) {
+                $seQuery->whereHas('intake.course', function($q) use ($filters) {
+                    $q->where('id', $filters['student_course_id']);
+                });
+            }
+            if (!empty($filters['student_unit_id'])) {
+                $seQuery->whereHas('intake.course.department', function($q) use ($filters) {
+                    $q->where('id', $filters['student_unit_id']);
+                });
+            }
+            if (!empty($filters['student_enrollment_status'])) {
+                $seQuery->where('enrollment_status', $filters['student_enrollment_status']);
+            }
+            if (!empty($filters['date_start'])) {
+                $seQuery->where('created_at', '>=', $filters['date_start'] . ' 00:00:00');
+            }
+            if (!empty($filters['date_end'])) {
+                $seQuery->where('created_at', '<=', $filters['date_end'] . ' 23:59:59');
+            }
+            $studentEnrollments = $seQuery->orderBy('created_at', 'desc')->get();
+
+            // Calculate stats for metrics
+            $seBase = \App\Models\CourseEnrollment::query();
+            if (!empty($filters['student_course_id'])) {
+                $seBase->whereHas('intake.course', function($q) use ($filters) {
+                    $q->where('id', $filters['student_course_id']);
+                });
+            }
+            if (!empty($filters['student_unit_id'])) {
+                $seBase->whereHas('intake.course.department', function($q) use ($filters) {
+                    $q->where('id', $filters['student_unit_id']);
+                });
+            }
+            if (!empty($filters['date_start'])) {
+                $seBase->where('created_at', '>=', $filters['date_start'] . ' 00:00:00');
+            }
+            if (!empty($filters['date_end'])) {
+                $seBase->where('created_at', '<=', $filters['date_end'] . ' 23:59:59');
+            }
+
+            $enrollmentStats = [
+                'total' => (clone $seBase)->count(),
+                'active' => (clone $seBase)->where('enrollment_status', 'active')->count(),
+                'pending' => (clone $seBase)->where('enrollment_status', 'pending')->count(),
+                'completed' => (clone $seBase)->where('enrollment_status', 'completed')->count(),
+                'dropped' => (clone $seBase)->where('enrollment_status', 'dropped')->count(),
+            ];
+        }
+
         return [
             'requests' => $requests,
             'quotations' => $quotations,
             'tasks' => $tasks,
             'staff_workload' => $staffWorkload,
             'kpis' => $kpis,
+            'student_enrollments' => $studentEnrollments,
+            'enrollment_stats' => $enrollmentStats,
             'totals' => [
                 'total_requests' => $totalRequests,
                 'active_assignments' => $activeAssignments,

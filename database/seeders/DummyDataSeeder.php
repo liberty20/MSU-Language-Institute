@@ -16,6 +16,16 @@ class DummyDataSeeder extends Seeder
 {
     public function run()
     {
+        // Truncate existing data to avoid duplicates
+        \Schema::disableForeignKeyConstraints();
+        \DB::table('procurement_requests')->truncate();
+        \DB::table('tasks')->truncate();
+        \DB::table('assignments')->truncate();
+        \DB::table('quotations')->truncate();
+        \DB::table('service_requests')->truncate();
+        \DB::table('clients')->truncate();
+        \Schema::enableForeignKeyConstraints();
+
         $clients = [
             ['client_type' => 'organization', 'organization' => 'Ministry of Health', 'contact_person' => 'Dr. Moyo', 'email' => 'moyo@health.gov.zw', 'phone' => '0771234567', 'status' => 'active'],
             ['client_type' => 'organization', 'organization' => 'UNICEF Zimbabwe', 'contact_person' => 'Jane Smith', 'email' => 'jsmith@unicef.org', 'phone' => '0772345678', 'status' => 'active'],

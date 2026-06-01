@@ -169,26 +169,49 @@
 
     <!-- 6 KPI widgets display -->
     <div class="widget-row">
-        <div class="widget">
-            <div class="widget-title">Total Volume</div>
-            <div class="widget-value">{{ $totals['total_requests'] }}</div>
-        </div>
-        <div class="widget">
-            <div class="widget-title">Active Tasks</div>
-            <div class="widget-value">{{ $totals['active_assignments'] }}</div>
-        </div>
-        <div class="widget">
-            <div class="widget-title">Completed</div>
-            <div class="widget-value">{{ $totals['completed_services'] }}</div>
-        </div>
-        <div class="widget">
-            <div class="widget-title">Avg Speed</div>
-            <div class="widget-value">{{ $totals['avg_turnaround'] }}d</div>
-        </div>
-        <div class="widget">
-            <div class="widget-title font-black" style="color:#d4a017;">Satisfaction</div>
-            <div class="widget-value">{{ $totals['client_satisfaction'] }}/5.0</div>
-        </div>
+        @if ($report_type === 'student_enrollment')
+            <div class="widget" style="width: 18%;">
+                <div class="widget-title">Total Enrolled</div>
+                <div class="widget-value">{{ $enrollment_stats['total'] }}</div>
+            </div>
+            <div class="widget" style="width: 18%;">
+                <div class="widget-title font-black" style="color:#2b6cb0;">Active</div>
+                <div class="widget-value">{{ $enrollment_stats['active'] }}</div>
+            </div>
+            <div class="widget" style="width: 18%;">
+                <div class="widget-title font-black" style="color:#dd6b20;">Pending</div>
+                <div class="widget-value">{{ $enrollment_stats['pending'] }}</div>
+            </div>
+            <div class="widget" style="width: 18%;">
+                <div class="widget-title font-black" style="color:#22543d;">Completed</div>
+                <div class="widget-value">{{ $enrollment_stats['completed'] }}</div>
+            </div>
+            <div class="widget" style="width: 18%;">
+                <div class="widget-title font-black" style="color:#e53e3e;">Dropped</div>
+                <div class="widget-value">{{ $enrollment_stats['dropped'] }}</div>
+            </div>
+        @else
+            <div class="widget">
+                <div class="widget-title">Total Volume</div>
+                <div class="widget-value">{{ $totals['total_requests'] }}</div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">Active Tasks</div>
+                <div class="widget-value">{{ $totals['active_assignments'] }}</div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">Completed</div>
+                <div class="widget-value">{{ $totals['completed_services'] }}</div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">Avg Speed</div>
+                <div class="widget-value">{{ $totals['avg_turnaround'] }}d</div>
+            </div>
+            <div class="widget">
+                <div class="widget-title font-black" style="color:#d4a017;">Satisfaction</div>
+                <div class="widget-value">{{ $totals['client_satisfaction'] }}/5.0</div>
+            </div>
+        @endif
         <div class="clear"></div>
     </div>
 
@@ -313,7 +336,7 @@
                 @forelse ($kpis as $kpi)
                     <tr>
                         <td style="font-weight: bold; color: #0a1f44;">{{ ucwords(str_replace('_', ' ', $kpi->metric_type)) }}</td>
-                        <td>{{ $kpi->user ? $kpi->user->name : 'NLI General Specialist' }}</td>
+                        <td>{{ $kpi->user ? $kpi->user->name : 'MSULI General Specialist' }}</td>
                         <td style="font-weight: bold; color: #2b6cb0;">{{ $kpi->metric_value }}</td>
                         <td>{{ $kpi->created_at->format('Y-m-d H:i') }}</td>
                     </tr>
@@ -359,6 +382,49 @@
                 @empty
                     <tr>
                         <td colspan="6" style="text-align: center; color: #a0aec0; padding: 15px;">No active service requests matching database.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+
+    @elseif ($report_type === 'student_enrollment')
+        <h3 class="section-header">Short Courses Student Enrollment Ledger</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Email Address</th>
+                    <th>Enrolled Course</th>
+                    <th>MSUNLI Unit</th>
+                    <th style="text-align: right;">Tuition Paid</th>
+                    <th>Payment Status</th>
+                    <th>Enrollment Status</th>
+                    <th>Enrolled Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($student_enrollments as $se)
+                    <tr>
+                        <td style="font-weight: bold; color: #0a1f44;">{{ $se->user ? $se->user->name : 'N/A' }}</td>
+                        <td>{{ $se->user ? $se->user->email : 'N/A' }}</td>
+                        <td>{{ $se->intake && $se->intake->course ? $se->intake->course->title : 'N/A' }}</td>
+                        <td>{{ ($se->intake && $se->intake->course && $se->intake->course->department) ? $se->intake->course->department->code : 'N/A' }}</td>
+                        <td style="text-align: right; font-weight: bold;">${{ number_format($se->amount_paid, 2) }}</td>
+                        <td>
+                            <span class="badge {{ $se->payment_status === 'verified' ? 'badge-completed' : ($se->payment_status === 'pending' ? 'badge-in-progress' : 'badge-pending') }}">
+                                {{ $se->payment_status }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {{ $se->enrollment_status === 'active' ? 'badge-completed' : ($se->enrollment_status === 'completed' ? 'badge-completed' : ($se->enrollment_status === 'pending' ? 'badge-in-progress' : 'badge-pending')) }}">
+                                {{ $se->enrollment_status }}
+                            </span>
+                        </td>
+                        <td>{{ $se->created_at->format('Y-m-d') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #a0aec0; padding: 15px;">No student enrollments match these filters inside this time scope.</td>
                     </tr>
                 @endforelse
             </tbody>

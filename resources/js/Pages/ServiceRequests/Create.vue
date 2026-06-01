@@ -58,13 +58,27 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Source Language</label>
-                        <input type="text" v-model="form.source_language" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" placeholder="e.g. English" />
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Source Language *</label>
+                        <select v-model="selectedSource" @change="updateSourceLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]">
+                            <option value="" disabled>Select Source Language</option>
+                            <option v-for="lang in zimbabweanLanguages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                        <div v-if="selectedSource === 'Other'" class="mt-2 transition-all duration-300">
+                            <input type="text" v-model="customSource" @input="updateSourceLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" placeholder="Please specify other source language" />
+                        </div>
+                        <div v-if="form.errors.source_language" class="text-red-500 text-xs mt-1">{{ form.errors.source_language }}</div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Target Language(s)</label>
-                        <input type="text" v-model="form.target_language" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" placeholder="e.g. Shona, Ndebele" />
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Target Language(s) *</label>
+                        <select v-model="selectedTarget" @change="updateTargetLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]">
+                            <option value="" disabled>Select Target Language</option>
+                            <option v-for="lang in zimbabweanLanguages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                        <div v-if="selectedTarget === 'Other'" class="mt-2 transition-all duration-300">
+                            <input type="text" v-model="customTarget" @input="updateTargetLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" placeholder="Please specify other target language(s)" />
+                        </div>
+                        <div v-if="form.errors.target_language" class="text-red-500 text-xs mt-1">{{ form.errors.target_language }}</div>
                     </div>
 
                     <div>
@@ -134,6 +148,26 @@ const props = defineProps({
     default_client_id: [String, Number]
 });
 
+const zimbabweanLanguages = [
+    'Chewa',
+    'ChiBarwe',
+    'English',
+    'Kalanga',
+    'Koisan',
+    'Nambya',
+    'Ndau',
+    'Ndebele',
+    'Shangani',
+    'Shona',
+    'Sign Language',
+    'Sotho',
+    'Tonga',
+    'Tswana',
+    'Venda',
+    'Xhosa',
+    'Other'
+];
+
 const isDragOver = ref(false);
 
 const form = useForm({
@@ -147,6 +181,28 @@ const form = useForm({
     deadline: '',
     files: [],
 });
+
+const selectedSource = ref(form.source_language && zimbabweanLanguages.includes(form.source_language) ? form.source_language : (form.source_language ? 'Other' : ''));
+const customSource = ref(selectedSource.value === 'Other' ? form.source_language : '');
+
+const selectedTarget = ref(form.target_language && zimbabweanLanguages.includes(form.target_language) ? form.target_language : (form.target_language ? 'Other' : ''));
+const customTarget = ref(selectedTarget.value === 'Other' ? form.target_language : '');
+
+const updateSourceLanguage = () => {
+    if (selectedSource.value === 'Other') {
+        form.source_language = customSource.value;
+    } else {
+        form.source_language = selectedSource.value;
+    }
+};
+
+const updateTargetLanguage = () => {
+    if (selectedTarget.value === 'Other') {
+        form.target_language = customTarget.value;
+    } else {
+        form.target_language = selectedTarget.value;
+    }
+};
 
 const handleFileChange = (e) => {
     form.files = Array.from(e.target.files);

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,17 +25,37 @@ use App\Http\Controllers\ProfileController;
 */
 
 Route::get('/', function () {
+    $courses = \App\Models\Course::with('department')
+        ->where('is_published', true)
+        ->get();
+
+    $intakes = \App\Models\CourseIntake::with(['course', 'instructor'])
+        ->where('status', 'open')
+        ->get();
+
     return Inertia::render('Welcome', [
+        'courses' => $courses,
+        'intakes' => $intakes,
         'canLogin' => Route::has('login'),
     ]);
 });
 
 Route::get('/run-migrations', function () {
     try {
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
+        
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        $seedOutput = \Illuminate\Support\Facades\Artisan::output();
+        
         return response()->json([
             'status' => 'success',
-            'output' => \Illuminate\Support\Facades\Artisan::output(),
+            'migrate_output' => $migrateOutput,
+            'seed_output' => $seedOutput,
         ]);
     } catch (\Exception $e) {
         return response()->json([
@@ -48,18 +69,96 @@ Route::get('/db-test', function () {
     $hasNotes = \Illuminate\Support\Facades\Schema::hasColumn('service_requests', 'notes');
     $hasPaymentsTable = \Illuminate\Support\Facades\Schema::hasTable('payments');
     $hasBankAccountsTable = \Illuminate\Support\Facades\Schema::hasTable('bank_accounts');
+    $hasCourses = \Illuminate\Support\Facades\Schema::hasTable('courses');
+    $hasIntakes = \Illuminate\Support\Facades\Schema::hasTable('course_intakes');
+    $hasEnrollments = \Illuminate\Support\Facades\Schema::hasTable('course_enrollments');
     $columns = \Illuminate\Support\Facades\Schema::getColumnListing('service_requests');
+    
+    $departmentCount = \DB::table('departments')->count();
+    $courseCount = \DB::table('courses')->count();
+    $enrollmentCount = \DB::table('course_enrollments')->count();
+    $expert = \App\Models\User::where('email', 'expert@msunli.edu')->first();
+    $expertDept = ($expert && $expert->department) ? $expert->department->code : null;
     
     return response()->json([
         'has_notes' => $hasNotes,
         'has_payments' => $hasPaymentsTable,
         'has_bank_accounts' => $hasBankAccountsTable,
+        'has_courses' => $hasCourses,
+        'has_intakes' => $hasIntakes,
+        'has_enrollments' => $hasEnrollments,
         'service_requests_columns' => $columns,
+        'departments_count' => $departmentCount,
+        'courses_count' => $courseCount,
+        'enrollments_count' => $enrollmentCount,
+        'expert_department_code' => $expertDept,
     ]);
 });
 
+Route::get('courses-catalog', [CourseController::class, 'publicCatalog'])->name('courses.catalog');
+Route::get('short-courses', [CourseController::class, 'publicPortal'])->name('courses.public');
+Route::post('courses/apply', [CourseController::class, 'submitApplication'])->name('courses.apply');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Short Courses Management (Admin/Staff)
+    Route::get('courses', [CourseController::class, 'index'])->name('courses.index');
+    Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
+    Route::put('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+    Route::post('course-intakes', [CourseController::class, 'storeIntake'])->name('course-intakes.store');
+    Route::put('course-intakes/{intake}', [CourseController::class, 'updateIntake'])->name('course-intakes.update');
+    Route::get('course-enrollments', [CourseController::class, 'enrollments'])->name('course-enrollments.index');
+    Route::post('course-enrollments/{enrollment}/verify', [CourseController::class, 'verifyPayment'])->name('course-enrollments.verify');
+    Route::post('course-enrollments/{enrollment}/certificate', [CourseController::class, 'issueCertificate'])->name('course-enrollments.certificate');
+
+    // Course Applications Review Workflow (Admin/Staff)
+    Route::get('course-applications', [CourseController::class, 'applicationsList'])->name('course-applications.index');
+    Route::get('course-applications/{id}', [CourseController::class, 'applicationDetails'])->name('course-applications.show');
+    Route::match(['post', 'put', 'patch'], 'course-applications/{id}/verify', [CourseController::class, 'verifyApplication'])->name('course-applications.verify');
+    Route::match(['post', 'put', 'patch'], 'course-applications/{id}/recommend', [CourseController::class, 'recommendApplication'])->name('course-applications.recommend');
+    Route::match(['post', 'put', 'patch'], 'course-applications/{id}/approve', [CourseController::class, 'approveApplication'])->name('course-applications.approve');
+    Route::match(['post', 'put', 'patch'], 'course-applications/{id}/reject', [CourseController::class, 'rejectApplication'])->name('course-applications.reject');
+
+    // Student Enrollment Routes
+    Route::get('my-courses', [CourseController::class, 'studentDashboard'])->name('student.courses');
+
+    // Centralized Notifications Routes
+    Route::get('notifications', [DashboardController::class, 'getNotifications'])->name('notifications.index');
+    Route::post('notifications/{id}/read', [DashboardController::class, 'markNotificationAsRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [DashboardController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
+
+    // Student Short Course Portal Routes
+    Route::middleware('role:student')->group(function () {
+        Route::get('student/continuous-assessment', [\App\Http\Controllers\StudentPortalController::class, 'caMarks'])->name('student.ca');
+        Route::get('student/continuous-assessment/download', [\App\Http\Controllers\StudentPortalController::class, 'downloadCaReport'])->name('student.ca.download');
+        Route::get('student/timetable', [\App\Http\Controllers\StudentPortalController::class, 'timetable'])->name('student.timetable');
+        Route::get('student/assignments', [\App\Http\Controllers\StudentPortalController::class, 'assignments'])->name('student.assignments');
+        Route::post('student/assignments/{assignment}/submit', [\App\Http\Controllers\StudentPortalController::class, 'submitAssignment'])->name('student.assignments.submit');
+        Route::post('student/testimonials', [\App\Http\Controllers\StudentPortalController::class, 'submitTestimonial'])->name('student.testimonials.store');
+    });
+
+    // Instructor Short Course Portal Routes
+    Route::middleware('instructor')->group(function () {
+        Route::get('instructor/enrollments', [\App\Http\Controllers\InstructorPortalController::class, 'enrollments'])->name('instructor.enrollments');
+        Route::get('instructor/enrollments/export/{intakeId}', [\App\Http\Controllers\InstructorPortalController::class, 'exportEnrollments'])->name('instructor.enrollments.export');
+        
+        Route::get('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableIndex'])->name('instructor.timetable.index');
+        Route::post('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableStore'])->name('instructor.timetable.store');
+        Route::put('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableUpdate'])->name('instructor.timetable.update');
+        Route::delete('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableDestroy'])->name('instructor.timetable.destroy');
+        
+        Route::get('instructor/ca', [\App\Http\Controllers\InstructorPortalController::class, 'caIndex'])->name('instructor.ca.index');
+        Route::post('instructor/ca/store', [\App\Http\Controllers\InstructorPortalController::class, 'caStore'])->name('instructor.ca.store');
+        Route::post('instructor/ca/bulk-upload', [\App\Http\Controllers\InstructorPortalController::class, 'caBulkUpload'])->name('instructor.ca.bulk-upload');
+        
+        Route::get('instructor/assignments', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsIndex'])->name('instructor.assignments.index');
+        Route::post('instructor/assignments', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsStore'])->name('instructor.assignments.store');
+        Route::put('instructor/assignments/{assignment}', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsUpdate'])->name('instructor.assignments.update');
+        Route::delete('instructor/assignments/{assignment}', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsDestroy'])->name('instructor.assignments.destroy');
+        Route::get('instructor/assignments/{assignment}/submissions', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsSubmissions'])->name('instructor.assignments.submissions');
+        Route::post('instructor/submissions/{submission}/grade', [\App\Http\Controllers\InstructorPortalController::class, 'gradeSubmission'])->name('instructor.submissions.grade');
+    });
 
     Route::resource('clients', ClientController::class);
     Route::resource('service-requests', ServiceRequestController::class);
@@ -96,8 +195,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('finance/payments/{payment}/verify', [FinanceController::class, 'verifyPayment'])->name('finance.payments.verify');
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('audit-trail', [DashboardController::class, 'auditTrail'])->name('audit-trail');
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::resource('users', UserController::class);
+        
+        // System Settings Panel routes
+        Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+        Route::post('settings/units', [\App\Http\Controllers\Admin\SettingsController::class, 'storeUnit'])->name('settings.units.store');
+        Route::put('settings/units/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateUnit'])->name('settings.units.update');
+        Route::delete('settings/units/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyUnit'])->name('settings.units.destroy');
+
+        Route::post('settings/sections', [\App\Http\Controllers\Admin\SettingsController::class, 'storeSection'])->name('settings.sections.store');
+        Route::put('settings/sections/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateSection'])->name('settings.sections.update');
+        Route::delete('settings/sections/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroySection'])->name('settings.sections.destroy');
+
+        Route::post('settings/roles', [\App\Http\Controllers\Admin\SettingsController::class, 'storeRole'])->name('settings.roles.store');
+        Route::delete('settings/roles/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyRole'])->name('settings.roles.destroy');
+        Route::post('settings/short-courses', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShortCoursesPortal'])->name('settings.short-courses.update');
+        Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('admin.testimonials.approve');
+        Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('admin.testimonials.reject');
+        Route::delete('testimonials/{idx}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('admin.testimonials.destroy');
     });
 
     // Profile Management Routes for All Authenticated Users

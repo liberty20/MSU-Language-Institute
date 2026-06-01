@@ -4,12 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Quotation;
 use App\Models\ServiceRequest;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
 class QuotationController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (Auth::user() && Auth::user()->hasRole('student')) {
+                abort(403, 'Unauthorized. Students cannot access client modules.');
+            }
+            return $next($request);
+        });
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -99,7 +110,19 @@ class QuotationController extends Controller
             $validated['description'] = 'Services rendered as per line items.';
         }
 
-        Quotation::create($validated);
+        $quotation = Quotation::create($validated);
+
+        ActivityLog::log(
+            'quotation_created',
+            'Created quotation Reference #' . $quotation->id . ' for amount ' . $quotation->currency . ' ' . number_format($quotation->amount, 2),
+            $quotation,
+            [
+                'currency' => $quotation->currency,
+                'amount' => $quotation->amount,
+                'status' => $quotation->status,
+                'prepared_by' => $user->name,
+            ]
+        );
 
         return redirect()->route('quotations.index')->with('success', 'Quotation generated and submitted successfully.');
     }
@@ -165,6 +188,11 @@ class QuotationController extends Controller
                     'comments'    => $validated['comments'],
                     'approved_at' => now(),
                 ]);
+                ActivityLog::log('quotation_approved', 'Quotation Reference #' . $quotation->id . ' recommended for approval by Deputy Director.', $quotation, [
+                    'old_value' => 'submitted',
+                    'new_value' => 'pending_approval',
+                    'comments'  => $validated['comments']
+                ]);
                 $msg = 'Quotation recommended and pushed to the Executive Director.';
             } elseif ($validated['status'] === 'review') {
                 $quotation->update(['status' => 'draft']);
@@ -175,6 +203,11 @@ class QuotationController extends Controller
                     'comments'    => '[Revision Requested] ' . $validated['comments'],
                     'approved_at' => now(),
                 ]);
+                ActivityLog::log('quotation_updated', 'Quotation Reference #' . $quotation->id . ' returned for revision by Deputy Director.', $quotation, [
+                    'old_value' => 'submitted',
+                    'new_value' => 'draft',
+                    'comments'  => $validated['comments']
+                ]);
                 $msg = 'Quotation returned to creator for revision.';
             } else {
                 $quotation->update(['status' => 'rejected']);
@@ -184,6 +217,11 @@ class QuotationController extends Controller
                     'status'      => 'rejected',
                     'comments'    => $validated['comments'],
                     'approved_at' => now(),
+                ]);
+                ActivityLog::log('quotation_rejected', 'Quotation Reference #' . $quotation->id . ' rejected by Deputy Director.', $quotation, [
+                    'old_value' => 'submitted',
+                    'new_value' => 'rejected',
+                    'comments'  => $validated['comments']
                 ]);
                 $msg = 'Quotation rejected successfully.';
             }
@@ -209,6 +247,12 @@ class QuotationController extends Controller
                     $quotation->serviceRequest->update(['status' => 'quoted']);
                 }
 
+                ActivityLog::log('quotation_approved', 'Quotation Reference #' . $quotation->id . ' approved by Executive Director.', $quotation, [
+                    'old_value' => 'pending_approval',
+                    'new_value' => 'approved',
+                    'comments'  => $validated['comments']
+                ]);
+
                 $msg = 'Quotation approved successfully.';
             } else {
                 $quotation->update(['status' => 'rejected']);
@@ -218,6 +262,11 @@ class QuotationController extends Controller
                     'status'      => 'rejected',
                     'comments'    => $validated['comments'],
                     'approved_at' => now(),
+                ]);
+                ActivityLog::log('quotation_rejected', 'Quotation Reference #' . $quotation->id . ' rejected by Executive Director.', $quotation, [
+                    'old_value' => 'pending_approval',
+                    'new_value' => 'rejected',
+                    'comments'  => $validated['comments']
                 ]);
                 $msg = 'Quotation rejected successfully.';
             }
@@ -258,7 +307,20 @@ class QuotationController extends Controller
             $validated['description'] = 'Services rendered as per line items.';
         }
 
+        $oldAmount = $quotation->amount;
+        $oldCurrency = $quotation->currency;
+
         $quotation->update($validated);
+
+        ActivityLog::log(
+            'quotation_updated',
+            'Updated quotation Reference #' . $quotation->id . ' details',
+            $quotation,
+            [
+                'previous_values' => ['amount' => $oldAmount, 'currency' => $oldCurrency],
+                'new_values' => ['amount' => $quotation->amount, 'currency' => $quotation->currency]
+            ]
+        );
 
         return redirect()->route('quotations.show', $quotation->id)->with('success', 'Quotation updated successfully.');
     }

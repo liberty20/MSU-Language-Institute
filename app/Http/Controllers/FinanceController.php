@@ -10,6 +10,15 @@ use Inertia\Inertia;
 
 class FinanceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (Auth::user() && Auth::user()->hasRole('student')) {
+                abort(403, 'Unauthorized. Students cannot access client modules.');
+            }
+            return $next($request);
+        });
+    }
     private function checkAccess()
     {
         $user = Auth::user();

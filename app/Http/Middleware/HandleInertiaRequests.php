@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 'roles' => $request->user() ? $request->user()->getRoleNames() : [],
                 'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
+                'is_instructor' => $request->user() ? ($request->user()->hasAnyRole(['language_expert', 'part_time_staff']) || $request->user()->instructedIntakes()->exists()) : false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

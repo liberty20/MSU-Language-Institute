@@ -11,6 +11,16 @@ use Inertia\Inertia;
 
 class PaymentController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (Auth::user() && Auth::user()->hasRole('student')) {
+                abort(403, 'Unauthorized. Students cannot access client modules.');
+            }
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         $user = Auth::user();

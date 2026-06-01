@@ -15,6 +15,8 @@
                 </div>
                 <div class="hidden md:flex items-center gap-8">
                     <a href="#services" @click.prevent="toggleServices" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Services</a>
+                    <Link :href="route('courses.public')" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
+                    <a href="#announcements" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
                     <button @click="showAbout = true" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
                     
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')" 
@@ -32,7 +34,7 @@
         <!-- Hero Section -->
         <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#0a1f44] bg-cover bg-center" style="background-image: url('/msuli-build.jpg');">
             <!-- Overlay -->
-            <div class="absolute inset-0 bg-[#0a1f44]/80 z-0"></div>
+            <div class="absolute inset-0 bg-[#0a1f44]/85 z-0"></div>
             
             <!-- Decorative Elements -->
             <div class="absolute inset-0 w-full h-full z-0 pointer-events-none">
@@ -51,16 +53,19 @@
                         <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#f5c242] to-yellow-200">Solutions Hub</span>
                     </h2>
                     <p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                        Seamlessly manage your language service requests. From certified translations to brailling and sign language interpretations, Midlands State University National Language Institute delivers excellence.
+                        Seamlessly manage your language service requests or enroll in professional short courses. From certified Swahili training, Unified English Braille to Zimbabwean Sign Language, MSULI delivers excellence.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link :href="route('login')" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-8 py-4 rounded-full transition shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
-                            Request a Service
+                        <Link v-if="$page.props.auth.user" :href="route('dashboard')" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-8 py-4 rounded-full transition shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                            Go to Dashboard &rarr;
+                        </Link>
+                        <Link v-else :href="route('login')" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-8 py-4 rounded-full transition shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                            Access Portal &amp; Enroll
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                         </Link>
-                        <a href="#services" @click.prevent="toggleServices" class="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-8 py-4 rounded-full transition backdrop-blur-sm flex items-center justify-center cursor-pointer">
-                            Explore Services
-                        </a>
+                        <Link :href="route('courses.public')" class="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-8 py-4 rounded-full transition backdrop-blur-sm flex items-center justify-center cursor-pointer text-center">
+                            Explore Courses
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -70,7 +75,7 @@
         <section class="py-12 bg-white border-b border-gray-100 relative z-20 -mt-10 mx-6 lg:mx-auto max-w-6xl rounded-2xl shadow-xl">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 px-8 text-center">
                 <div>
-                    <p class="text-4xl font-black text-[#0a1f44]">16</p>
+                    <p class="text-4xl font-black text-[#0a1f44]">16+</p>
                     <p class="text-sm text-gray-500 font-medium mt-1">Supported Languages</p>
                 </div>
                 <div>
@@ -82,14 +87,55 @@
                     <p class="text-sm text-gray-500 font-medium mt-1">Certified Experts</p>
                 </div>
                 <div>
-                    <p class="text-4xl font-black text-[#0a1f44]">5</p>
-                    <p class="text-sm text-gray-500 font-medium mt-1">Core Service Pillars</p>
+                    <p class="text-4xl font-black text-[#0a1f44]">8+</p>
+                    <p class="text-sm text-gray-500 font-medium mt-1">Short Course Programs</p>
                 </div>
             </div>
         </section>
 
+        <!-- Announcements Section -->
+        <section id="announcements" class="py-20 bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <span class="inline-block py-1 px-4 rounded-full bg-brand-gold/10 text-[#f5c242] text-xs font-bold tracking-widest uppercase mb-3">
+                        Latest Notices
+                    </span>
+                    <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">News &amp; Announcements</h3>
+                    <p class="text-gray-600 text-base">Stay updated with current events, academic updates, and intake schedules at the MSU National Language Institute.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Notice 1 -->
+                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
+                        <div class="absolute top-0 left-0 w-2 h-full bg-brand-gold"></div>
+                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 28, 2026</span>
+                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-[#f5c242] transition-colors">Braille Competency Certification</h4>
+                        <p class="text-sm text-gray-600 leading-relaxed">Applications for the Winter 2026 Unified English Braille (UEB) training batches are officially open. Enrollment capacity is limited to 25 seats per intake. Standard tuition fees apply.</p>
+                    </div>
+
+                    <!-- Notice 2 -->
+                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
+                        <div class="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 25, 2026</span>
+                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-blue-600 transition-colors">Weekend Swahili Conversational Intake</h4>
+                        <p class="text-sm text-gray-600 leading-relaxed">Interactive Swahili Swac-101 conversational cohorts will begin operations on Saturday mornings at the Gweru Main Campus. Ideal for corporate stakeholders and business travelers.</p>
+                    </div>
+
+                    <!-- Notice 3 -->
+                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
+                        <div class="absolute top-0 left-0 w-2 h-full bg-green-600"></div>
+                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 20, 2026</span>
+                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-green-600 transition-colors">Sign Language Evening Cohorts</h4>
+                        <p class="text-sm text-gray-600 leading-relaxed">To promote national inclusivity, evening Zimbabwean Sign Language batches are now scheduled from 5:30 PM to 7:30 PM to accommodate public service and healthcare personnel.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+
         <!-- Services Section -->
-        <section id="services" v-show="showServices" class="py-24 bg-gray-50 transition-all duration-500">
+        <section id="services" v-show="showServices" class="py-24 bg-white transition-all duration-500">
             <div class="max-w-7xl mx-auto px-6 lg:px-8">
                 <div class="text-center max-w-2xl mx-auto mb-16">
                     <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">Our Core Services</h3>
@@ -98,7 +144,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <!-- Service 1 -->
-                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-150 hover:shadow-xl transition-shadow duration-300 group">
                         <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
                         </div>
@@ -107,7 +153,7 @@
                     </div>
 
                     <!-- Service 2 -->
-                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-150 hover:shadow-xl transition-shadow duration-300 group">
                         <div class="w-14 h-14 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </div>
@@ -116,7 +162,7 @@
                     </div>
 
                     <!-- Service 3 -->
-                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-shadow duration-300 group">
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-150 hover:shadow-xl transition-shadow duration-300 group">
                         <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                         </div>
@@ -138,18 +184,18 @@
         </section>
 
         <!-- CTA Section -->
-        <section class="py-20 relative bg-white overflow-hidden border-t border-gray-100">
+        <section class="py-20 relative bg-gradient-to-r from-[#0a1f44] to-[#0c2859] text-white overflow-hidden">
             <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
-                <h2 class="text-3xl md:text-5xl font-black text-[#0a1f44] mb-6">Ready to start your project?</h2>
-                <p class="text-xl text-gray-600 mb-10">Create an account today to submit requests, track progress, and communicate directly with our language experts.</p>
-                <Link :href="route('login')" class="inline-block bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-10 py-4 rounded-full transition shadow-lg transform hover:-translate-y-1 text-lg">
-                    Access the Client Portal
+                <h2 class="text-3xl md:text-5xl font-black text-white mb-6">Start Your Journey Today</h2>
+                <p class="text-xl text-gray-300 mb-10">Access our student portal, submit class work, view schedules, and interact with professional language experts.</p>
+                <Link :href="route('login')" class="inline-block bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-10 py-4 rounded-full transition shadow-lg transform hover:-translate-y-1 text-lg">
+                    Log in to Portal
                 </Link>
             </div>
         </section>
 
         <!-- Footer -->
-        <footer id="contact" class="bg-[#0a1f44] text-white pt-16">
+        <footer id="contact" class="bg-[#0a1f44] text-white pt-16 mt-auto">
             <div class="max-w-7xl mx-auto px-6 lg:px-8 pb-12 grid grid-cols-1 md:grid-cols-3 gap-12">
                 <div>
                     <div class="flex items-center gap-3 mb-6">
@@ -165,7 +211,8 @@
                 <div>
                     <h3 class="text-[#f5c242] font-bold uppercase tracking-wider text-sm mb-6">Quick Links</h3>
                     <ul class="space-y-3">
-                        <li><Link :href="route('login')" class="text-gray-400 hover:text-white transition text-sm">Client Portal Login</Link></li>
+                        <li><Link :href="route('login')" class="text-gray-400 hover:text-white transition text-sm">Portal Login</Link></li>
+                        <li><Link :href="route('courses.public')" class="text-gray-400 hover:text-[#f5c242] transition text-sm">Available Courses</Link></li>
                         <li><a href="#services" @click.prevent="toggleServices" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Our Services</a></li>
                         <li><button @click="showAbout = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">About Us</button></li>
                         <li><button @click="showTerms = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Terms &amp; Conditions</button></li>
@@ -195,7 +242,7 @@
                 </div>
             </div>
 
-            <!-- Footer Strip: Zim Flag colors representation -->
+            <!-- Footer Strip -->
             <div class="h-2 w-full flex">
                 <div class="h-full flex-1 bg-green-600"></div>
                 <div class="h-full flex-1 bg-yellow-400"></div>
@@ -210,10 +257,12 @@
             </div>
         </footer>
         
-        <!-- Modals -->
+
+
+        <!-- Modals for About, Terms, Privacy -->
         <!-- About Us Modal -->
         <div v-if="showAbout" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showAbout = false">
-            <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl">
                 <div class="sticky top-0 bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center z-10">
                     <h2 class="text-2xl font-black text-[#0a1f44]">About Us</h2>
                     <button @click="showAbout = false" class="text-gray-400 hover:text-red-500 transition">
@@ -224,6 +273,17 @@
                     <p>Welcome to the Midlands State University National Language Institute (MSUNLI) Integrated Language Services and Operations Management System. MSUNLI is a national centre of excellence dedicated to promoting language development, research, innovation, translation, brailling, consultancy, and sign language services across Zimbabwe’s sixteen officially recognized languages.</p>
                     <p>Our mission is to enhance communication, inclusivity, and accessibility through professional language services supported by modern digital solutions. This platform was developed to streamline service delivery, improve operational efficiency, strengthen collaboration, and provide clients with a centralized and transparent system for accessing language-related services.</p>
                     <p>Through this system, clients can conveniently submit service requests, track progress, receive quotations, and engage with qualified language experts while enabling the Institute to maintain high standards of accountability, quality, and performance monitoring.</p>
+                    
+                    <div class="mt-8 border-t border-gray-100 pt-6">
+                        <h4 class="text-lg font-bold text-[#0a1f44] mb-2">Supported Official Languages of Zimbabwe</h4>
+                        <p class="text-sm text-gray-500 mb-6">MSUNLI actively supports translation, research, resource development, and professional short courses across all 16 official languages:</p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div v-for="lang in zimbabweanLanguages" :key="lang" class="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-[#f5c242] hover:bg-[#0a1f44]/5 transition-all duration-300 group">
+                                <span class="w-2 h-2 rounded-full bg-[#f5c242] group-hover:scale-125 transition-transform"></span>
+                                <span class="text-sm font-semibold text-gray-700 group-hover:text-[#0a1f44] transition-colors">{{ lang }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -284,13 +344,132 @@
 
 <script setup>
 import { Head, Link } from '@inertiajs/inertia-vue3';
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
 
 const scrolled = ref(false);
 const showServices = ref(false);
 const showAbout = ref(false);
 const showTerms = ref(false);
 const showPrivacy = ref(false);
+
+const props = defineProps({
+    courses: Array,
+    intakes: Array,
+});
+
+const zimbabweanLanguages = [
+    'Chewa', 'ChiBarwe', 'English', 'Kalanga', 'Koisan', 'Nambya', 'Ndau', 'Ndebele',
+    'Shangani', 'Shona', 'Sign Language', 'Sotho', 'Tonga', 'Tswana', 'Venda', 'Xhosa'
+];
+
+const getCourseIntakes = (courseId) => {
+    if (!props.intakes) return [];
+    return props.intakes.filter(i => i.course_id === courseId);
+};
+
+const enrollModalOpen = ref(false);
+const selectedIntake = ref(null);
+
+const form = reactive({
+    full_name: '',
+    national_id_number: '',
+    email: '',
+    phone: '',
+    physical_address: '',
+});
+
+const nationalIdCopyFile = ref(null);
+const paymentProofFile = ref(null);
+const submitting = ref(false);
+const flashError = ref('');
+const flashSuccess = ref('');
+
+const enrollNow = (intake) => {
+    selectedIntake.value = intake;
+    enrollModalOpen.value = true;
+};
+
+const closeEnrollModal = () => {
+    enrollModalOpen.value = false;
+    selectedIntake.value = null;
+    paymentProofFile.value = null;
+    nationalIdCopyFile.value = null;
+    form.full_name = '';
+    form.national_id_number = '';
+    form.email = '';
+    form.phone = '';
+    form.physical_address = '';
+    flashError.value = '';
+    flashSuccess.value = '';
+};
+
+const handleIdUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 10 * 1024 * 1024) {
+        flashError.value = 'Validation Error: National ID copy file size exceeds the maximum 10MB limit.';
+        e.target.value = '';
+        nationalIdCopyFile.value = null;
+        return;
+    }
+    nationalIdCopyFile.value = file;
+    flashError.value = '';
+};
+
+const handlePaymentUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 10 * 1024 * 1024) {
+        flashError.value = 'Validation Error: Proof of Payment file size exceeds the maximum 10MB limit.';
+        e.target.value = '';
+        paymentProofFile.value = null;
+        return;
+    }
+    paymentProofFile.value = file;
+    flashError.value = '';
+};
+
+const submitEnrollment = () => {
+    if (!nationalIdCopyFile.value) {
+        flashError.value = 'Please upload a copy of your National ID.';
+        return;
+    }
+    if (!paymentProofFile.value) {
+        flashError.value = 'Please upload your proof of payment.';
+        return;
+    }
+
+    submitting.value = true;
+    flashError.value = '';
+    flashSuccess.value = '';
+
+    const formData = new FormData();
+    formData.append('course_intake_id', selectedIntake.value.id);
+    formData.append('full_name', form.full_name);
+    formData.append('national_id_number', form.national_id_number);
+    formData.append('national_id_copy', nationalIdCopyFile.value);
+    formData.append('email', form.email);
+    formData.append('phone', form.phone);
+    formData.append('physical_address', form.physical_address);
+    formData.append('payment_proof', paymentProofFile.value);
+
+    Inertia.post(route('courses.apply'), formData, {
+        onSuccess: () => {
+            submitting.value = false;
+            flashSuccess.value = 'Application submitted successfully! Your registration is now pending review.';
+            setTimeout(() => {
+                closeEnrollModal();
+            }, 3000);
+        },
+        onError: (err) => {
+            submitting.value = false;
+            if (Object.keys(err).length > 0) {
+                flashError.value = Object.values(err).join(' ');
+            } else {
+                flashError.value = 'An error occurred during submission. Please check all fields.';
+            }
+        }
+    });
+};
 
 const toggleServices = () => {
     showServices.value = !showServices.value;
@@ -299,6 +478,12 @@ const toggleServices = () => {
             document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
         });
     }
+};
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 const handleScroll = () => {

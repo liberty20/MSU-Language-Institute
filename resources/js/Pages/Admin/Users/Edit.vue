@@ -54,19 +54,47 @@
                 </div>
 
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Access & Roles</h2>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Institutional Assignment & Status</h2>
                     <div class="space-y-4">
+                        <!-- Select Unit -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Assign Role <span class="text-red-500">*</span></label>
-                            <select v-model="form.role" required
-                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm capitalize">
-                                <option value="" disabled>Select a role...</option>
-                                <option v-for="role in roles" :key="role.id" :value="role.name">
-                                    {{ role.name.replace(/_/g, ' ') }}
+                            <label class="block text-sm font-medium text-gray-700 mb-1">MSUNLI Unit <span class="text-red-500">*</span></label>
+                            <select v-model="form.unit_id" required @change="onUnitChange"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
+                                <option value="" disabled>Select parent Unit...</option>
+                                <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                                    {{ unit.code }} - {{ unit.name }}
                                 </option>
                             </select>
-                            <p v-if="form.errors.role" class="text-red-500 text-xs mt-1">{{ form.errors.role }}</p>
+                            <p v-if="form.errors.unit_id" class="text-red-500 text-xs mt-1">{{ form.errors.unit_id }}</p>
                         </div>
+
+                        <!-- Select Department/Section -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Department / Section <span class="text-red-500">*</span></label>
+                            <select v-model="form.section_id" required :disabled="!form.unit_id" @change="onSectionChange"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-50">
+                                <option value="" disabled>Choose Department/Section...</option>
+                                <option v-for="sec in filteredSections" :key="sec.id" :value="sec.id">
+                                    {{ sec.name }}
+                                </option>
+                            </select>
+                            <p v-if="form.errors.section_id" class="text-red-500 text-xs mt-1">{{ form.errors.section_id }}</p>
+                        </div>
+
+                        <!-- Select Role -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role Assignment <span class="text-red-500">*</span></label>
+                            <select v-model="form.msunli_role_id" required :disabled="!form.section_id"
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-50">
+                                <option value="" disabled>Select role...</option>
+                                <option v-for="role in filteredRoles" :key="role.id" :value="role.id">
+                                    {{ role.name }}
+                                </option>
+                            </select>
+                            <p v-if="form.errors.msunli_role_id" class="text-red-500 text-xs mt-1">{{ form.errors.msunli_role_id }}</p>
+                        </div>
+
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-150">
                             <div>
                                 <span class="block text-sm font-semibold text-gray-800">Account Status</span>
@@ -90,7 +118,7 @@
                         Cancel
                     </Link>
                     <button type="submit" :disabled="form.processing"
-                            class="px-6 py-2.5 bg-[#0a1f44] text-white rounded-xl text-sm font-bold hover:bg-[#0a1f44]/80 transition disabled:opacity-50 shadow-sm flex items-center gap-2">
+                             class="px-6 py-2.5 bg-[#0a1f44] text-white rounded-xl text-sm font-bold hover:bg-[#0a1f44]/80 transition disabled:opacity-50 shadow-sm flex items-center gap-2">
                         <svg v-if="form.processing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         Update User
                     </button>
@@ -102,13 +130,17 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
-import { onMounted } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
+import { computed } from 'vue';
 
 const props = defineProps({
     user: Object,
-    roles: Array,
+    units: Array,
+    sections: Array,
+    msunli_roles: Array,
 });
+
+const page = usePage();
 
 const form = useForm({
     name: props.user.name,
@@ -116,9 +148,40 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     phone: props.user.phone || '',
-    role: props.user.roles && props.user.roles.length > 0 ? props.user.roles[0].name : '',
+    unit_id: props.user.department_id || '',
+    section_id: props.user.section_id || '',
+    msunli_role_id: props.user.msunli_role_id || '',
     is_active: props.user.is_active === 1 || props.user.is_active === true,
 });
+
+const filteredSections = computed(() => {
+    if (!form.unit_id) return [];
+    return props.sections.filter(s => Number(s.unit_id) === Number(form.unit_id));
+});
+
+const filteredRoles = computed(() => {
+    if (!form.section_id) return [];
+    let roles = props.msunli_roles.filter(r => Number(r.section_id) === Number(form.section_id));
+    
+    const authRoles = page.props.value.auth.roles || [];
+    const isAuthorized = authRoles.includes('ict_administrator') || authRoles.includes('executive_director');
+    
+    // Hide both Executive Director and Deputy Director roles from unauthorized users
+    if (!isAuthorized) {
+        roles = roles.filter(r => r.name !== 'Executive Director' && r.name !== 'Deputy Director');
+    }
+    
+    return roles;
+});
+
+const onUnitChange = () => {
+    form.section_id = '';
+    form.msunli_role_id = '';
+};
+
+const onSectionChange = () => {
+    form.msunli_role_id = '';
+};
 
 const submit = () => {
     form.put(route('admin.users.update', props.user.id));

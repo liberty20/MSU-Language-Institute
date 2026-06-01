@@ -5,6 +5,20 @@
         </template>
 
         <div class="space-y-8">
+            <!-- Unit / Department Banner -->
+            <div v-if="stats.department_code" class="bg-gradient-to-r from-[#0a1f44] to-[#0c2859] text-white p-6 rounded-2xl border border-gray-150 shadow-md flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-brand-gold text-xs font-bold tracking-widest uppercase mb-1">
+                        Assigned Functional Unit
+                    </span>
+                    <h3 class="text-xl font-bold">{{ stats.department_name }} ({{ stats.department_code }})</h3>
+                    <p class="text-sm text-gray-300">This dashboard is configured to show service requests and operations scoped specifically to your unit.</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center font-black text-2xl text-brand-gold shadow flex-shrink-0">
+                    {{ stats.department_code.slice(0, 2) }}
+                </div>
+            </div>
+
             <!-- Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Total Clients (Hidden for clients) -->
@@ -86,6 +100,54 @@
                 </div>
             </div>
 
+            <!-- Instructor Assigned Courses Section -->
+            <div v-if="stats.assigned_courses_list" class="space-y-6">
+                <div class="border-b border-gray-150 pb-4">
+                    <h3 class="text-xl font-bold text-[#0a1f44]">My Assigned Courses</h3>
+                    <p class="text-sm text-gray-500">Overview of the short course programs allocated to you by the Executive Directorate.</p>
+                </div>
+
+                <!-- Instructor Course Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Courses Assigned</p>
+                            <h3 class="text-2xl font-bold text-[#0a1f44]">{{ stats.total_courses_assigned }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Students Enrolled</p>
+                            <h3 class="text-2xl font-bold text-[#0a1f44]">{{ stats.total_students_assigned }}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Courses Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div v-for="course in stats.assigned_courses_list" :key="course.id" class="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4 hover:shadow-md transition">
+                        <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                            <span class="px-2.5 py-0.5 text-xs font-bold bg-[#0a1f44]/10 text-[#0a1f44] rounded-full">
+                                {{ course.course_code }}
+                            </span>
+                            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{ course.status }}</span>
+                        </div>
+                        <h4 class="text-base font-black text-gray-800 leading-snug line-clamp-2" :title="course.course_name">{{ course.course_name }}</h4>
+                        <div class="pt-3 border-t border-gray-50 flex justify-between items-center text-sm font-bold text-gray-600">
+                            <span>Students Assigned:</span>
+                            <span class="text-blue-600 font-extrabold text-lg">{{ course.enrolled_students }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recent Requests Table (Only shown for non-clients) -->
             <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -151,6 +213,30 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Recent Activities Audit Feed (Only shown for authorized roles) -->
+            <div v-if="['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-[28rem]">
+                <div class="border-b border-gray-50 pb-3 flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-black text-brand-blue uppercase tracking-wider">Recent Activity Audit Trail</h4>
+                    <Link :href="route('admin.audit-trail')" class="text-xs font-black text-brand-gold-dark hover:underline uppercase tracking-wider">
+                        View Full Audit Trail &rarr;
+                    </Link>
+                </div>
+                <div class="flex-grow overflow-y-auto space-y-3 pr-1">
+                    <div v-for="log in recentActivities" :key="log.id" class="p-3.5 hover:bg-gray-50 transition border border-gray-50 rounded-xl flex gap-3 relative">
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-brand-blue uppercase tracking-wide">{{ log.action }}</span>
+                                <span class="text-[8px] text-gray-400 font-semibold">{{ log.created_at }}</span>
+                            </div>
+                            <p class="text-xs text-gray-650 leading-snug line-clamp-2" :title="log.description">{{ log.description }}</p>
+                        </div>
+                    </div>
+                    <div v-if="recentActivities.length === 0" class="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-400 italic">
+                        No system activities logged yet.
+                    </div>
+                </div>
+            </div>
         </div>
     </AuthenticatedLayout>
 </template>
@@ -161,6 +247,7 @@ import { Link } from '@inertiajs/inertia-vue3';
 
 defineProps({
     stats: Object,
-    recentRequests: Array
+    recentRequests: Array,
+    recentActivities: Array
 });
 </script>

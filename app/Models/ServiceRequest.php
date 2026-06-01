@@ -10,7 +10,7 @@ class ServiceRequest extends Model
     use HasFactory;
 
     protected $fillable = [
-        'reference_number', 'client_id', 'service_category', 'title',
+        'reference_number', 'client_id', 'department_id', 'service_category', 'title',
         'description', 'source_language', 'target_language', 'priority',
         'status', 'submitted_by', 'assigned_to', 'deadline', 'notes',
         'rating', 'review_comments',
@@ -68,5 +68,10 @@ class ServiceRequest extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
     }
 }
