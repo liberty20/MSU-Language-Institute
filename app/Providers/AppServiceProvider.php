@@ -17,6 +17,14 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
+    public static function getUsersByRole($roleName)
+    {
+        if (class_exists(\Spatie\Permission\Models\Role::class) && \Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
+            return \App\Models\User::role($roleName)->get();
+        }
+        return collect();
+    }
+
     /**
      * Bootstrap any application services.
      *
@@ -113,7 +121,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 2. Student Enrollment Triggers
         \App\Models\CourseApplication::created(function ($app) {
-            $admins = \App\Models\User::role('admin_assistant')->get();
+            $admins = AppServiceProvider::getUsersByRole('admin_assistant');
             foreach ($admins as $admin) {
                 $admin->notify(new \App\Notifications\SystemNotification('Enrollment', 'New Application Submitted', 'A new student application from "' . $app->name . '" is awaiting verification.', route('course-applications.show', $app->id)));
             }
@@ -130,7 +138,7 @@ class AppServiceProvider extends ServiceProvider
                 $user = \App\Models\User::where('email', $app->email)->first();
                 
                 if ($app->status === 'verified') {
-                    $dDs = \App\Models\User::role('deputy_director')->get();
+                    $dDs = AppServiceProvider::getUsersByRole('deputy_director');
                     foreach ($dDs as $dD) {
                         $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'Application Verified', 'Application for "' . $app->name . '" has been verified and is awaiting recommendation.', route('course-applications.show', $app->id)));
                     }
@@ -138,7 +146,7 @@ class AppServiceProvider extends ServiceProvider
                         $user->notify(new \App\Notifications\SystemNotification('Enrollment', 'Application Under Review', 'Your application for "' . ($app->course ? $app->course->title : 'Short Course') . '" has been verified and is now under review.', route('student.courses')));
                     }
                 } elseif ($app->status === 'recommended') {
-                    $eDs = \App\Models\User::role('executive_director')->get();
+                    $eDs = AppServiceProvider::getUsersByRole('executive_director');
                     foreach ($eDs as $eD) {
                         $eD->notify(new \App\Notifications\SystemNotification('Approvals', 'Application Recommended', 'Application for "' . $app->name . '" has been recommended and is awaiting final approval.', route('course-applications.show', $app->id)));
                     }
@@ -155,7 +163,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 3. Quotations Triggers
         \App\Models\Quotation::created(function ($q) {
-            $dDs = \App\Models\User::role('deputy_director')->get();
+            $dDs = AppServiceProvider::getUsersByRole('deputy_director');
             foreach ($dDs as $dD) {
                 $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'New Quotation Drafted', 'A new quotation Reference #' . $q->id . ' has been created and is awaiting recommendation.', route('quotations.show', $q->id)));
             }
@@ -168,12 +176,12 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Quotation::updated(function ($q) {
             if ($q->isDirty('status')) {
                 if ($q->status === 'submitted') {
-                    $dDs = \App\Models\User::role('deputy_director')->get();
+                    $dDs = AppServiceProvider::getUsersByRole('deputy_director');
                     foreach ($dDs as $dD) {
                         $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'Quotation Awaiting Recommendation', 'Quotation Ref #' . $q->id . ' is awaiting recommendation.', route('quotations.show', $q->id)));
                     }
                 } elseif ($q->status === 'pending_approval') {
-                    $eDs = \App\Models\User::role('executive_director')->get();
+                    $eDs = AppServiceProvider::getUsersByRole('executive_director');
                     foreach ($eDs as $eD) {
                         $eD->notify(new \App\Notifications\SystemNotification('Approvals', 'Quotation Awaiting Approval', 'Quotation Ref #' . $q->id . ' is awaiting final approval.', route('quotations.show', $q->id)));
                     }
@@ -329,56 +337,64 @@ class AppServiceProvider extends ServiceProvider
 
         // 7. Service Requests / Quotations Requests Triggers (for Administrative Assistant)
         \App\Models\ServiceRequest::created(function ($sr) {
-            $admins = \App\Models\User::role('admin_assistant')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new \App\Notifications\SystemNotification(
-                    'System Alerts',
-                    'New Service Request',
-                    'A new service request "' . $sr->title . '" has been submitted by ' . ($sr->client ? ($sr->client->organization ?? $sr->client->contact_person) : 'Client') . '.',
-                    route('service-requests.show', $sr->id)
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+                $admins = \App\Models\User::role('admin_assistant')->get();
+                foreach ($admins as $admin) {
+                    $admin->notify(new \App\Notifications\SystemNotification(
+                        'System Alerts',
+                        'New Service Request',
+                        'A new service request "' . $sr->title . '" has been submitted by ' . ($sr->client ? ($sr->client->organization ?? $sr->client->contact_person) : 'Client') . '.',
+                        route('service-requests.show', $sr->id)
+                    ));
+                }
             }
         });
 
         // 8. Document Submission Triggers (for Administrative Assistant)
         \App\Models\UploadedDocument::created(function ($doc) {
             $uploader = $doc->uploader;
-            $admins = \App\Models\User::role('admin_assistant')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new \App\Notifications\SystemNotification(
-                    'System Alerts',
-                    'New Document Submission',
-                    'A new document "' . $doc->filename . '" has been uploaded by ' . ($uploader ? $uploader->name : 'unknown') . '.',
-                    route('dashboard')
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+                $admins = \App\Models\User::role('admin_assistant')->get();
+                foreach ($admins as $admin) {
+                    $admin->notify(new \App\Notifications\SystemNotification(
+                        'System Alerts',
+                        'New Document Submission',
+                        'A new document "' . $doc->filename . '" has been uploaded by ' . ($uploader ? $uploader->name : 'unknown') . '.',
+                        route('dashboard')
+                    ));
+                }
             }
         });
 
         // 9. Payment / Proof of Payment Triggers (for Administrative Assistant / Secretaries)
         \App\Models\Payment::created(function ($payment) {
-            $admins = \App\Models\User::role('admin_assistant')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new \App\Notifications\SystemNotification(
-                    'Approvals',
-                    'Payment Verification Required',
-                    'A new proof of payment has been uploaded for Quotation Ref #' . $payment->quotation_id . ' and requires verification.',
-                    route('payments.index')
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+                $admins = \App\Models\User::role('admin_assistant')->get();
+                foreach ($admins as $admin) {
+                    $admin->notify(new \App\Notifications\SystemNotification(
+                        'Approvals',
+                        'Payment Verification Required',
+                        'A new proof of payment has been uploaded for Quotation Ref #' . $payment->quotation_id . ' and requires verification.',
+                        route('payments.index')
+                    ));
+                }
             }
         });
 
         // 10. User Account Management & Provisioning Triggers (for ICT Administrator)
         \App\Models\User::created(function ($user) {
-            $ictAdmins = \App\Models\User::role('ict_administrator')->get();
-            $roleName = $user->hasRole('student') ? 'Student' : ($user->roles->first() ? $user->roles->first()->name : 'User');
-            
-            foreach ($ictAdmins as $ict) {
-                $ict->notify(new \App\Notifications\SystemNotification(
-                    'System Alerts',
-                    'User Account Created',
-                    'A new ' . $roleName . ' account has been provisioned for "' . $user->name . '" (' . $user->email . ').',
-                    route('admin.users.index')
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'ict_administrator')->exists()) {
+                $ictAdmins = \App\Models\User::role('ict_administrator')->get();
+                $roleName = $user->hasRole('student') ? 'Student' : ($user->roles->first() ? $user->roles->first()->name : 'User');
+                
+                foreach ($ictAdmins as $ict) {
+                    $ict->notify(new \App\Notifications\SystemNotification(
+                        'System Alerts',
+                        'User Account Created',
+                        'A new ' . $roleName . ' account has been provisioned for "' . $user->name . '" (' . $user->email . ').',
+                        route('admin.users.index')
+                    ));
+                }
             }
         });
 
@@ -391,39 +407,294 @@ class AppServiceProvider extends ServiceProvider
                     route('profile.edit')
                 ));
 
-                $ictAdmins = \App\Models\User::role('ict_administrator')->get();
-                foreach ($ictAdmins as $ict) {
-                    $ict->notify(new \App\Notifications\SystemNotification(
-                        'System Alerts',
-                        'User Password Changed',
-                        'The password for user "' . $user->name . '" (' . $user->email . ') has been updated.',
-                        route('admin.users.index')
-                    ));
+                if (\Spatie\Permission\Models\Role::where('name', 'ict_administrator')->exists()) {
+                    $ictAdmins = \App\Models\User::role('ict_administrator')->get();
+                    foreach ($ictAdmins as $ict) {
+                        $ict->notify(new \App\Notifications\SystemNotification(
+                            'System Alerts',
+                            'User Password Changed',
+                            'The password for user "' . $user->name . '" (' . $user->email . ') has been updated.',
+                            route('admin.users.index')
+                        ));
+                    }
                 }
             }
         });
 
         // 11. Reports Audit & Authorization Triggers
         \App\Models\Report::created(function ($report) {
-            $dDs = \App\Models\User::role('deputy_director')->get();
-            foreach ($dDs as $dD) {
-                $dD->notify(new \App\Notifications\SystemNotification(
-                    'Approvals',
-                    'New Report Generated',
-                    'A new report "' . $report->title . '" has been generated and is awaiting review.',
-                    route('reports.index')
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'deputy_director')->exists()) {
+                $dDs = \App\Models\User::role('deputy_director')->get();
+                foreach ($dDs as $dD) {
+                    $dD->notify(new \App\Notifications\SystemNotification(
+                        'Approvals',
+                        'New Report Generated',
+                        'A new report "' . $report->title . '" has been generated and is awaiting review.',
+                        route('reports.index')
+                    ));
+                }
             }
 
-            $eDs = \App\Models\User::role('executive_director')->get();
-            foreach ($eDs as $eD) {
-                $eD->notify(new \App\Notifications\SystemNotification(
-                    'Approvals',
-                    'New Report Generated',
-                    'A new report "' . $report->title . '" has been generated and is awaiting final authorization.',
-                    route('reports.index')
-                ));
+            if (\Spatie\Permission\Models\Role::where('name', 'executive_director')->exists()) {
+                $eDs = \App\Models\User::role('executive_director')->get();
+                foreach ($eDs as $eD) {
+                    $eD->notify(new \App\Notifications\SystemNotification(
+                        'Approvals',
+                        'New Report Generated',
+                        'A new report "' . $report->title . '" has been generated and is awaiting final authorization.',
+                        route('reports.index')
+                    ));
+                }
             }
+        });
+
+        // DB Query Listener for Data Preservation Backup (limited to composite pivot tables only)
+        \Illuminate\Support\Facades\DB::listen(function ($query) {
+            if (!\App\Services\UserBackupService::$shouldBackup) {
+                return;
+            }
+
+            $sql = strtolower($query->sql);
+            if (
+                strpos($sql, 'insert') !== false ||
+                strpos($sql, 'update') !== false ||
+                strpos($sql, 'delete') !== false
+            ) {
+                if (
+                    strpos($sql, 'model_has_roles') !== false ||
+                    strpos($sql, 'role_has_permissions') !== false ||
+                    strpos($sql, 'model_has_permissions') !== false
+                ) {
+                    \App\Services\UserBackupService::backup(true);
+                }
+
+                // If role changes, trigger user-client synchronization
+                if (strpos($sql, 'model_has_roles') !== false) {
+                    $userIds = [];
+                    foreach ($query->bindings as $binding) {
+                        if (is_numeric($binding)) {
+                            $userIds[] = (int)$binding;
+                        }
+                    }
+                    preg_match_all('/\b\d+\b/', $query->sql, $matches);
+                    foreach ($matches[0] as $match) {
+                        $userIds[] = (int)$match;
+                    }
+                    $userIds = array_unique($userIds);
+                    foreach ($userIds as $userId) {
+                        $user = \App\Models\User::find($userId);
+                        if ($user) {
+                            $user->unsetRelation('roles');
+                            \App\Services\UserBackupService::syncFromUser($user);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Artisan Command Finished Listener for Automated Restore
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Console\Events\CommandFinished::class, function ($event) {
+            if (app()->runningUnitTests()) {
+                return;
+            }
+            if (in_array($event->command, ['migrate', 'db:seed', 'migrate:fresh', 'migrate:refresh'])) {
+                \App\Services\UserBackupService::restore(true, true);
+            }
+        });
+
+        // Register model observers to trigger backup safely on primary model changes
+        $backupModels = [
+            \App\Models\User::class,
+            \App\Models\Client::class,
+            \App\Models\Course::class,
+            \App\Models\CourseIntake::class,
+            \App\Models\CourseEnrollment::class,
+            \App\Models\SystemSetting::class,
+            \App\Models\BankAccount::class,
+            \App\Models\Department::class,
+            \App\Models\MsunliSection::class,
+            \App\Models\MsunliRole::class,
+            \App\Models\ServiceRequest::class,
+            \App\Models\Quotation::class,
+            \App\Models\Assignment::class,
+            \App\Models\Task::class,
+            \App\Models\Approval::class,
+            \App\Models\Payment::class,
+            \App\Models\UploadedDocument::class,
+            \App\Models\CourseApplication::class,
+            \App\Models\CourseApplicationLog::class,
+            \App\Models\CourseTimetable::class,
+            \App\Models\CourseAssignment::class,
+            \App\Models\CourseAssignmentSubmission::class,
+            \App\Models\CourseCaMark::class,
+            \App\Models\ProcurementRequest::class,
+            \App\Models\KpiRecord::class,
+            \App\Models\StaffSchedule::class,
+            \App\Models\Comment::class,
+            \App\Models\Report::class,
+            \App\Models\EmailLog::class,
+            \Spatie\Permission\Models\Role::class,
+            \Spatie\Permission\Models\Permission::class,
+        ];
+
+        foreach ($backupModels as $modelClass) {
+            $modelClass::saved(function () {
+                \App\Services\UserBackupService::backup(true);
+            });
+            $modelClass::deleted(function () {
+                \App\Services\UserBackupService::backup(true);
+            });
+        }
+
+        // Auditable Models Observers for Audit Trail
+        $auditableModels = [
+            \App\Models\User::class,
+            \App\Models\Client::class,
+            \App\Models\Course::class,
+            \App\Models\CourseIntake::class,
+            \App\Models\CourseEnrollment::class,
+            \App\Models\SystemSetting::class,
+            \App\Models\BankAccount::class,
+            \App\Models\Department::class,
+            \App\Models\MsunliSection::class,
+            \App\Models\MsunliRole::class,
+            \App\Models\ServiceRequest::class,
+            \App\Models\Quotation::class,
+            \App\Models\Assignment::class,
+            \App\Models\Task::class,
+        ];
+
+        foreach ($auditableModels as $modelClass) {
+            $modelClass::updating(function ($model) {
+                $dirty = $model->getDirty();
+                if (empty($dirty)) {
+                    return;
+                }
+
+                $previousValues = [];
+                $newValues = [];
+                foreach ($dirty as $key => $value) {
+                    if ($key === 'updated_at' || $key === 'created_at') {
+                        continue;
+                    }
+                    $previousValues[$key] = $model->getOriginal($key);
+                    $newValues[$key] = $value;
+                }
+
+                if (empty($newValues)) {
+                    return;
+                }
+
+                $user = auth()->user();
+                $userStr = $user ? ($user->name . ' (' . $user->email . ')') : 'system/guest';
+
+                $properties = [
+                    'user_performing_action' => $userStr,
+                    'date_and_time' => now()->toIso8601String(),
+                    'previous_values' => $previousValues,
+                    'new_values' => $newValues,
+                    'ip_address' => request() ? request()->ip() : null,
+                    'action_type' => 'Update',
+                ];
+
+                $className = class_basename($model);
+                \App\Models\ActivityLog::log(
+                    strtolower($className) . '_updated',
+                    "Updated {$className} #{$model->id}",
+                    $model,
+                    $properties
+                );
+            });
+        }
+
+        // Relational and hierarchy consistency guards
+        \App\Models\CourseEnrollment::saving(function ($enrollment) {
+            if (!\App\Models\User::where('id', $enrollment->user_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated user does not exist.");
+            }
+            if (!\App\Models\CourseIntake::where('id', $enrollment->course_intake_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated course intake does not exist.");
+            }
+        });
+
+        \App\Models\CourseIntake::saving(function ($intake) {
+            if (!\App\Models\Course::where('id', $intake->course_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated course does not exist.");
+            }
+            if ($intake->instructor_id) {
+                $instructor = \App\Models\User::with('department')->find($intake->instructor_id);
+                if (!$instructor) {
+                    throw new \InvalidArgumentException("Invalid relationship: The associated instructor does not exist.");
+                }
+                if (!$instructor->is_active) {
+                    throw new \InvalidArgumentException("Invalid relationship: Selected instructor is inactive.");
+                }
+                if ($instructor->department && $instructor->department->code === 'AOS') {
+                    throw new \InvalidArgumentException("Invalid relationship: AOS staff members cannot be assigned as instructors.");
+                }
+            }
+            if ($intake->start_date && $intake->end_date && strtotime($intake->end_date) <= strtotime($intake->start_date)) {
+                throw new \InvalidArgumentException("Validation error: End date must be after start date.");
+            }
+        });
+
+        \App\Models\ServiceRequest::saving(function ($sr) {
+            if (!\App\Models\Client::where('id', $sr->client_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated client does not exist.");
+            }
+        });
+
+        \App\Models\Quotation::saving(function ($q) {
+            if (!\App\Models\ServiceRequest::where('id', $q->service_request_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated service request does not exist.");
+            }
+        });
+
+        \App\Models\Assignment::saving(function ($a) {
+            if (!\App\Models\ServiceRequest::where('id', $a->service_request_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated service request does not exist.");
+            }
+            if (!\App\Models\User::where('id', $a->assigned_to)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The assigned user does not exist.");
+            }
+        });
+
+        \App\Models\Task::saving(function ($t) {
+            if (!\App\Models\Assignment::where('id', $t->assignment_id)->exists()) {
+                throw new \InvalidArgumentException("Invalid relationship: The associated assignment does not exist.");
+            }
+        });
+
+        \App\Models\User::saving(function ($user) {
+            if ($user->section_id && $user->department_id) {
+                $section = \App\Models\MsunliSection::find($user->section_id);
+                if ($section && (int)$section->unit_id !== (int)$user->department_id) {
+                    throw new \InvalidArgumentException("Invalid hierarchy: The selected section does not belong to the selected Unit.");
+                }
+            }
+            if ($user->msunli_role_id && $user->section_id) {
+                $role = \App\Models\MsunliRole::find($user->msunli_role_id);
+                if ($role && (int)$role->section_id !== (int)$user->section_id) {
+                    throw new \InvalidArgumentException("Invalid hierarchy: The selected role is not configured under the selected section.");
+                }
+            }
+        });
+
+        // Register client & user synchronization observers
+        \App\Models\Client::saving(function ($client) {
+            \App\Services\UserBackupService::syncFromClient($client);
+        });
+
+        \App\Models\Client::deleted(function ($client) {
+            \App\Services\UserBackupService::deleteUserForClient($client);
+        });
+
+        \App\Models\User::saved(function ($user) {
+            \App\Services\UserBackupService::syncFromUser($user);
+        });
+
+        \App\Models\User::deleted(function ($user) {
+            \App\Services\UserBackupService::deleteClientForUser($user);
         });
     }
 }

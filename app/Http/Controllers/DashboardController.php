@@ -380,13 +380,165 @@ class DashboardController extends Controller
             } catch (\Exception $e) {
                 \Log::error("Error checking deadlines: " . $e->getMessage());
             }
+
+            // Clean up invalid/orphaned notifications
+            $allNotifications = $user->notifications()->get();
+            foreach ($allNotifications as $notification) {
+                if (!$this->isNotificationValid($notification, $user)) {
+                    $notification->delete();
+                }
+            }
         }
 
-        $notifications = $user->notifications()->orderBy('created_at', 'desc')->take(20)->get();
+        $notifications = $user ? $user->notifications()->orderBy('created_at', 'desc')->take(20)->get() : collect();
         return response()->json([
             'notifications' => $notifications,
-            'unread_count' => $user->unreadNotifications()->count(),
+            'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
         ]);
+    }
+
+    private function isNotificationValid($notification, $user)
+    {
+        $data = $notification->data;
+        if (!is_array($data)) {
+            return true;
+        }
+
+        // 1. Check direct ID references
+        $directIds = [
+            'task_id' => \App\Models\Task::class,
+            'quotation_id' => \App\Models\Quotation::class,
+            'course_assignment_id' => \App\Models\CourseAssignment::class,
+            'course_intake_id' => \App\Models\CourseIntake::class,
+            'course_id' => \App\Models\Course::class,
+            'client_id' => \App\Models\Client::class,
+            'service_request_id' => \App\Models\ServiceRequest::class,
+            'user_id' => \App\Models\User::class,
+            'payment_id' => \App\Models\Payment::class,
+            'document_id' => \App\Models\UploadedDocument::class,
+            'report_id' => \App\Models\Report::class,
+            'course_application_id' => \App\Models\CourseApplication::class,
+        ];
+
+        foreach ($directIds as $key => $modelClass) {
+            if (isset($data[$key]) && !empty($data[$key])) {
+                if (!$modelClass::where('id', $data[$key])->exists()) {
+                    return false;
+                }
+            }
+        }
+
+        // 2. Check action URL references
+        $actionUrl = $data['action_url'] ?? null;
+        if ($actionUrl && $actionUrl !== '#') {
+            $path = parse_url($actionUrl, PHP_URL_PATH);
+            $trimmedPath = trim($path, '/');
+            
+            // Check segment based IDs (e.g. quotations/9999)
+            $segments = explode('/', $trimmedPath);
+            for ($i = 0; $i < count($segments) - 1; $i++) {
+                $key = $segments[$i];
+                $val = $segments[$i + 1];
+                if (is_numeric($val)) {
+                    $modelClass = null;
+                    switch ($key) {
+                        case 'quotations':
+                            $modelClass = \App\Models\Quotation::class;
+                            break;
+                        case 'tasks':
+                            $modelClass = \App\Models\Task::class;
+                            break;
+                        case 'assignments':
+                            $modelClass = \App\Models\Assignment::class;
+                            break;
+                        case 'courses':
+                            $modelClass = \App\Models\Course::class;
+                            break;
+                        case 'course-applications':
+                            $modelClass = \App\Models\CourseApplication::class;
+                            break;
+                        case 'course-enrollments':
+                            $modelClass = \App\Models\CourseEnrollment::class;
+                            break;
+                        case 'course-intakes':
+                            $modelClass = \App\Models\CourseIntake::class;
+                            break;
+                        case 'service-requests':
+                            $modelClass = \App\Models\ServiceRequest::class;
+                            break;
+                        case 'users':
+                            $modelClass = \App\Models\User::class;
+                            break;
+                        case 'departments':
+                            $modelClass = \App\Models\Department::class;
+                            break;
+                        case 'payments':
+                            $modelClass = \App\Models\Payment::class;
+                            break;
+                        case 'documents':
+                            $modelClass = \App\Models\UploadedDocument::class;
+                            break;
+                        case 'reports':
+                            $modelClass = \App\Models\Report::class;
+                            break;
+                    }
+                    if ($modelClass && !$modelClass::where('id', $val)->exists()) {
+                        return false;
+                    }
+                }
+            }
+
+            $userRoles = $user->getRoleNames();
+            $adminRoles = ['ict_administrator', 'admin_assistant', 'deputy_director', 'executive_director'];
+
+            // Check authorization for the URL route
+            try {
+                $request = \Illuminate\Http\Request::create($actionUrl, 'GET');
+                $route = \Illuminate\Support\Facades\Route::getRoutes()->match($request);
+                if ($route) {
+                    $middleware = $route->gatherMiddleware();
+                    foreach ($middleware as $m) {
+                        if (substr($m, 0, 5) === 'role:') {
+                            $roles = explode(',', substr($m, 5));
+                            if ($userRoles->intersect($roles)->isEmpty()) {
+                                return false;
+                            }
+                        }
+                        if (substr($m, 0, 11) === 'permission:') {
+                            $permissions = explode(',', substr($m, 11));
+                            $userPermissions = $user->getAllPermissions()->pluck('name');
+                            if ($userPermissions->intersect($permissions)->isEmpty()) {
+                                return false;
+                            }
+                        }
+                        if ($m === 'instructor') {
+                            $isInst = $userRoles->intersect(['language_expert', 'part_time_staff'])->isNotEmpty() || $user->instructedIntakes()->exists();
+                            if (!$isInst) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+                // If route does not exist but it's an internal admin URL, check roles anyway
+                if (strpos($trimmedPath, 'admin') !== false) {
+                    if ($userRoles->intersect($adminRoles)->isEmpty()) {
+                        return false;
+                    }
+                }
+            } catch (\Exception $e) {
+                return false;
+            }
+
+            // Fallback prefix role check
+            if (substr($trimmedPath, 0, 5) === 'admin' || strpos($trimmedPath, '/admin/') !== false) {
+                if ($userRoles->intersect($adminRoles)->isEmpty()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function checkDeadlines($user)

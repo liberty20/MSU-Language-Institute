@@ -34,7 +34,8 @@ class InstructorPortalController extends Controller
         $intakeIds = $intakes->pluck('id');
 
         // Query Enrollments
-        $query = CourseEnrollment::with(['user', 'intake.course'])
+        $query = CourseEnrollment::has('user')
+            ->with(['user', 'intake.course'])
             ->whereIn('course_intake_id', $intakeIds)
             ->where('payment_status', 'verified');
 
@@ -60,13 +61,13 @@ class InstructorPortalController extends Controller
         ];
 
         foreach ($intakes as $intake) {
-            $students = $allEnrollments->filter(fn($e) => $e->course_intake_id === $intake->id)->map(fn($e) => [
+            $students = $allEnrollments->filter(fn($e) => $e->course_intake_id === $intake->id && $e->user)->map(fn($e) => [
                 'enrollment_id' => $e->id,
-                'student_id' => $e->user->id,
-                'name' => $e->user->name,
-                'email' => $e->user->email,
-                'phone' => $e->user->phone,
-                'enrolled_at' => $e->created_at->format('Y-m-d'),
+                'student_id' => $e->user ? $e->user->id : null,
+                'name' => $e->user ? $e->user->name : 'N/A',
+                'email' => $e->user ? $e->user->email : 'N/A',
+                'phone' => $e->user ? $e->user->phone : null,
+                'enrolled_at' => $e->created_at ? $e->created_at->format('Y-m-d') : 'N/A',
                 'status' => $e->enrollment_status,
             ])->values();
 
@@ -100,7 +101,8 @@ class InstructorPortalController extends Controller
             ->with(['course'])
             ->findOrFail($intakeId);
 
-        $enrollments = CourseEnrollment::with('user')
+        $enrollments = CourseEnrollment::has('user')
+            ->with('user')
             ->where('course_intake_id', $intake->id)
             ->where('payment_status', 'verified')
             ->get();
@@ -116,11 +118,12 @@ class InstructorPortalController extends Controller
             fputcsv($file, ['Student Name', 'Email Address', 'Phone Number', 'Enrolled Date', 'Status']);
 
             foreach ($enrollments as $e) {
+                if (!$e->user) continue;
                 fputcsv($file, [
                     $e->user->name,
                     $e->user->email,
                     $e->user->phone ?? 'N/A',
-                    $e->created_at->format('Y-m-d'),
+                    $e->created_at ? $e->created_at->format('Y-m-d') : 'N/A',
                     $e->enrollment_status,
                 ]);
             }
@@ -158,6 +161,47 @@ class InstructorPortalController extends Controller
         ]);
     }
 
+    private function hasConflict($intakeId, $date, $startTime, $endTime, $venue, $excludeId = null)
+    {
+        $intake = CourseIntake::findOrFail($intakeId);
+        $instructorId = $intake->instructor_id;
+
+        $query = CourseTimetable::where('date', $date)
+            ->where(function ($q) use ($startTime, $endTime) {
+                $q->where('start_time', '<', $endTime)
+                  ->where('end_time', '>', $startTime);
+            });
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $overlappingSessions = $query->get();
+
+        foreach ($overlappingSessions as $session) {
+            // 1. Same intake batch conflict
+            if ((int)$session->course_intake_id === (int)$intakeId) {
+                return 'This intake batch already has a scheduled class during this time.';
+            }
+
+            // 2. Instructor conflict (same instructor assigned to another intake)
+            $sessionIntake = $session->intake;
+            if ($sessionIntake && $instructorId && (int)$sessionIntake->instructor_id === (int)$instructorId) {
+                return 'You have another scheduled class during this time.';
+            }
+
+            // 3. Venue conflict (same venue, except online links)
+            $isOnline = strpos($venue, 'http://') === 0 || strpos($venue, 'https://') === 0;
+            $sessionOnline = strpos($session->venue, 'http://') === 0 || strpos($session->venue, 'https://') === 0;
+            
+            if (!$isOnline && !$sessionOnline && strcasecmp($session->venue, $venue) === 0) {
+                return 'The selected venue is already booked for another class during this time.';
+            }
+        }
+
+        return null;
+    }
+
     public function timetableStore(Request $request)
     {
         $request->validate([
@@ -167,7 +211,20 @@ class InstructorPortalController extends Controller
             'end_time' => 'required|after:start_time',
             'venue' => 'required|string|max:255',
             'notes' => 'nullable|string',
+            'session_type' => 'nullable|string',
         ]);
+
+        $conflictError = $this->hasConflict(
+            $request->course_intake_id,
+            $request->date,
+            $request->start_time,
+            $request->end_time,
+            $request->venue
+        );
+
+        if ($conflictError) {
+            return redirect()->back()->withErrors(['conflict' => $conflictError])->withInput();
+        }
 
         $user = Auth::user();
         $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($request->course_intake_id);
@@ -177,14 +234,16 @@ class InstructorPortalController extends Controller
         ]));
 
         // Notify enrolled students
-        $enrollments = CourseEnrollment::where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
+        $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
         foreach ($enrollments as $e) {
-            $e->user->notify(new SystemNotification(
-                'timetable_update',
-                'New Class Scheduled',
-                'A new session has been scheduled for your course "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' at ' . $timetable->start_time,
-                route('student.timetable')
-            ));
+            if ($e->user) {
+                $e->user->notify(new SystemNotification(
+                    'timetable_update',
+                    'New Class Scheduled',
+                    'A new session has been scheduled for your course "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' at ' . $timetable->start_time,
+                    route('student.timetable')
+                ));
+            }
         }
 
         ActivityLog::log('create_timetable', 'Created new timetable session for ' . $intake->course->title, $timetable);
@@ -200,23 +259,39 @@ class InstructorPortalController extends Controller
             'end_time' => 'required|after:start_time',
             'venue' => 'required|string|max:255',
             'notes' => 'nullable|string',
+            'session_type' => 'nullable|string',
         ]);
 
         $user = Auth::user();
         $timetable = CourseTimetable::findOrFail($id);
         $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($timetable->course_intake_id);
 
+        $conflictError = $this->hasConflict(
+            $timetable->course_intake_id,
+            $request->date,
+            $request->start_time,
+            $request->end_time,
+            $request->venue,
+            $id
+        );
+
+        if ($conflictError) {
+            return redirect()->back()->withErrors(['conflict' => $conflictError])->withInput();
+        }
+
         $timetable->update($request->all());
 
         // Notify enrolled students
-        $enrollments = CourseEnrollment::where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
+        $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
         foreach ($enrollments as $e) {
-            $e->user->notify(new SystemNotification(
-                'timetable_update',
-                'Class Schedule Updated',
-                'The session for "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' has been updated.',
-                route('student.timetable')
-            ));
+            if ($e->user) {
+                $e->user->notify(new SystemNotification(
+                    'timetable_update',
+                    'Class Schedule Updated',
+                    'The session for "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' has been updated.',
+                    route('student.timetable')
+                ));
+            }
         }
 
         ActivityLog::log('update_timetable', 'Updated timetable session for ' . $intake->course->title, $timetable);
@@ -235,6 +310,49 @@ class InstructorPortalController extends Controller
         $timetable->delete();
 
         return redirect()->back()->with('success', 'Timetable entry deleted successfully!');
+    }
+
+    public function timetableCopy(Request $request)
+    {
+        $request->validate([
+            'source_week' => 'required|date',
+            'target_week' => 'required|date|different:source_week',
+        ]);
+
+        $user = Auth::user();
+        $intakeIds = CourseIntake::where('instructor_id', $user->id)->pluck('id');
+
+        $sourceStart = \Carbon\Carbon::parse($request->source_week)->startOfDay();
+        $sourceEnd = $sourceStart->copy()->addDays(6)->endOfDay();
+
+        $targetStart = \Carbon\Carbon::parse($request->target_week)->startOfDay();
+
+        $sessions = CourseTimetable::whereIn('course_intake_id', $intakeIds)
+            ->whereBetween('date', [$sourceStart->toDateString(), $sourceEnd->toDateString()])
+            ->get();
+
+        if ($sessions->isEmpty()) {
+            return redirect()->back()->with('error', 'No class sessions found in the source week.');
+        }
+
+        foreach ($sessions as $session) {
+            $sessionDate = \Carbon\Carbon::parse($session->date);
+            $dayOffset = $sourceStart->diffInDays($sessionDate);
+            $targetDate = $targetStart->copy()->addDays($dayOffset)->toDateString();
+
+            CourseTimetable::create([
+                'course_intake_id' => $session->course_intake_id,
+                'date' => $targetDate,
+                'start_time' => $session->start_time,
+                'end_time' => $session->end_time,
+                'venue' => $session->venue,
+                'session_type' => $session->session_type,
+                'notes' => $session->notes,
+                'created_by' => $user->id,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Weekly timetable copied successfully!');
     }
 
     /**
@@ -262,7 +380,8 @@ class InstructorPortalController extends Controller
             $intake = CourseIntake::findOrFail($selectedIntakeId);
 
             // Get enrolled active/completed students
-            $enrollments = CourseEnrollment::with('user')
+            $enrollments = CourseEnrollment::has('user')
+                ->with('user')
                 ->where('course_intake_id', $selectedIntakeId)
                 ->where('payment_status', 'verified')
                 ->get();
@@ -276,6 +395,7 @@ class InstructorPortalController extends Controller
             $gradesList = [];
 
             foreach ($enrollments as $e) {
+                if (!$e->user) continue;
                 $studentMarks = $caMarks->get($e->user->id, collect());
                 $studentSubs = $submissions->get($e->user->id, collect());
 
@@ -515,14 +635,16 @@ class InstructorPortalController extends Controller
         ]));
 
         // Notify enrolled students
-        $enrollments = CourseEnrollment::where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
+        $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
         foreach ($enrollments as $e) {
-            $e->user->notify(new SystemNotification(
-                'new_assignment',
-                'New Assignment Assigned',
-                'A new assignment "' . $assignment->title . '" has been posted for course ' . $intake->course->title,
-                route('student.assignments')
-            ));
+            if ($e->user) {
+                $e->user->notify(new SystemNotification(
+                    'new_assignment',
+                    'New Assignment Assigned',
+                    'A new assignment "' . $assignment->title . '" has been posted for course ' . $intake->course->title,
+                    route('student.assignments')
+                ));
+            }
         }
 
         ActivityLog::log('create_assignment', 'Created assignment ' . $assignment->title, $assignment);
@@ -613,5 +735,54 @@ class InstructorPortalController extends Controller
         ActivityLog::log('grade_assignment', 'Graded assignment submission for student ' . $student->name, $submission);
 
         return redirect()->back()->with('success', 'Submission graded successfully!');
+    }
+
+    /**
+     * View completed tasks and assignments for the instructor.
+     */
+    public function completedTasks()
+    {
+        $user = Auth::user();
+
+        // Get completed assignments assigned to this instructor (user)
+        $completedAssignments = \App\Models\Assignment::where('assigned_to', $user->id)
+            ->where('status', 'completed')
+            ->with(['serviceRequest.client', 'tasks'])
+            ->orderBy('completed_at', 'desc')
+            ->get()
+            ->map(function ($asg) {
+                return [
+                    'id' => $asg->id,
+                    'role_in_task' => $asg->role_in_task,
+                    'status' => $asg->status,
+                    'notes' => $asg->notes,
+                    'started_at' => $asg->started_at ? $asg->started_at->format('Y-m-d H:i') : null,
+                    'completed_at' => $asg->completed_at ? $asg->completed_at->format('Y-m-d H:i') : null,
+                    'service_request' => $asg->serviceRequest ? [
+                        'title' => $asg->serviceRequest->title,
+                        'description' => $asg->serviceRequest->description,
+                        'service_category' => $asg->serviceRequest->service_category,
+                        'priority' => $asg->serviceRequest->priority,
+                        'client' => $asg->serviceRequest->client ? [
+                            'organization' => $asg->serviceRequest->client->organization,
+                            'contact_person' => $asg->serviceRequest->client->contact_person,
+                            'email' => $asg->serviceRequest->client->email,
+                            'phone' => $asg->serviceRequest->client->phone,
+                            'address' => $asg->serviceRequest->client->address,
+                        ] : null,
+                    ] : null,
+                    'tasks' => $asg->tasks->map(fn($t) => [
+                        'title' => $t->title,
+                        'description' => $t->description,
+                        'status' => $t->status,
+                        'due_date' => $t->due_date ? $t->due_date->format('Y-m-d') : null,
+                        'completed_at' => $t->completed_at ? $t->completed_at->format('Y-m-d H:i') : null,
+                    ]),
+                ];
+            });
+
+        return Inertia::render('Courses/InstructorCompletedTasks', [
+            'completedAssignments' => $completedAssignments,
+        ]);
     }
 }

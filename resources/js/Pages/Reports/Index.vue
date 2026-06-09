@@ -6,9 +6,6 @@
             <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 w-full animate-fade-in-up">
                 <div>
                     <div class="flex items-center gap-3">
-                        <div class="p-2 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center">
-                            <img src="/msu-logo-2.png" alt="MSU Logo" class="h-6 w-auto object-contain" />
-                        </div>
                         <div>
                             <h1 class="text-2xl font-black text-slate-900 tracking-tight">Reports & Performance Analytics</h1>
                             <p class="text-xs text-slate-500 mt-0.5 font-medium">Real-time institutional performance insights & operational metric monitoring</p>

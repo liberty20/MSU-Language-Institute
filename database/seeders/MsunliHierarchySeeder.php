@@ -13,7 +13,15 @@ class MsunliHierarchySeeder extends Seeder
 {
     public function run()
     {
-        // 1. Define LTRDU Sections and Roles
+        if (DB::table('msunli_sections')->count() > 0) {
+            return;
+        }
+
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            // 1. Define LTRDU Sections and Roles
         $ltrdu = Department::where('code', 'LTRDU')->first();
         if ($ltrdu) {
             $sections = [
@@ -108,6 +116,9 @@ class MsunliHierarchySeeder extends Seeder
                     }
                 }
             }
+        }
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
         }
     }
 

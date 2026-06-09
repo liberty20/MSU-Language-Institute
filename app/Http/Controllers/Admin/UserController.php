@@ -24,10 +24,10 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::with(['roles', 'department', 'section', 'msunliRole']);
+        $countQuery = User::query();
 
         if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
+            $countQuery->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->search.'%')
                   ->orWhere('email', 'like', '%'.$request->search.'%')
                   ->orWhere('phone', 'like', '%'.$request->search.'%');
@@ -35,31 +35,79 @@ class UserController extends Controller
         }
 
         if ($request->filled('unit_id')) {
-            $query->where('department_id', $request->unit_id);
+            $countQuery->where('department_id', $request->unit_id);
         }
 
         if ($request->filled('section_id')) {
-            $query->where('section_id', $request->section_id);
-        }
-
-        if ($request->filled('role')) {
-            $query->whereHas('roles', function($q) use ($request) {
-                $q->where('name', $request->role);
-            });
+            $countQuery->where('section_id', $request->section_id);
         }
 
         if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
+            $countQuery->where('is_active', $request->status === 'active');
         }
 
-        $users = $query->orderBy('name')->paginate(10)->withQueryString();
+        // Calculate counts dynamically based on active search/scoping/status filters
+        $staffCount = (clone $countQuery)->where(function ($q) {
+            $q->whereDoesntHave('roles')
+              ->orWhereHas('roles', function ($roleQuery) {
+                  $roleQuery->whereNotIn('name', ['client', 'student']);
+              });
+        })->count();
+
+        $clientCount = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
+            $roleQuery->where('name', 'client');
+        })->count();
+
+        $studentCount = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
+            $roleQuery->where('name', 'student');
+        })->count();
+
+        $counts = [
+            'staff'   => $staffCount,
+            'client'  => $clientCount,
+            'student' => $studentCount,
+        ];
+
+        // Get category from request, default to 'staff'
+        $category = $request->input('category', 'staff');
+
+        if ($category === 'client') {
+            $query = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
+                $roleQuery->where('name', 'client');
+            });
+        } elseif ($category === 'student') {
+            $query = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
+                $roleQuery->where('name', 'student');
+            });
+        } else {
+            $category = 'staff';
+            $query = (clone $countQuery)->where(function ($q) {
+                $q->whereDoesntHave('roles')
+                  ->orWhereHas('roles', function ($roleQuery) {
+                      $roleQuery->whereNotIn('name', ['client', 'student']);
+                  });
+            });
+
+            // Only apply specific role filter to staff category
+            if ($request->filled('role')) {
+                $query->whereHas('roles', function($q) use ($request) {
+                    $q->where('name', $request->role);
+                });
+            }
+        }
+
+        $users = $query->with(['roles', 'department', 'section', 'msunliRole'])
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Users/Index', [
             'users'   => $users,
-            'filters' => $request->only(['search', 'unit_id', 'section_id', 'role', 'status']),
+            'filters' => $request->only(['search', 'unit_id', 'section_id', 'role', 'status', 'category']),
             'units'   => \App\Models\Department::orderBy('name')->get(['id', 'name', 'code']),
             'sections'=> \App\Models\MsunliSection::orderBy('name')->get(['id', 'name', 'unit_id']),
             'roles'   => \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name']),
+            'counts'  => $counts,
         ]);
     }
 
@@ -238,7 +286,7 @@ class UserController extends Controller
             'is_active' => $user->is_active === 1 || $user->is_active === true || $user->is_active === '1',
         ];
 
-        $user->update([
+        $user->fill([
             'name'            => $validated['name'],
             'email'           => $validated['email'],
             'phone'           => $validated['phone'] ?? null,
@@ -249,6 +297,13 @@ class UserController extends Controller
             'password'        => $validated['password'] ? Hash::make($validated['password']) : $user->password,
         ]);
 
+        $roleChanged = !$user->hasRole($msunliRole->spatieRole->name);
+
+        if (!$user->isDirty() && !$roleChanged) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $user->save();
         $user->syncRoles([$msunliRole->spatieRole->name]);
 
         // Record Audit Trail for Executive-level user modification

@@ -78,7 +78,12 @@ class TaskController extends Controller
             $validated['completed_at'] = now();
         }
 
-        $task->update($validated);
+        $task->fill($validated);
+        if (!$task->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $task->save();
 
         return redirect()->back()->with('success', 'Task updated.');
     }

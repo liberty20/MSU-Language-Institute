@@ -16,19 +16,21 @@ class SystemNotification extends Notification
     protected $message;
     protected $actionUrl;
     protected $extraData;
+    protected $triggerSource;
 
     /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct($type, $title, $message, $actionUrl = null, $extraData = [])
+    public function __construct($type, $title, $message, $actionUrl = null, $extraData = [], $triggerSource = null)
     {
         $this->type = $type;
         $this->title = $title;
         $this->message = $message;
         $this->actionUrl = $actionUrl;
         $this->extraData = $extraData;
+        $this->triggerSource = $triggerSource;
     }
 
     /**
@@ -55,6 +57,7 @@ class SystemNotification extends Notification
             'title' => $this->title,
             'message' => $this->message,
             'action_url' => $this->actionUrl,
+            'trigger_source' => $this->triggerSource,
         ], $this->extraData);
     }
 }

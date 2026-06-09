@@ -36,6 +36,30 @@
                                 Email editing is restricted to Executive Director, Deputy Director, and ICT Administrator roles only.
                             </p>
                         </div>
+
+                        <!-- Profile Picture -->
+                        <div class="sm:col-span-2 border-t border-gray-100 pt-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Profile Picture</label>
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border overflow-hidden flex-shrink-0">
+                                    <img v-if="user.avatar" :src="'/storage/' + user.avatar" class="w-full h-full object-cover" />
+                                    <span v-else class="text-[#0a1f44] font-black text-2xl">{{ user.name.charAt(0) }}</span>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <input type="file" ref="avatarInput" @change="onAvatarChange" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="$refs.avatarInput.click()" class="px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
+                                            Choose Picture
+                                        </button>
+                                        <button v-if="user.avatar" type="button" @click="removeAvatar" class="px-4 py-2 border border-red-300 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-50 transition">
+                                            Remove
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-400">Supported formats: JPG, JPEG, PNG, WEBP. Max size: 2MB.</p>
+                                </div>
+                            </div>
+                            <p v-if="form.errors.avatar" class="text-red-500 text-xs mt-1">{{ form.errors.avatar }}</p>
+                        </div>
                     </div>
 
                     <div class="border-t border-gray-150 pt-5">
@@ -78,7 +102,8 @@
             <div class="space-y-6">
                 <!-- User Profile Card Summary -->
                 <div class="bg-gradient-to-br from-[#0a1f44] to-[#143163] text-white rounded-2xl p-6 shadow-sm border border-[#f5c242]/20 flex flex-col items-center text-center">
-                    <div class="w-20 h-20 rounded-full bg-[#f5c242] text-[#0a1f44] flex items-center justify-center font-black text-3xl shadow-lg border-4 border-white/10 mb-4">
+                    <img v-if="user.avatar" :src="'/storage/' + user.avatar" class="w-20 h-20 rounded-full object-cover shadow-lg border-4 border-white/10 mb-4" />
+                    <div v-else class="w-20 h-20 rounded-full bg-[#f5c242] text-[#0a1f44] flex items-center justify-center font-black text-3xl shadow-lg border-4 border-white/10 mb-4">
                         {{ user.name.charAt(0) }}
                     </div>
                     <h4 class="text-white font-extrabold text-lg truncate w-full">{{ user.name }}</h4>
@@ -114,18 +139,36 @@ const props = defineProps({
 });
 
 const form = useForm({
+    _method: 'PUT',
     name: props.user.name,
     email: props.user.email,
     password: '',
     password_confirmation: '',
+    avatar: null,
 });
 
 const submit = () => {
-    form.put(route('profile.update'), {
+    form.post(route('profile.update'), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset('password', 'password_confirmation');
+            form.avatar = null;
         }
     });
+};
+
+const onAvatarChange = (e) => {
+    form.avatar = e.target.files[0];
+};
+
+const removeAvatar = () => {
+    if (confirm('Are you sure you want to remove your profile picture?')) {
+        form.delete(route('profile.avatar.delete'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.avatar = null;
+            }
+        });
+    }
 };
 </script>

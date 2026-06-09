@@ -100,16 +100,27 @@ class ClientController extends Controller
         ]);
 
         $oldEmail = $client->email;
-        $client->update($validated);
-
+        
+        $client->fill($validated);
         $user = User::where('email', $oldEmail)->first();
+        $userDirty = false;
         if ($user) {
-            $user->update([
+            $user->fill([
                 'name'      => $validated['organization'] ?: $validated['contact_person'],
                 'email'     => $validated['email'],
                 'phone'     => $validated['phone'] ?? null,
                 'is_active' => $validated['status'] === 'active',
             ]);
+            $userDirty = $user->isDirty();
+        }
+
+        if (!$client->isDirty() && !$userDirty) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $client->save();
+        if ($user) {
+            $user->save();
         }
 
         return redirect()->route('clients.index')->with('success', 'Client updated successfully.');

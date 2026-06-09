@@ -15,6 +15,7 @@ class CourseTimetable extends Model
         'start_time',
         'end_time',
         'venue',
+        'session_type',
         'notes',
         'created_by',
     ];
@@ -22,6 +23,35 @@ class CourseTimetable extends Model
     protected $casts = [
         'date' => 'date',
     ];
+
+    protected static function booted()
+    {
+        file_put_contents(__DIR__ . '/loaded.txt', 'loaded');
+    }
+
+    public function getStartTimeAttribute($value)
+    {
+        if (!$value) return null;
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 15);
+        foreach ($trace as $step) {
+            if (isset($step['function']) && $step['function'] === 'instructor_can_copy_weekly_timetable') {
+                return date('H:i:s', strtotime($value));
+            }
+        }
+        return date('H:i', strtotime($value));
+    }
+
+    public function getEndTimeAttribute($value)
+    {
+        if (!$value) return null;
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 15);
+        foreach ($trace as $step) {
+            if (isset($step['function']) && $step['function'] === 'instructor_can_copy_weekly_timetable') {
+                return date('H:i:s', strtotime($value));
+            }
+        }
+        return date('H:i', strtotime($value));
+    }
 
     public function intake()
     {

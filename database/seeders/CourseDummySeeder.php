@@ -10,7 +10,15 @@ class CourseDummySeeder extends Seeder
 {
     public function run()
     {
-        $snsu = DB::table('departments')->where('code', 'SNSU')->first();
+        if (DB::table('courses')->count() > 0) {
+            return;
+        }
+
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            $snsu = DB::table('departments')->where('code', 'SNSU')->first();
         $ilas = DB::table('departments')->where('code', 'ILASU')->first();
         $expert = User::where('email', 'expert@msunli.edu')->first();
         $parttime = User::where('email', 'parttime@msunli.edu')->first();
@@ -133,6 +141,9 @@ class CourseDummySeeder extends Seeder
                     'updated_at' => now(),
                 ]
             );
+        }
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
         }
     }
 }

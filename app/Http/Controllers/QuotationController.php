@@ -307,10 +307,15 @@ class QuotationController extends Controller
             $validated['description'] = 'Services rendered as per line items.';
         }
 
-        $oldAmount = $quotation->amount;
-        $oldCurrency = $quotation->currency;
+        $quotation->fill($validated);
+        if (!$quotation->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
 
-        $quotation->update($validated);
+        $oldAmount = $quotation->getOriginal('amount');
+        $oldCurrency = $quotation->getOriginal('currency');
+
+        $quotation->save();
 
         ActivityLog::log(
             'quotation_updated',

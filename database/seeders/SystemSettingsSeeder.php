@@ -14,8 +14,16 @@ class SystemSettingsSeeder extends Seeder
      */
     public function run()
     {
-        // 1. FAQs
-        SystemSetting::set('short_courses_faqs', [
+        if (SystemSetting::count() > 0) {
+            return;
+        }
+
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            // 1. FAQs
+            SystemSetting::set('short_courses_faqs', [
             [
                 'question' => 'How do I apply for a short course?',
                 'answer' => 'To apply, click on the "Apply Now" button on the Short Courses page, select your preferred course and intake schedule, fill in your personal details, and upload the required documents (national ID/passport and academic certificates).'
@@ -95,5 +103,8 @@ class SystemSettingsSeeder extends Seeder
             'type' => 'Current Account',
             'currency_accepted' => 'USD, ZiG'
         ]);
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
+        }
     }
 }

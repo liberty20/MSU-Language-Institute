@@ -12,7 +12,11 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run()
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
             'manage users', 'manage roles', 'manage clients', 'manage service requests',
@@ -74,6 +78,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 ]
             );
             $user->syncRoles([$userData['role']]);
+        }
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
         }
     }
 }

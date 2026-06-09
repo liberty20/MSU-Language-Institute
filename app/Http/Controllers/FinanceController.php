@@ -94,7 +94,12 @@ class FinanceController extends Controller
             'is_active' => 'required|boolean',
         ]);
 
-        $bankAccount->update($validated);
+        $bankAccount->fill($validated);
+        if (!$bankAccount->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $bankAccount->save();
 
         return redirect()->route('finance.index')->with('success', 'Bank account updated successfully.');
     }

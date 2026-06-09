@@ -70,7 +70,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 items-center">
+                            <button v-if="['executive_director', 'deputy_director', 'ict_administrator'].some(r => $page.props.auth.roles.includes(r))" 
+                                    @click="deleteCourse(course)" 
+                                    class="text-sm font-semibold text-red-650 hover:text-red-500 transition mr-auto">
+                                Delete Course
+                            </button>
                             <button @click="openEditCourseModal(course)" class="text-sm font-semibold text-brand-blue hover:text-brand-gold transition">
                                 Edit Details
                             </button>
@@ -153,8 +158,8 @@
 
         <!-- Course Modal -->
         <div v-if="courseModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="courseModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
                     <h3 class="text-lg font-bold">{{ isEditingCourse ? 'Edit Course Details' : 'Create New Course Offering' }}</h3>
                     <button @click="courseModalOpen = false" class="text-gray-300 hover:text-white transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -218,8 +223,8 @@
 
         <!-- Intake Modal -->
         <div v-if="intakeModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="intakeModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
                     <h3 class="text-lg font-bold">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h3>
                     <button @click="intakeModalOpen = false" class="text-gray-300 hover:text-white transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -259,7 +264,7 @@
                                 <option value="completed">Completed</option>
                             </select>
                         </div>
-                        <div class="col-span-2 relative">
+                        <div class="col-span-2 relative" ref="dropdownContainer">
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Assign Instructor</label>
                             <div class="relative">
                                 <input 
@@ -268,7 +273,6 @@
                                     placeholder="Search instructor by name, role, or unit..." 
                                     class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-10 py-2.5"
                                     @focus="showInstructorDropdown = true"
-                                    @blur="handleSearchBlur"
                                 />
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -277,7 +281,7 @@
                                 <div v-show="showInstructorDropdown" class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100 text-sm">
                                     <div 
                                         class="px-4 py-2.5 text-gray-500 cursor-pointer hover:bg-gray-50 font-bold"
-                                        @mousedown="selectInstructor(null)"
+                                        @click="selectInstructor(null)"
                                     >
                                         Unassigned
                                     </div>
@@ -285,7 +289,7 @@
                                         v-for="ins in filteredInstructors" 
                                         :key="ins.id"
                                         class="px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition flex flex-col text-left"
-                                        @mousedown="selectInstructor(ins)"
+                                        @click="selectInstructor(ins)"
                                     >
                                         <span class="font-bold text-gray-800">{{ ins.name }}</span>
                                         <span class="text-xs text-gray-400 mt-0.5">{{ ins.role_name }} — {{ ins.unit_code }}</span>
@@ -310,7 +314,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Inertia } from '@inertiajs/inertia';
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
     courses: Array,
@@ -431,6 +435,12 @@ const saveCourse = () => {
     }
 };
 
+const deleteCourse = (course) => {
+    if (confirm(`Are you sure you want to permanently delete the course "${course.title}" (${course.code})? This action cannot be undone.`)) {
+        Inertia.delete(route('courses.destroy', course.id));
+    }
+};
+
 // Intake Modals
 const intakeModalOpen = ref(false);
 const isEditingIntake = ref(false);
@@ -446,6 +456,7 @@ const intakeForm = reactive({
 });
 
 // Combobox Search-Enabled Instructor Dropdown
+const dropdownContainer = ref(null);
 const instructorSearch = ref('');
 const showInstructorDropdown = ref(false);
 
@@ -471,8 +482,8 @@ const selectInstructor = (ins) => {
     showInstructorDropdown.value = false;
 };
 
-const handleSearchBlur = () => {
-    setTimeout(() => {
+const handleClickOutside = (event) => {
+    if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
         showInstructorDropdown.value = false;
         if (intakeForm.instructor_id) {
             const current = props.instructors.find(ins => ins.id === intakeForm.instructor_id);
@@ -482,8 +493,16 @@ const handleSearchBlur = () => {
             }
         }
         instructorSearch.value = '';
-    }, 200);
+    }
 };
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 
 const openCreateIntakeModal = () => {
     isEditingIntake.value = false;

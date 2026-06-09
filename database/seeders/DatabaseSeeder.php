@@ -8,13 +8,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        $this->call([
-            RolesAndPermissionsSeeder::class,
-            UnitsSeeder::class,
-            MsunliHierarchySeeder::class,
-            DummyDataSeeder::class,
-            CourseDummySeeder::class,
-            SystemSettingsSeeder::class,
-        ]);
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            $this->call([
+                RolesAndPermissionsSeeder::class,
+                UnitsSeeder::class,
+                MsunliHierarchySeeder::class,
+                // DummyDataSeeder::class,
+                CourseDummySeeder::class,
+                SystemSettingsSeeder::class,
+            ]);
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
+        }
     }
 }

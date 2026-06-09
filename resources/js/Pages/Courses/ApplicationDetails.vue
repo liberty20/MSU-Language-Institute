@@ -122,7 +122,7 @@
                                 <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 <span class="text-xs font-bold text-gray-500 block truncate">{{ fileName(application.national_id_copy_path) }}</span>
                             </div>
-                            <a :href="'/storage/' + application.national_id_copy_path" target="_blank"
+                            <a :href="route('course-applications.download-file', { id: application.id, type: 'national_id' })" target="_blank"
                                class="w-full text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-full border border-brand-blue/10 transition shadow-sm block">
                                 Open/Download ID &rarr;
                             </a>
@@ -141,7 +141,7 @@
                                 <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 <span class="text-xs font-bold text-gray-500 block truncate">{{ fileName(application.payment_proof_path) }}</span>
                             </div>
-                            <a :href="'/storage/' + application.payment_proof_path" target="_blank"
+                            <a :href="route('course-applications.download-file', { id: application.id, type: 'payment_proof' })" target="_blank"
                                class="w-full text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-full border border-brand-blue/10 transition shadow-sm block">
                                 Open/Download Receipt &rarr;
                             </a>
@@ -287,6 +287,36 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Email Logs Verification Widget -->
+                    <div class="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm space-y-4">
+                        <h3 class="font-black text-brand-blue text-sm uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 19v-8.93a2 2 0 01.89-1.664l8-4.62a2 2 0 012.22 0l8 4.62A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-2.25-1.5a2 2 0 00-2.22 0l-2.25 1.5"/></svg>
+                            Email Dispatch Audit Trails
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div v-for="log in emailLogs" :key="log.id" class="p-3 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+                                <div class="flex justify-between items-start">
+                                    <div class="space-y-0.5">
+                                        <span class="text-xs font-bold text-[#0a1f44] block">{{ log.subject }}</span>
+                                        <span class="text-[10px] text-gray-400 font-medium block">To: {{ log.recipient_email }}</span>
+                                    </div>
+                                    <span :class="log.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                                        {{ log.status }}
+                                    </span>
+                                </div>
+                                <div class="text-[9px] text-gray-400 font-medium">
+                                    Dispatched: {{ formatTime(log.created_at) }}
+                                </div>
+                                <div v-if="log.status === 'failed'" class="mt-1.5 p-2 bg-red-50 text-[10px] text-red-700 rounded-lg border border-red-100">
+                                    <strong>Troubleshooting:</strong> {{ log.error_message }}
+                                </div>
+                            </div>
+                            <div v-if="!emailLogs || emailLogs.length === 0" class="text-xs text-gray-400 italic py-2">
+                                No email transmission records found.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -301,6 +331,7 @@ import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
     application: Object,
+    emailLogs: Array,
 });
 
 const page = usePage();

@@ -10,6 +10,11 @@ use App\Models\MsunliSection;
 use App\Models\MsunliRole;
 use App\Models\SystemSetting;
 use Spatie\Permission\Models\Role;
+use App\Models\User;
+use App\Models\EmailLog;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SettingsController extends Controller
 {
@@ -17,14 +22,14 @@ class SettingsController extends Controller
     {
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director'])) {
-                abort(403, 'Unauthorized. Only ICT Administrator or Director can manage system settings.');
+            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+                abort(403, 'Unauthorized. Access restricted to System Administrators, Directors, and Deputies.');
             }
             return $next($request);
         });
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $units = Department::orderBy('name')->get();
         $sections = MsunliSection::with('unit')->orderBy('name')->get();
@@ -41,6 +46,44 @@ class SettingsController extends Controller
             'account_name' => '', 'bank' => '', 'branch' => '', 'account_number' => '', 'nostro_number' => '', 'type' => '', 'currency_accepted' => ''
         ]);
 
+        // Email monitoring log logic
+        $query = EmailLog::query();
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('recipient_email', 'like', "%{$search}%")
+                  ->orWhere('subject', 'like', "%{$search}%")
+                  ->orWhere('sender_email', 'like', "%{$search}%");
+            });
+        }
+
+        $emailLogs = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        // Statistics for mail monitoring
+        $stats = [
+            'total'     => EmailLog::count(),
+            'sent'      => EmailLog::where('status', 'sent')->count(),
+            'delivered' => EmailLog::where('status', 'delivered')->count(),
+            'pending'   => EmailLog::where('status', 'pending')->count(),
+            'bounced'   => EmailLog::where('status', 'bounced')->count(),
+            'failed'    => EmailLog::where('status', 'failed')->count(),
+        ];
+
+        // System Configuration
+        $config = SystemSetting::get('deputy_system_config', [
+            'site_name'           => 'MSU Language Institute Portal',
+            'admin_email'         => 'language.institute@msu.ac.zw',
+            'support_phone'       => '+263 54 2260331',
+            'max_upload_size'     => 10, // MB
+            'maintenance_mode'    => false,
+            'allow_registrations' => true,
+        ]);
+
         return Inertia::render('Admin/Settings/Index', [
             'units' => $units,
             'sections' => $sections,
@@ -51,6 +94,10 @@ class SettingsController extends Controller
             'announcements' => $announcements,
             'contactInfo' => $contactInfo,
             'bankingDetails' => $bankingDetails,
+            'emailLogs' => $emailLogs,
+            'stats'     => $stats,
+            'config'    => $config,
+            'filters'   => $request->only(['status', 'search']),
         ]);
     }
 
@@ -64,7 +111,21 @@ class SettingsController extends Controller
             'bankingDetails' => 'required|array',
         ]);
 
+        $oldFaqs = SystemSetting::get('short_courses_faqs', []);
+        $oldTestimonials = SystemSetting::get('short_courses_testimonials', []);
         $oldAnnouncements = SystemSetting::get('short_courses_announcements', []);
+        $oldContactInfo = SystemSetting::get('short_courses_contact_info', []);
+        $oldBankingDetails = SystemSetting::get('short_courses_banking_details', []);
+
+        if (
+            $oldFaqs === $validated['faqs'] &&
+            $oldTestimonials === $validated['testimonials'] &&
+            $oldAnnouncements === $validated['announcements'] &&
+            $oldContactInfo === $validated['contactInfo'] &&
+            $oldBankingDetails === $validated['bankingDetails']
+        ) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
 
         SystemSetting::set('short_courses_faqs', $validated['faqs']);
         SystemSetting::set('short_courses_testimonials', $validated['testimonials']);
@@ -116,10 +177,16 @@ class SettingsController extends Controller
             'code' => 'required|string|max:20|unique:departments,code,' . $unit->id,
         ]);
 
-        $unit->update([
+        $unit->fill([
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
         ]);
+
+        if (!$unit->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $unit->save();
 
         return redirect()->back()->with('success', 'MSUNLI Unit updated successfully.');
     }
@@ -163,11 +230,17 @@ class SettingsController extends Controller
             'code' => 'nullable|string|max:20',
         ]);
 
-        $section->update([
+        $section->fill([
             'unit_id' => $validated['unit_id'],
             'name' => $validated['name'],
             'code' => $validated['code'] ? strtoupper($validated['code']) : $section->code,
         ]);
+
+        if (!$section->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $section->save();
 
         return redirect()->back()->with('success', 'Department/Section updated successfully.');
     }
@@ -303,6 +376,70 @@ class SettingsController extends Controller
         SystemSetting::set('short_courses_testimonials', $active);
 
         return redirect()->back()->with('success', 'Testimonial deleted successfully.');
+    }
+
+    public function updateConfig(Request $request)
+    {
+        $validated = $request->validate([
+            'site_name'           => 'required|string|max:255',
+            'admin_email'         => 'required|email|max:255',
+            'support_phone'       => 'required|string|max:50',
+            'max_upload_size'     => 'required|integer|min:1|max:100',
+            'maintenance_mode'    => 'required|boolean',
+            'allow_registrations' => 'required|boolean',
+        ]);
+
+        $oldConfig = SystemSetting::get('deputy_system_config', []);
+        
+        if ($oldConfig === $validated) {
+            return redirect()->back()->with('error', 'No changes detected. Configuration remains unchanged.');
+        }
+
+        SystemSetting::set('deputy_system_config', $validated);
+
+        ActivityLog::log('update_settings', 'System configuration settings updated.', null, [
+            'previous' => $oldConfig,
+            'new'      => $validated,
+        ]);
+
+        return redirect()->back()->with('success', 'System configuration settings updated successfully.');
+    }
+
+    public function resetData()
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('deputy_director')) {
+            abort(403, 'Unauthorized. Access restricted to Deputy Director.');
+        }
+
+        Schema::disableForeignKeyConstraints();
+
+        // Delete all client, service request, quotations, assignments, and tasks
+        DB::table('tasks')->truncate();
+        DB::table('assignments')->truncate();
+        DB::table('quotations')->truncate();
+        DB::table('payments')->truncate();
+        DB::table('approvals')->truncate();
+        DB::table('comments')->truncate();
+        DB::table('service_requests')->truncate();
+        DB::table('clients')->truncate();
+        DB::table('procurement_requests')->truncate();
+
+        // Safely delete client user accounts from users table
+        $clientUsers = User::role('client')->get();
+        foreach ($clientUsers as $cu) {
+            $cu->delete();
+        }
+
+        Schema::enableForeignKeyConstraints();
+
+        ActivityLog::log('system_reset', 'Deputy Director triggered a complete system data reset, wiping all clients, service requests, quotations, assignments, and tasks.', null, [
+            'performed_by' => $user->name,
+            'ip'           => request()->ip(),
+            'timestamp'    => now()->toIso8601String(),
+        ]);
+
+        return redirect()->back()->with('success', 'System data reset completed successfully. All client requests, quotations, and assignments have been permanently removed.');
     }
 }
 

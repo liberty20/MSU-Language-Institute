@@ -9,7 +9,15 @@ class UnitsSeeder extends Seeder
 {
     public function run()
     {
-        $units = [
+        if (DB::table('departments')->count() > 0) {
+            return;
+        }
+
+        $temp = \App\Services\UserBackupService::$shouldBackup;
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        try {
+            $units = [
             [
                 'name' => 'Language Technology and Resource Development Unit',
                 'code' => 'LTRDU',
@@ -85,6 +93,9 @@ class UnitsSeeder extends Seeder
             if ($ilas_unit) {
                 $parttime->update(['department_id' => $ilas_unit->id]);
             }
+        }
+        } finally {
+            \App\Services\UserBackupService::$shouldBackup = $temp;
         }
     }
 }

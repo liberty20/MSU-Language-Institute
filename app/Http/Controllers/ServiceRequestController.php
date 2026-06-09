@@ -260,7 +260,12 @@ class ServiceRequestController extends Controller
             'notes'       => 'nullable|string',
         ]);
 
-        $serviceRequest->update($validated);
+        $serviceRequest->fill($validated);
+        if (!$serviceRequest->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $serviceRequest->save();
 
         return redirect()->back()->with('success', 'Service request updated.');
     }

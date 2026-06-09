@@ -106,15 +106,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('courses', [CourseController::class, 'index'])->name('courses.index');
     Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
     Route::put('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+    Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
     Route::post('course-intakes', [CourseController::class, 'storeIntake'])->name('course-intakes.store');
     Route::put('course-intakes/{intake}', [CourseController::class, 'updateIntake'])->name('course-intakes.update');
     Route::get('course-enrollments', [CourseController::class, 'enrollments'])->name('course-enrollments.index');
+    Route::get('course-enrollments/export', [CourseController::class, 'exportReport'])->name('course-enrollments.export');
+    Route::get('course-enrollments/{intakeId}/export-students', [CourseController::class, 'exportCourseStudents'])->name('course-enrollments.export-students');
+    Route::post('course-enrollments/manual', [CourseController::class, 'manualEnroll'])->name('course-enrollments.manual');
     Route::post('course-enrollments/{enrollment}/verify', [CourseController::class, 'verifyPayment'])->name('course-enrollments.verify');
     Route::post('course-enrollments/{enrollment}/certificate', [CourseController::class, 'issueCertificate'])->name('course-enrollments.certificate');
 
     // Course Applications Review Workflow (Admin/Staff)
     Route::get('course-applications', [CourseController::class, 'applicationsList'])->name('course-applications.index');
     Route::get('course-applications/{id}', [CourseController::class, 'applicationDetails'])->name('course-applications.show');
+    Route::get('course-applications/{id}/download/{type}', [CourseController::class, 'downloadApplicationFile'])->name('course-applications.download-file');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/verify', [CourseController::class, 'verifyApplication'])->name('course-applications.verify');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/recommend', [CourseController::class, 'recommendApplication'])->name('course-applications.recommend');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/approve', [CourseController::class, 'approveApplication'])->name('course-applications.approve');
@@ -145,6 +150,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::get('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableIndex'])->name('instructor.timetable.index');
         Route::post('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableStore'])->name('instructor.timetable.store');
+        Route::post('instructor/timetable/copy', [\App\Http\Controllers\InstructorPortalController::class, 'timetableCopy'])->name('instructor.timetable.copy');
         Route::put('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableUpdate'])->name('instructor.timetable.update');
         Route::delete('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableDestroy'])->name('instructor.timetable.destroy');
         
@@ -158,6 +164,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('instructor/assignments/{assignment}', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsDestroy'])->name('instructor.assignments.destroy');
         Route::get('instructor/assignments/{assignment}/submissions', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsSubmissions'])->name('instructor.assignments.submissions');
         Route::post('instructor/submissions/{submission}/grade', [\App\Http\Controllers\InstructorPortalController::class, 'gradeSubmission'])->name('instructor.submissions.grade');
+        Route::get('instructor/completed-tasks', [\App\Http\Controllers\InstructorPortalController::class, 'completedTasks'])->name('instructor.completed-tasks');
     });
 
     Route::resource('clients', ClientController::class);
@@ -212,14 +219,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('settings/roles', [\App\Http\Controllers\Admin\SettingsController::class, 'storeRole'])->name('settings.roles.store');
         Route::delete('settings/roles/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyRole'])->name('settings.roles.destroy');
         Route::post('settings/short-courses', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShortCoursesPortal'])->name('settings.short-courses.update');
+        Route::post('settings/config', [\App\Http\Controllers\Admin\SettingsController::class, 'updateConfig'])->name('settings.config.update');
+        Route::post('settings/reset', [\App\Http\Controllers\Admin\SettingsController::class, 'resetData'])->name('settings.reset');
         Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('admin.testimonials.approve');
         Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('admin.testimonials.reject');
         Route::delete('testimonials/{idx}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('admin.testimonials.destroy');
     });
 
+    Route::middleware('role:deputy_director')->group(function () {
+        Route::get('deputy/settings', function() {
+            return redirect()->route('admin.settings.index');
+        })->name('deputy.settings');
+    });
+
     // Profile Management Routes for All Authenticated Users
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
 });
 
 require __DIR__.'/auth.php';

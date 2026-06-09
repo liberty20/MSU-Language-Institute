@@ -156,7 +156,12 @@ class AssignmentController extends Controller
             $validated['completed_at'] = now();
         }
 
-        $assignment->update($validated);
+        $assignment->fill($validated);
+        if (!$assignment->isDirty()) {
+            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        }
+
+        $assignment->save();
 
         return redirect()->back()->with('success', 'Assignment updated.');
     }
