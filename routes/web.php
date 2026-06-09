@@ -220,6 +220,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('settings/roles/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyRole'])->name('settings.roles.destroy');
         Route::post('settings/short-courses', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShortCoursesPortal'])->name('settings.short-courses.update');
         Route::post('settings/config', [\App\Http\Controllers\Admin\SettingsController::class, 'updateConfig'])->name('settings.config.update');
+        Route::post('settings/reset/request', [\App\Http\Controllers\Admin\SettingsController::class, 'initiateResetRequest'])->name('settings.reset.request');
+        Route::post('settings/reset/action', [\App\Http\Controllers\Admin\SettingsController::class, 'actionResetRequest'])->name('settings.reset.action');
         Route::post('settings/reset', [\App\Http\Controllers\Admin\SettingsController::class, 'resetData'])->name('settings.reset');
         Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('admin.testimonials.approve');
         Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('admin.testimonials.reject');

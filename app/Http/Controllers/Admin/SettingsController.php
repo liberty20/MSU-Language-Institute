@@ -98,6 +98,8 @@ class SettingsController extends Controller
             'stats'     => $stats,
             'config'    => $config,
             'filters'   => $request->only(['status', 'search']),
+            'activeResetRequest' => SystemSetting::get('database_reset_request'),
+            'resetHistory' => SystemSetting::get('database_reset_history', []),
         ]);
     }
 
@@ -405,11 +407,118 @@ class SettingsController extends Controller
         return redirect()->back()->with('success', 'System configuration settings updated successfully.');
     }
 
+    public function initiateResetRequest(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('ict_administrator')) {
+            abort(403, 'Unauthorized. Only ICT Administrators can initiate database reset requests.');
+        }
+
+        $activeRequest = SystemSetting::get('database_reset_request');
+        if ($activeRequest && $activeRequest['status'] === 'pending') {
+            return redirect()->back()->with('error', 'There is already a pending reset request awaiting approval.');
+        }
+        if ($activeRequest && $activeRequest['status'] === 'approved') {
+            return redirect()->back()->with('error', 'A reset request has already been approved and is ready to be executed.');
+        }
+
+        $newRequest = [
+            'status' => 'pending',
+            'requester_id' => $user->id,
+            'requester_name' => $user->name,
+            'requested_at' => now()->toIso8601String(),
+        ];
+
+        SystemSetting::set('database_reset_request', $newRequest);
+
+        // Add to history
+        $history = SystemSetting::get('database_reset_history', []);
+        $history[] = [
+            'id' => uniqid(),
+            'requester_name' => $user->name,
+            'requested_at' => now()->toIso8601String(),
+            'status' => 'pending',
+            'approver_name' => null,
+            'actioned_at' => null,
+            'executed_at' => null,
+        ];
+        SystemSetting::set('database_reset_history', $history);
+
+        ActivityLog::log('database_reset_requested', 'ICT Administrator initiated a database reset request.', null, [
+            'requested_by' => $user->name,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        return redirect()->back()->with('success', 'Database reset request submitted successfully. Awaiting Executive Director approval.');
+    }
+
+    public function actionResetRequest(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('executive_director')) {
+            abort(403, 'Unauthorized. Only the Executive Director can review and action database reset requests.');
+        }
+
+        $validated = $request->validate([
+            'action' => 'required|in:approve,reject',
+        ]);
+
+        $activeRequest = SystemSetting::get('database_reset_request');
+        if (!$activeRequest || $activeRequest['status'] !== 'pending') {
+            return redirect()->back()->with('error', 'No pending database reset request was found.');
+        }
+
+        $action = $validated['action'];
+        $newStatus = ($action === 'approve') ? 'approved' : 'rejected';
+
+        $activeRequest['status'] = $newStatus;
+        $activeRequest['approver_id'] = $user->id;
+        $activeRequest['approver_name'] = $user->name;
+        $activeRequest['actioned_at'] = now()->toIso8601String();
+
+        if ($newStatus === 'rejected') {
+            // If rejected, clear active request to allow initiating a new one
+            SystemSetting::set('database_reset_request', null);
+        } else {
+            SystemSetting::set('database_reset_request', $activeRequest);
+        }
+
+        // Update history
+        $history = SystemSetting::get('database_reset_history', []);
+        if (!empty($history)) {
+            for ($i = count($history) - 1; $i >= 0; $i--) {
+                if ($history[$i]['status'] === 'pending') {
+                    $history[$i]['status'] = $newStatus;
+                    $history[$i]['approver_name'] = $user->name;
+                    $history[$i]['actioned_at'] = now()->toIso8601String();
+                    break;
+                }
+            }
+            SystemSetting::set('database_reset_history', $history);
+        }
+
+        ActivityLog::log('database_reset_request_' . $newStatus, 'Executive Director ' . $newStatus . 'd the database reset request.', null, [
+            'actioned_by' => $user->name,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        $msg = ($action === 'approve') 
+            ? 'Database reset request has been approved. The ICT Administrator can now execute the reset.'
+            : 'Database reset request has been rejected.';
+
+        return redirect()->back()->with('success', $msg);
+    }
+
     public function resetData()
     {
         $user = auth()->user();
-        if (!$user->hasRole('deputy_director')) {
-            abort(403, 'Unauthorized. Access restricted to Deputy Director.');
+        if (!$user->hasRole('ict_administrator')) {
+            abort(403, 'Unauthorized. Access restricted to ICT Administrator.');
+        }
+
+        $activeRequest = SystemSetting::get('database_reset_request');
+        if (!$activeRequest || $activeRequest['status'] !== 'approved') {
+            return redirect()->back()->with('error', 'Unauthorized. The database reset has not been approved by the Executive Director.');
         }
 
         Schema::disableForeignKeyConstraints();
@@ -433,13 +542,30 @@ class SettingsController extends Controller
 
         Schema::enableForeignKeyConstraints();
 
-        ActivityLog::log('system_reset', 'Deputy Director triggered a complete system data reset, wiping all clients, service requests, quotations, assignments, and tasks.', null, [
+        // Clear active request
+        SystemSetting::set('database_reset_request', null);
+
+        // Update history
+        $history = SystemSetting::get('database_reset_history', []);
+        if (!empty($history)) {
+            for ($i = count($history) - 1; $i >= 0; $i--) {
+                if ($history[$i]['status'] === 'approved') {
+                    $history[$i]['status'] = 'executed';
+                    $history[$i]['executed_at'] = now()->toIso8601String();
+                    break;
+                }
+            }
+            SystemSetting::set('database_reset_history', $history);
+        }
+
+        ActivityLog::log('system_reset', 'ICT Administrator executed the approved database reset, wiping all clients, service requests, quotations, assignments, and tasks.', null, [
             'performed_by' => $user->name,
+            'approved_by'  => $activeRequest['approver_name'] ?? 'Executive Director',
             'ip'           => request()->ip(),
             'timestamp'    => now()->toIso8601String(),
         ]);
 
-        return redirect()->back()->with('success', 'System data reset completed successfully. All client requests, quotations, and assignments have been permanently removed.');
+        return redirect()->back()->with('success', 'System data reset executed successfully. All client requests, quotations, and assignments have been permanently removed.');
     }
 }
 
