@@ -40,10 +40,12 @@ class ServiceRequestController extends Controller
             });
         }
 
-        // Scope by department if staff user belongs to a specific unit
+        // Scope by department is disabled so that users in all units, except Administration and Operations Support, have access to the same modules and functionalities based on standard user permissions.
+        /*
         if (!$user->hasRole('client') && $user->department_id) {
             $query->where('department_id', $user->department_id);
         }
+        */
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -375,9 +377,12 @@ class ServiceRequestController extends Controller
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
+            // Scope by department is disabled so that users in all units, except Administration and Operations Support, have access to the same modules and functionalities based on standard user permissions.
+            /*
             if ($user->department_id) {
                 $query->where('department_id', $user->department_id);
             }
+            */
         }
 
         return Inertia::render('ServiceRequests/CompletedTasks', [

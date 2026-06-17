@@ -66,8 +66,8 @@
 
         <!-- Schedule/Edit Class Modal -->
         <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeModal">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-150">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-[#f5c242]/20">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-150 flex flex-col max-h-[90vh]">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-[#f5c242]/20 flex-shrink-0">
                     <div>
                         <h3 class="text-base font-bold">{{ editMode ? 'Edit Timetable Schedule' : 'Schedule a New Class' }}</h3>
                         <p class="text-[9px] text-[#f5c242] mt-0.5">MSU National Language Institute Portal</p>
@@ -76,7 +76,14 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <form @submit.prevent="submitForm" class="p-6 space-y-4">
+                <form @submit.prevent="submitForm" class="p-6 space-y-4 overflow-y-auto flex-1">
+                    <!-- Error Alert -->
+                    <div v-if="$page.props.errors && Object.keys($page.props.errors).length > 0" class="bg-red-50 border-l-4 border-red-500 text-red-800 p-4 rounded-xl shadow-sm text-xs font-semibold leading-relaxed">
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li v-for="(err, key) in $page.props.errors" :key="key">{{ err }}</li>
+                        </ul>
+                    </div>
+
                     <!-- Course Intake -->
                     <div v-if="!editMode">
                         <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Assigned Course Session *</label>
@@ -86,23 +93,102 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Date -->
-                        <div class="col-span-2">
+                    <!-- Scheduling Type Selector -->
+                    <div v-if="!editMode" class="space-y-1.5">
+                        <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide">Scheduling Mode *</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" @click="form.schedule_type = 'daily'"
+                                    :class="form.schedule_type === 'daily' ? 'bg-[#0a1f44] text-[#f5c242] border-[#0a1f44]' : 'bg-white border-gray-300 text-gray-750 hover:bg-gray-50'"
+                                    class="py-3 px-4 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Daily Timetable
+                            </button>
+                            <button type="button" @click="form.schedule_type = 'weekly'"
+                                    :class="form.schedule_type === 'weekly' ? 'bg-[#0a1f44] text-[#f5c242] border-[#0a1f44]' : 'bg-white border-gray-300 text-gray-750 hover:bg-gray-50'"
+                                    class="py-3 px-4 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+                                Weekly Timetable
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daily Timetable: Specific Dates selection -->
+                    <div v-show="editMode || form.schedule_type === 'daily'" class="space-y-3">
+                        <div v-if="editMode">
                             <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Date *</label>
                             <input v-model="form.date" type="date" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
                         </div>
+                        <div v-else class="space-y-3">
+                            <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide">Select Dates *</label>
+                            <div class="flex gap-2">
+                                <input v-model="tempDate" type="date" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                                <button type="button" @click="addSpecificDate" class="px-4 py-2 bg-[#0a1f44] hover:bg-[#0c2859] text-[#f5c242] font-bold rounded-xl text-xs transition shadow-sm">Add</button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <span v-for="d in form.dates" :key="d" class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-150 text-[#0a1f44] text-xs font-bold rounded-xl">
+                                    {{ formatDateShort(d) }}
+                                    <button type="button" @click="removeSpecificDate(d)" class="text-red-500 hover:text-red-750 font-extrabold text-[10px]">×</button>
+                                </span>
+                                <p v-if="form.dates.length === 0" class="text-xs text-gray-400 italic">No specific dates added yet. Select and click Add.</p>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Weekly Timetable Recurrence Fields -->
+                    <div v-show="!editMode && form.schedule_type === 'weekly'" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Start Date *</label>
+                                <input v-model="form.start_date" type="date" :required="form.schedule_type === 'weekly' && !editMode" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">End Date *</label>
+                                <input v-model="form.end_date" type="date" :required="form.schedule_type === 'weekly' && !editMode" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Days of the Week *</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button v-for="day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']"
+                                        :key="day"
+                                        type="button"
+                                        @click="toggleDayOfWeek(day)"
+                                        :class="form.days_of_week.includes(day) ? 'bg-[#0a1f44] text-[#f5c242] border-[#0a1f44]' : 'bg-white border-gray-300 text-gray-750 hover:bg-gray-50'"
+                                        class="py-2 px-1 border rounded-lg text-[10px] font-bold text-center transition shadow-sm select-none">
+                                    {{ day.substring(0, 3) }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time & Location Grid -->
+                    <div v-show="editMode || form.schedule_type === 'daily'" class="grid grid-cols-2 gap-4">
                         <!-- Start Time -->
                         <div>
                             <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Start Time *</label>
-                            <input v-model="form.start_time" type="time" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            <input v-model="form.start_time" type="time" :required="editMode || form.schedule_type === 'daily'" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
                         </div>
 
                         <!-- End Time -->
                         <div>
                             <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">End Time *</label>
-                            <input v-model="form.end_time" type="time" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            <input v-model="form.end_time" type="time" :required="editMode || form.schedule_type === 'daily'" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                        </div>
+                    </div>
+
+                    <!-- Day-specific times (Only for weekly mode) -->
+                    <div v-show="!editMode && form.schedule_type === 'weekly' && form.days_of_week.length > 0" class="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-150">
+                        <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1">Define Times per Day *</label>
+                        <div v-for="day in form.days_of_week" :key="day" class="grid grid-cols-3 items-center gap-3">
+                            <span class="text-xs font-bold text-brand-blue">{{ day }}</span>
+                            <div>
+                                <label class="sr-only">Start Time</label>
+                                <input v-model="form.day_schedules[day].start_time" type="time" required class="w-full text-xs rounded-lg border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            </div>
+                            <div>
+                                <label class="sr-only">End Time</label>
+                                <input v-model="form.day_schedules[day].end_time" type="time" required class="w-full text-xs rounded-lg border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
+                            </div>
                         </div>
                     </div>
 
@@ -144,19 +230,56 @@ const modalOpen = ref(false);
 const editMode = ref(false);
 const submitting = ref(false);
 const selectedId = ref(null);
+const tempDate = ref('');
 
 const form = reactive({
     course_intake_id: '',
+    schedule_type: 'daily',
     date: '',
+    dates: [],
+    start_date: '',
+    end_date: '',
+    days_of_week: [],
+    day_schedules: {},
     start_time: '',
     end_time: '',
     venue: '',
     notes: '',
+    session_type: 'Lecture',
 });
 
 const isLink = (str) => {
     if (!str) return false;
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('www.');
+};
+
+const toggleDayOfWeek = (day) => {
+    if (form.days_of_week.includes(day)) {
+        form.days_of_week = form.days_of_week.filter(d => d !== day);
+        delete form.day_schedules[day];
+    } else {
+        form.days_of_week.push(day);
+        form.day_schedules[day] = { start_time: '', end_time: '' };
+    }
+};
+
+const addSpecificDate = () => {
+    if (tempDate.value) {
+        if (!form.dates.includes(tempDate.value)) {
+            form.dates.push(tempDate.value);
+        }
+        tempDate.value = '';
+    }
+};
+
+const removeSpecificDate = (dateVal) => {
+    form.dates = form.dates.filter(d => d !== dateVal);
+};
+
+const formatDateShort = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
 const openCreateModal = () => {
@@ -168,11 +291,17 @@ const openEditModal = (item) => {
     editMode.value = true;
     selectedId.value = item.id;
     form.course_intake_id = item.course_intake_id;
+    form.schedule_type = 'daily';
     form.date = item.date.split('T')[0];
+    form.dates = [];
+    form.start_date = '';
+    form.end_date = '';
+    form.days_of_week = [];
     form.start_time = item.start_time;
     form.end_time = item.end_time;
     form.venue = item.venue;
     form.notes = item.notes;
+    form.session_type = item.session_type || 'Lecture';
     modalOpen.value = true;
 };
 
@@ -180,16 +309,57 @@ const closeModal = () => {
     modalOpen.value = false;
     editMode.value = false;
     selectedId.value = null;
+    tempDate.value = '';
     form.course_intake_id = '';
+    form.schedule_type = 'daily';
     form.date = '';
+    form.dates = [];
+    form.start_date = '';
+    form.end_date = '';
+    form.days_of_week = [];
+    form.day_schedules = {};
     form.start_time = '';
     form.end_time = '';
     form.venue = '';
     form.notes = '';
+    form.session_type = 'Lecture';
 };
 
 const submitForm = () => {
     submitting.value = true;
+
+    if (!editMode.value) {
+        if (form.schedule_type === 'daily') {
+            if (tempDate.value && !form.dates.includes(tempDate.value)) {
+                form.dates.push(tempDate.value);
+                tempDate.value = '';
+            }
+            if (form.dates.length === 0) {
+                alert('Please select and add at least one date.');
+                submitting.value = false;
+                return;
+            }
+        } else if (form.schedule_type === 'weekly') {
+            if (form.days_of_week.length === 0) {
+                alert('Please select at least one day of the week.');
+                submitting.value = false;
+                return;
+            }
+            for (const day of form.days_of_week) {
+                const sched = form.day_schedules[day];
+                if (!sched || !sched.start_time || !sched.end_time) {
+                    alert(`Please specify both start and end times for ${day}.`);
+                    submitting.value = false;
+                    return;
+                }
+                if (sched.end_time <= sched.start_time) {
+                    alert(`End time must be after start time for ${day}.`);
+                    submitting.value = false;
+                    return;
+                }
+            }
+        }
+    }
 
     if (editMode.value) {
         Inertia.put(route('instructor.timetable.update', selectedId.value), form, {

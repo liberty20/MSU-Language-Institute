@@ -175,7 +175,12 @@ class UserController extends Controller
         ]);
 
         // Sync Spatie role automatically mapped according to role assignments
-        $user->assignRole($msunliRole->spatieRole->name);
+        $rolesToSync = [$msunliRole->spatieRole->name];
+        $user->loadMissing('department');
+        if ($user->department && $user->department->code !== 'AOS') {
+            $rolesToSync[] = 'language_expert';
+        }
+        $user->syncRoles($rolesToSync);
 
         // Record Audit Trail for Executive-level user creation
         if (in_array($msunliRole->name, ['Executive Director', 'Deputy Director'])) {
@@ -304,7 +309,12 @@ class UserController extends Controller
         }
 
         $user->save();
-        $user->syncRoles([$msunliRole->spatieRole->name]);
+        $rolesToSync = [$msunliRole->spatieRole->name];
+        $user->loadMissing('department');
+        if ($user->department && $user->department->code !== 'AOS') {
+            $rolesToSync[] = 'language_expert';
+        }
+        $user->syncRoles($rolesToSync);
 
         // Record Audit Trail for Executive-level user modification
         if (in_array($originalRoleName, ['Executive Director', 'Deputy Director']) || in_array($msunliRole->name, ['Executive Director', 'Deputy Director'])) {

@@ -61,7 +61,13 @@ class ClientController extends Controller
             'password'       => 'required|string|min:8|confirmed',
         ]);
 
-        $client = Client::create($request->except(['password', 'password_confirmation']));
+        $client = null;
+        \App\Services\UserBackupService::$isSyncing = true;
+        try {
+            $client = Client::create($request->except(['password', 'password_confirmation']));
+        } finally {
+            \App\Services\UserBackupService::$isSyncing = false;
+        }
 
         $user = User::create([
             'name'      => $validated['organization'] ?: $validated['contact_person'],
@@ -72,6 +78,13 @@ class ClientController extends Controller
         ]);
 
         $user->assignRole('client');
+
+        \App\Services\UserBackupService::$isSyncing = true;
+        try {
+            $client->update(['user_id' => $user->id]);
+        } finally {
+            \App\Services\UserBackupService::$isSyncing = false;
+        }
 
         return redirect()->route('clients.index')->with('success', 'Client created successfully.');
     }
@@ -89,7 +102,9 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
-        $validated = $request->validate([
+        $user = User::where('email', $client->email)->first();
+
+        $rules = [
             'client_type'    => 'required|in:individual,organization',
             'organization'   => 'nullable|string|max:255',
             'contact_person' => 'required|string|max:255',
@@ -97,7 +112,15 @@ class ClientController extends Controller
             'phone'          => 'nullable|string|max:30',
             'address'        => 'nullable|string',
             'status'         => 'required|in:active,inactive',
-        ]);
+        ];
+
+        if ($user) {
+            $rules['email'] .= '|unique:users,email,'.$user->id;
+        } else {
+            $rules['email'] .= '|unique:users,email';
+        }
+
+        $validated = $request->validate($rules);
 
         $oldEmail = $client->email;
         
@@ -118,9 +141,14 @@ class ClientController extends Controller
             return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
         }
 
-        $client->save();
-        if ($user) {
-            $user->save();
+        \App\Services\UserBackupService::$isSyncing = true;
+        try {
+            $client->save();
+            if ($user) {
+                $user->save();
+            }
+        } finally {
+            \App\Services\UserBackupService::$isSyncing = false;
         }
 
         return redirect()->route('clients.index')->with('success', 'Client updated successfully.');

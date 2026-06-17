@@ -33,9 +33,18 @@ Route::get('/', function () {
         ->where('status', 'open')
         ->get();
 
+    $contactInfo = \App\Models\SystemSetting::get('short_courses_contact_info', [
+        'email' => 'language.institute@msu.ac.zw',
+        'phone' => '+263 54 2260331',
+        'mobile' => '+263 772 123 456',
+        'location' => 'MSU Gweru Main Campus, Gweru, Zimbabwe',
+        'hours' => 'Monday - Friday: 8:00 AM - 4:30 PM'
+    ]);
+
     return Inertia::render('Welcome', [
         'courses' => $courses,
         'intakes' => $intakes,
+        'contactInfo' => $contactInfo,
         'canLogin' => Route::has('login'),
     ]);
 });

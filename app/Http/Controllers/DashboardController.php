@@ -25,6 +25,21 @@ class DashboardController extends Controller
         $isClient = $user->hasRole('client');
 
         $stats = [];
+
+        $user->loadMissing(['department', 'msunliRole']);
+        $isStaffOutsideAos = false;
+        if (!$isClient && $user->department && $user->department->code !== 'AOS') {
+            $isStaffOutsideAos = true;
+        }
+
+        $stats['is_staff_outside_aos'] = $isStaffOutsideAos;
+        
+        $isAos = false;
+        if (!$isClient && $user->department && $user->department->code === 'AOS') {
+            $isAos = true;
+        }
+        $stats['is_aos'] = $isAos;
+        $stats['job_title'] = $user->msunliRole ? $user->msunliRole->name : ucwords(str_replace('_', ' ', $user->role_name));
         
         if ($isClient) {
             // Client dashboard:
@@ -56,15 +71,16 @@ class DashboardController extends Controller
             // Staff / Admin dashboard:
             $stats['total_clients'] = Client::count();
             
-            if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff') || $user->instructedIntakes()->exists()) {
+            if ($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff') || $user->instructedIntakes()->exists()) {
                 // Staff scoped stats
                 $activeReqsQuery = ServiceRequest::whereNotIn('status', ['completed']);
                 $pendingTasksQuery = Task::whereIn('status', ['todo', 'in_progress']);
                 
                 $expert = \App\Models\User::with('department')->find($user->id);
                 if ($expert && $expert->department_id) {
-                    $activeReqsQuery->where('department_id', $expert->department_id);
-                    $pendingTasksQuery->whereHas('assignment.serviceRequest', fn($q) => $q->where('department_id', $expert->department_id));
+                    // Scoping by department is disabled to ensure all units except AOS have access to the same modules/functionalities.
+                    // $activeReqsQuery->where('department_id', $expert->department_id);
+                    // $pendingTasksQuery->whereHas('assignment.serviceRequest', fn($q) => $q->where('department_id', $expert->department_id));
                     
                     $stats['department_name'] = $expert->department ? $expert->department->name : 'N/A';
                     $stats['department_code'] = $expert->department ? $expert->department->code : 'N/A';
@@ -74,6 +90,20 @@ class DashboardController extends Controller
                 $stats['pending_tasks']   = $pendingTasksQuery->whereHas('assignment', fn($q) => $q->where('assigned_to', $user->id))->count();
                 $stats['total_revenue']   = 0;
                 $stats['assigned_tasks']  = \App\Models\Assignment::whereNotIn('status', ['completed'])->count();
+
+                if ($isStaffOutsideAos) {
+                    $stats['total_assigned_tasks'] = Task::whereHas('assignment', function ($q) use ($user) {
+                        $q->where('assigned_to', $user->id);
+                    })->count();
+                    
+                    $stats['pending_requests'] = ServiceRequest::whereHas('assignments', function ($q) use ($user) {
+                        $q->where('assigned_to', $user->id);
+                    })->whereIn('status', ['pending', 'quoted', 'approved'])->count();
+                    
+                    $stats['completed_tasks'] = Task::whereHas('assignment', function ($q) use ($user) {
+                        $q->where('assigned_to', $user->id);
+                    })->where('status', 'completed')->count();
+                }
 
                 // Instructor Assigned Courses stats
                 $assignedIntakes = \App\Models\CourseIntake::where('instructor_id', $user->id)
@@ -113,13 +143,14 @@ class DashboardController extends Controller
         if (!$isClient) {
             $recentRequestsQuery = ServiceRequest::with('client')->orderBy('created_at', 'desc');
             
-            if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+            if ($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
                 $recentRequestsQuery->whereHas('assignments', fn($q) => $q->where('assigned_to', $user->id));
             }
             
             $expert = \App\Models\User::find($user->id);
             if ($expert && $expert->department_id) {
-                $recentRequestsQuery->where('department_id', $expert->department_id);
+                // Scoping by department is disabled to ensure all units except AOS have access to the same modules/functionalities.
+                // $recentRequestsQuery->where('department_id', $expert->department_id);
             }
             
             $recentRequests = $recentRequestsQuery->take(8)->get()

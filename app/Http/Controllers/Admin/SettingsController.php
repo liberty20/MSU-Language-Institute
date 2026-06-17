@@ -107,10 +107,30 @@ class SettingsController extends Controller
     {
         $validated = $request->validate([
             'faqs' => 'required|array',
+            'faqs.*.question' => 'required|string|max:255',
+            'faqs.*.answer' => 'required|string',
             'testimonials' => 'required|array',
+            'testimonials.*.name' => 'required|string|max:255',
+            'testimonials.*.course' => 'required|string|max:255',
+            'testimonials.*.text' => 'required|string',
             'announcements' => 'required|array',
+            'announcements.*.date' => 'required|date',
+            'announcements.*.title' => 'required|string|max:255',
+            'announcements.*.text' => 'required|string',
             'contactInfo' => 'required|array',
+            'contactInfo.email' => 'required|email|max:255',
+            'contactInfo.phone' => 'required|string|max:100',
+            'contactInfo.mobile' => 'required|string|max:100',
+            'contactInfo.hours' => 'required|string|max:255',
+            'contactInfo.location' => 'required|string|max:500',
             'bankingDetails' => 'required|array',
+            'bankingDetails.account_name' => 'required|string|max:255',
+            'bankingDetails.bank' => 'required|string|max:255',
+            'bankingDetails.branch' => 'required|string|max:255',
+            'bankingDetails.type' => 'required|string|max:100',
+            'bankingDetails.account_number' => 'required|string|max:100',
+            'bankingDetails.nostro_number' => 'required|string|max:100',
+            'bankingDetails.currency_accepted' => 'required|string|max:255',
         ]);
 
         $oldFaqs = SystemSetting::get('short_courses_faqs', []);
@@ -134,6 +154,18 @@ class SettingsController extends Controller
         SystemSetting::set('short_courses_announcements', $validated['announcements']);
         SystemSetting::set('short_courses_contact_info', $validated['contactInfo']);
         SystemSetting::set('short_courses_banking_details', $validated['bankingDetails']);
+
+        // Log settings changes in the audit trail
+        ActivityLog::log('update_short_courses_settings', 'Short Courses Public Information Portal settings updated.', null, [
+            'previous' => [
+                'faqs' => $oldFaqs,
+                'testimonials' => $oldTestimonials,
+                'announcements' => $oldAnnouncements,
+                'contactInfo' => $oldContactInfo,
+                'bankingDetails' => $oldBankingDetails,
+            ],
+            'new' => $validated,
+        ]);
 
         // Check if a new announcement was added
         if (count($validated['announcements']) > count($oldAnnouncements)) {

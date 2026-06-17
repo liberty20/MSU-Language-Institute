@@ -331,7 +331,7 @@
                             Course Fees &amp; Tuition Payment
                         </h3>
                         <p class="text-gray-600 leading-relaxed text-sm">
-                            Tuition fees vary per course batch and are configured dynamically by the Executive Directorate. All payments must be processed directly into the MSU National Language Institute CBZ accounts listed. Once paid, remember to upload your deposit slip or proof of transfer in the application form below.
+                            Tuition fees vary per course batch and are configured dynamically by the Executive Directorate. All payments must be processed directly into the MSU National Language Institute {{ bankingDetails.bank }} accounts listed. Once paid, remember to upload your deposit slip or proof of transfer in the application form below.
                         </p>
                         
                         <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-2">
@@ -346,7 +346,7 @@
                     <!-- Banking Details Card -->
                     <div class="bg-white p-8 rounded-3xl border border-gray-150 shadow-md space-y-5">
                         <div class="border-b border-gray-100 pb-4">
-                            <h4 class="font-black text-[#0a1f44] text-base">CBZ Bank Accounts Details</h4>
+                            <h4 class="font-black text-[#0a1f44] text-base">{{ bankingDetails.bank }} Accounts Details</h4>
                             <p class="text-xs text-gray-400">Official Institutional Deposit Channels</p>
                         </div>
                         <div class="space-y-3.5 text-xs text-gray-600">
@@ -528,18 +528,17 @@
                     <ul class="space-y-3 text-xs text-gray-400">
                         <li class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <span>MSU Graduate School of Business Leadership Campus, Language Institute Gweru, Zimbabwe</span>
+                            <span>{{ contactInfo.location || 'MSU Graduate School of Business Leadership Campus, Language Institute Gweru, Zimbabwe' }}</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <svg class="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            <a href="mailto:info@languageinstitute.msu.ac.zw" class="hover:text-white transition text-xs">info@languageinstitute.msu.ac.zw</a>
+                            <a :href="'mailto:' + contactInfo.email" class="hover:text-white transition text-xs">{{ contactInfo.email }}</a>
                         </li>
                         <li class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                             <span>
-                                Telephone: <a href="tel:+26354231583" class="hover:text-white transition text-xs font-semibold">+263 54 231583</a><br/>
-                                Fax: <a href="tel:+26354260233" class="hover:text-white transition text-xs font-semibold">+263 54 260233</a> / <a href="tel:+26354260311" class="hover:text-white transition text-xs font-semibold">+263 54 260311</a><br/>
-                                Mobile: <a href="tel:+263772883047" class="hover:text-white transition text-xs font-semibold">+263 77 288 3047</a> / <a href="tel:+263716800586" class="hover:text-white transition text-xs font-semibold">+263 71 680 0586</a>
+                                Telephone: <a :href="'tel:' + contactInfo.phone" class="hover:text-white transition text-xs font-semibold">{{ contactInfo.phone }}</a><br/>
+                                Mobile: <a :href="'tel:' + contactInfo.mobile" class="hover:text-white transition text-xs font-semibold">{{ contactInfo.mobile }}</a>
                             </span>
                         </li>
                     </ul>

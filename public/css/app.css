@@ -1164,6 +1164,9 @@ input:where([type='file']):focus {
 .max-h-16 {
   max-height: 4rem;
 }
+.max-h-32 {
+  max-height: 8rem;
+}
 .max-h-60 {
   max-height: 15rem;
 }
@@ -1184,6 +1187,9 @@ input:where([type='file']):focus {
 }
 .max-h-\[85vh\] {
   max-height: 85vh;
+}
+.max-h-\[90vh\] {
+  max-height: 90vh;
 }
 .min-h-\[140px\] {
   min-height: 140px;
@@ -1531,6 +1537,9 @@ input:where([type='file']):focus {
 }
 .grid-cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .flex-col {
   flex-direction: column;
@@ -3392,6 +3401,9 @@ input:where([type='file']):focus {
 }
 .underline {
   text-decoration-line: underline;
+}
+.line-through {
+  text-decoration-line: line-through;
 }
 .antialiased {
   -webkit-font-smoothing: antialiased;

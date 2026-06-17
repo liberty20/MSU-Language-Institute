@@ -690,6 +690,38 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\User::saved(function ($user) {
+            // Auto-assign language_expert role if the user belongs to a unit other than AOS, and is not a client or student
+            if ($user->department_id) {
+                $user->loadMissing('department');
+                if ($user->department && $user->department->code !== 'AOS') {
+                    $hasExpert = \Illuminate\Support\Facades\DB::table('model_has_roles')
+                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                        ->where('model_has_roles.model_id', $user->id)
+                        ->where('model_has_roles.model_type', get_class($user))
+                        ->where('roles.name', 'language_expert')
+                        ->exists();
+
+                    $isStudentOrClient = \Illuminate\Support\Facades\DB::table('model_has_roles')
+                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                        ->where('model_has_roles.model_id', $user->id)
+                        ->where('model_has_roles.model_type', get_class($user))
+                        ->whereIn('roles.name', ['student', 'client'])
+                        ->exists();
+
+                    if (!$hasExpert && !$isStudentOrClient) {
+                        $role = \Spatie\Permission\Models\Role::where('name', 'language_expert')->first();
+                        if ($role) {
+                            \Illuminate\Support\Facades\DB::table('model_has_roles')->insertOrIgnore([
+                                'role_id' => $role->id,
+                                'model_type' => get_class($user),
+                                'model_id' => $user->id
+                            ]);
+                            // Clear Spatie permission cache
+                            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+                        }
+                    }
+                }
+            }
             \App\Services\UserBackupService::syncFromUser($user);
         });
 

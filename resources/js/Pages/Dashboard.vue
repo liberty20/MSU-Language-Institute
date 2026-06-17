@@ -8,11 +8,19 @@
             <!-- Unit / Department Banner -->
             <div v-if="stats.department_code" class="bg-gradient-to-r from-[#0a1f44] to-[#0c2859] text-white p-6 rounded-2xl border border-gray-150 shadow-md flex items-center justify-between">
                 <div class="space-y-1">
-                    <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-brand-gold text-xs font-bold tracking-widest uppercase mb-1">
-                        Assigned Functional Unit
-                    </span>
-                    <h3 class="text-xl font-bold">{{ stats.department_name }} ({{ stats.department_code }})</h3>
-                    <p class="text-sm text-gray-300">This dashboard is configured to show service requests and operations scoped specifically to your unit.</p>
+                    <template v-if="stats.is_aos">
+                        <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-brand-gold text-xs font-bold tracking-widest uppercase mb-1">
+                            {{ stats.job_title }}
+                        </span>
+                        <h3 class="text-xl font-bold">{{ greeting }}, {{ $page.props.auth.user.name }}</h3>
+                    </template>
+                    <template v-else>
+                        <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-brand-gold text-xs font-bold tracking-widest uppercase mb-1">
+                            {{ greeting }}, {{ $page.props.auth.user.name }}
+                        </span>
+                        <h3 class="text-xl font-bold">{{ stats.department_name }} ({{ stats.department_code }})</h3>
+                        <p class="text-sm text-gray-300">This dashboard is configured to show service requests and operations scoped specifically to your unit.</p>
+                    </template>
                 </div>
                 <div class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center font-black text-2xl text-brand-gold shadow flex-shrink-0">
                     {{ stats.department_code.slice(0, 2) }}
@@ -21,83 +29,133 @@
 
             <!-- Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Total Clients (Hidden for clients) -->
-                <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <!-- If staff outside AOS, show user-specific operational metrics -->
+                <template v-if="stats.is_staff_outside_aos">
+                    <!-- Total Assigned Tasks -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Assigned Tasks</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.total_assigned_tasks }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Clients</p>
-                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.total_clients }}</h3>
-                    </div>
-                </div>
 
-                <!-- Active Requests (Shown for everyone) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <!-- Active Requests -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Active Requests</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.active_requests }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Active Requests</p>
-                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.active_requests }}</h3>
-                    </div>
-                </div>
 
-                <!-- Pending Tasks / Requests (Shown for everyone) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <!-- Pending Requests -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Pending Requests</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.pending_requests }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                            {{ $page.props.auth.roles.includes('client') ? 'Pending Requests' : 'Pending Tasks' }}
-                        </p>
-                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.pending_tasks }}</h3>
-                    </div>
-                </div>
 
-                <!-- Assigned Tasks (Shown for all administrative and staff users) -->
-                <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <!-- Completed Tasks -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Completed Tasks</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.completed_tasks }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assigned Tasks</p>
-                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.assigned_tasks }}</h3>
-                    </div>
-                </div>
+                </template>
 
-                <!-- In Progress Requests (Only shown for clients) -->
-                <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <!-- Otherwise show default layout -->
+                <template v-else>
+                    <!-- Total Clients (Hidden for clients) -->
+                    <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Clients</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.total_clients }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">In Progress</p>
-                        <h3 class="text-2xl font-bold text-brand-blue">{{ stats.in_progress_requests }}</h3>
-                    </div>
-                </div>
 
-                <!-- Approved Value (Only shown for clients) -->
-                <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex items-center gap-4 transition hover:shadow-md">
-                    <div class="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <!-- Active Requests (Shown for everyone) -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Active Requests</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.active_requests }}</h3>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Approved Value</p>
-                        <div v-if="typeof stats.total_revenue === 'object' && stats.total_revenue !== null" class="space-y-0.5">
-                            <h3 v-for="(amount, curr) in stats.total_revenue" :key="curr" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
-                                {{ curr }} {{ Number(amount).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
-                            </h3>
-                            <h3 v-if="Object.keys(stats.total_revenue).length === 0" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
-                                USD 0.00
+
+                    <!-- Pending Tasks / Requests (Shown for everyone) -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                                {{ $page.props.auth.roles.includes('client') ? 'Pending Requests' : 'Pending Tasks' }}
+                            </p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.pending_tasks }}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Tasks (Shown for all administrative and staff users) -->
+                    <div v-if="!$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Assigned Tasks</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.assigned_tasks }}</h3>
+                        </div>
+                    </div>
+
+                    <!-- In Progress Requests (Only shown for clients) -->
+                    <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">In Progress</p>
+                            <h3 class="text-2xl font-bold text-brand-blue">{{ stats.in_progress_requests }}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Approved Value (Only shown for clients) -->
+                    <div v-if="$page.props.auth.roles.includes('client')" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-150 flex items-center gap-4 transition hover:shadow-md">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Approved Value</p>
+                            <div v-if="typeof stats.total_revenue === 'object' && stats.total_revenue !== null" class="space-y-0.5">
+                                <h3 v-for="(amount, curr) in stats.total_revenue" :key="curr" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
+                                    {{ curr }} {{ Number(amount).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
+                                </h3>
+                                <h3 v-if="Object.keys(stats.total_revenue).length === 0" class="font-bold text-brand-blue leading-tight" style="font-size: 10px;">
+                                    USD 0.00
+                                </h3>
+                            </div>
+                            <h3 v-else class="text-2xl font-bold text-brand-blue">
+                                ${{ Number(stats.total_revenue).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
                             </h3>
                         </div>
-                        <h3 v-else class="text-2xl font-bold text-brand-blue">
-                            ${{ Number(stats.total_revenue).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
-                        </h3>
                     </div>
-                </div>
+                </template>
             </div>
 
             <!-- Instructor Assigned Courses Section -->
@@ -244,10 +302,35 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/inertia-vue3';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 defineProps({
     stats: Object,
     recentRequests: Array,
     recentActivities: Array
+});
+
+const currentHour = ref(new Date().getHours());
+let timer = null;
+
+onMounted(() => {
+    timer = setInterval(() => {
+        currentHour.value = new Date().getHours();
+    }, 60000);
+});
+
+onUnmounted(() => {
+    if (timer) clearInterval(timer);
+});
+
+const greeting = computed(() => {
+    const hr = currentHour.value;
+    if (hr < 12) {
+        return 'Good Morning';
+    } else if (hr < 17) {
+        return 'Good Afternoon';
+    } else {
+        return 'Good Evening';
+    }
 });
 </script>

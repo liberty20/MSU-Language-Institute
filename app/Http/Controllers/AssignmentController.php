@@ -25,9 +25,21 @@ class AssignmentController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Assignment::with(['serviceRequest.client', 'assignedTo', 'assignedBy']);
+        $user->loadMissing('department');
+        
+        $isStaffOutsideAos = false;
+        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+            $isStaffOutsideAos = true;
+        }
 
-        if ($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+        $canView = $isStaffOutsideAos || $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'language_expert', 'part_time_staff']);
+        if (!$canView) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $query = Assignment::with(['serviceRequest.client', 'assignedTo', 'assignedBy', 'tasks']);
+
+        if ($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
             $query->where('assigned_to', $user->id);
         }
 
@@ -48,6 +60,7 @@ class AssignmentController extends Controller
                 'status' => $request->status,
                 'client' => $request->client,
             ],
+            'is_staff_outside_aos' => $isStaffOutsideAos,
         ]);
     }
 
@@ -82,7 +95,14 @@ class AssignmentController extends Controller
     public function show(Assignment $assignment)
     {
         $user = Auth::user();
-        if (($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+        $user->loadMissing('department');
+        
+        $isStaffOutsideAos = false;
+        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+            $isStaffOutsideAos = true;
+        }
+
+        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -93,7 +113,14 @@ class AssignmentController extends Controller
     public function completeAssignment(Request $request, Assignment $assignment)
     {
         $user = Auth::user();
-        if (($user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+        $user->loadMissing('department');
+        
+        $isStaffOutsideAos = false;
+        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+            $isStaffOutsideAos = true;
+        }
+
+        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
             abort(403, 'Unauthorized.');
         }
 

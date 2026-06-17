@@ -41,7 +41,7 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Clients</span>
                 </Link>
 
-                <Link v-if="can('view assignments') || can('manage assignments')" :href="route('assignments.index')" :class="navClass('assignments.*')" title="Assignments">
+                <Link v-if="can('view assignments') || can('manage assignments') || $page.props.auth.is_staff_outside_aos" :href="route('assignments.index')" :class="navClass('assignments.*')" title="Assignments">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Assignments</span>
                 </Link>
@@ -164,8 +164,9 @@
             <!-- User Profile Bottom -->
             <div :class="['p-4 border-t border-brand-blue-light flex items-center justify-between transition-all duration-300', sidebarCollapsed ? 'md:flex-col md:gap-2 md:justify-center' : '']">
                 <div :class="['flex items-center gap-3 min-w-0', sidebarCollapsed ? 'md:flex-col md:justify-center' : '']">
-                    <div class="w-10 h-10 rounded-full bg-brand-gold text-brand-blue flex items-center justify-center font-bold text-lg shadow flex-shrink-0">
-                        {{ $page.props.auth.user.name.charAt(0) }}
+                    <div class="w-10 h-10 rounded-full bg-brand-gold text-brand-blue flex items-center justify-center font-bold text-lg shadow flex-shrink-0 overflow-hidden">
+                        <img v-if="$page.props.auth.user.avatar" :src="'/storage/' + $page.props.auth.user.avatar" class="w-full h-full object-cover" />
+                        <span v-else>{{ $page.props.auth.user.name.charAt(0) }}</span>
                     </div>
                     <div :class="['flex-1 min-w-0 transition-all duration-300', sidebarCollapsed ? 'md:hidden' : '']">
                         <p class="text-sm font-semibold truncate">{{ $page.props.auth.user.name }}</p>

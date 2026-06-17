@@ -15,30 +15,8 @@
                 
                 <form @submit.prevent="submit" class="space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Full Name -->
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span class="text-red-500">*</span></label>
-                            <input v-model="form.name" type="text" required
-                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm"
-                                   placeholder="Your full name" />
-                            <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
-                        </div>
-
-                        <!-- Email Address -->
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span class="text-red-500">*</span></label>
-                            <input v-model="form.email" type="email" required
-                                   :disabled="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))"
-                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-70 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                   placeholder="name@example.com" />
-                            <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
-                            <p v-if="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))" class="text-gray-400 text-xs mt-1.5">
-                                Email editing is restricted to Executive Director, Deputy Director, and ICT Administrator roles only.
-                            </p>
-                        </div>
-
                         <!-- Profile Picture -->
-                        <div class="sm:col-span-2 border-t border-gray-100 pt-4">
+                        <div class="sm:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Profile Picture</label>
                             <div class="flex items-center gap-4">
                                 <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border overflow-hidden flex-shrink-0">
@@ -59,6 +37,28 @@
                                 </div>
                             </div>
                             <p v-if="form.errors.avatar" class="text-red-500 text-xs mt-1">{{ form.errors.avatar }}</p>
+                        </div>
+
+                        <!-- Full Name -->
+                        <div class="sm:col-span-2 border-t border-gray-100 pt-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span class="text-red-500">*</span></label>
+                            <input v-model="form.name" type="text" required
+                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm"
+                                   placeholder="Your full name" />
+                            <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
+                        </div>
+
+                        <!-- Email Address -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span class="text-red-500">*</span></label>
+                            <input v-model="form.email" type="email" required
+                                   :disabled="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))"
+                                   class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm disabled:opacity-70 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                   placeholder="name@example.com" />
+                            <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
+                            <p v-if="!['executive_director', 'deputy_director', 'ict_administrator'].some(role => $page.props.auth.roles.includes(role))" class="text-gray-400 text-xs mt-1.5">
+                                Email editing is restricted to Executive Director, Deputy Director, and ICT Administrator roles only.
+                            </p>
                         </div>
                     </div>
 

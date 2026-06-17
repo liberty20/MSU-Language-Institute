@@ -13,13 +13,13 @@ i Compiling Mix
    Laravel Mix v6.0.49   
                          
 
-✔ Compiled Successfully in 14088ms
+✔ Compiled Successfully in 35757ms
 [90m┌───────────────────────────────────[39m[90m┬───────────┐[39m
 [90m│[39m                              File [90m│[39m Size      [90m│[39m
 [90m├───────────────────────────────────[39m[90m┼───────────┤[39m
-[90m│[39m                        /js/app.js [90m│[39m 1.29 MiB  [90m│[39m
+[90m│[39m                        /js/app.js [90m│[39m 1.31 MiB  [90m│[39m
 [90m│[39m            /js/app.js.LICENSE.txt [90m│[39m 752 bytes [90m│[39m
-[90m│[39m                       css/app.css [90m│[39m 89.5 KiB  [90m│[39m
+[90m│[39m                       css/app.css [90m│[39m 90.1 KiB  [90m│[39m
 [90m└───────────────────────────────────[39m[90m┴───────────┘[39m
-√ Mix: Compiled successfully in 14.93s
+√ Mix: Compiled successfully in 37.85s
 webpack compiled [1m[32msuccessfully[39m[22m

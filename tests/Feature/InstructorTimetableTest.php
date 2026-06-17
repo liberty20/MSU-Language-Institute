@@ -304,4 +304,89 @@ class InstructorTimetableTest extends TestCase
 
         $response->assertStatus(404); // Scoped resolution fail
     }
+
+    /** @test */
+    public function instructor_can_schedule_daily_timetable_with_multiple_dates()
+    {
+        $response = $this->actingAs($this->instructor)
+            ->post(route('instructor.timetable.store'), [
+                'course_intake_id' => $this->intake->id,
+                'schedule_type' => 'daily',
+                'dates' => ['2026-06-15', '2026-06-16'],
+                'start_time' => '09:00',
+                'end_time' => '11:00',
+                'venue' => 'Language Lab A',
+                'session_type' => 'Practical',
+                'notes' => 'Bring headphones',
+            ]);
+
+        $response->assertRedirect();
+        
+        $this->assertEquals(2, CourseTimetable::count());
+        $timetable1 = CourseTimetable::where('date', '2026-06-15')->first();
+        $this->assertNotNull($timetable1);
+        $this->assertEquals('Language Lab A', $timetable1->venue);
+
+        $timetable2 = CourseTimetable::where('date', '2026-06-16')->first();
+        $this->assertNotNull($timetable2);
+        $this->assertEquals('Language Lab A', $timetable2->venue);
+    }
+
+    /** @test */
+    public function instructor_can_schedule_weekly_timetable_with_recurrence()
+    {
+        $response = $this->actingAs($this->instructor)
+            ->post(route('instructor.timetable.store'), [
+                'course_intake_id' => $this->intake->id,
+                'schedule_type' => 'weekly',
+                'start_date' => '2026-06-08', // Monday
+                'end_date' => '2026-06-21', // Sunday (2 weeks duration)
+                'days_of_week' => ['Monday', 'Wednesday'],
+                'start_time' => '10:00',
+                'end_time' => '12:00',
+                'venue' => 'Room 10',
+                'session_type' => 'Lecture',
+            ]);
+
+        $response->assertRedirect();
+
+        // 2026-06-08 (Mon), 2026-06-10 (Wed), 2026-06-15 (Mon), 2026-06-17 (Wed)
+        $this->assertEquals(4, CourseTimetable::count());
+        $this->assertTrue(CourseTimetable::where('date', '2026-06-08')->exists());
+        $this->assertTrue(CourseTimetable::where('date', '2026-06-10')->exists());
+        $this->assertTrue(CourseTimetable::where('date', '2026-06-15')->exists());
+        $this->assertTrue(CourseTimetable::where('date', '2026-06-17')->exists());
+    }
+
+    /** @test */
+    public function scheduler_detects_weekly_timetable_conflict()
+    {
+        // Schedule a class first on Wednesday 2026-06-10 at 10:00-12:00
+        CourseTimetable::create([
+            'course_intake_id' => $this->intake->id,
+            'date' => '2026-06-10',
+            'start_time' => '10:00:00',
+            'end_time' => '12:00:00',
+            'venue' => 'Room 10',
+            'session_type' => 'Lecture',
+            'created_by' => $this->instructor->id,
+        ]);
+
+        // Attempt weekly scheduling that overlaps on Wednesday 2026-06-10
+        $response = $this->actingAs($this->instructor)
+            ->post(route('instructor.timetable.store'), [
+                'course_intake_id' => $this->intake->id,
+                'schedule_type' => 'weekly',
+                'start_date' => '2026-06-08',
+                'end_date' => '2026-06-14',
+                'days_of_week' => ['Wednesday'], // Overlaps on Wednesday 2026-06-10
+                'start_time' => '11:00', // overlaps
+                'end_time' => '13:00',
+                'venue' => 'Room 10',
+                'session_type' => 'Lecture',
+            ]);
+
+        $response->assertSessionHasErrors('conflict');
+        $this->assertEquals(1, CourseTimetable::count()); // none were persisted due to rollback
+    }
 }

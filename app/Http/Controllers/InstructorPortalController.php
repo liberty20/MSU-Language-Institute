@@ -204,49 +204,137 @@ class InstructorPortalController extends Controller
 
     public function timetableStore(Request $request)
     {
-        $request->validate([
+        $rules = [
             'course_intake_id' => 'required|exists:course_intakes,id',
-            'date' => 'required|date|after_or_equal:today',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'schedule_type' => 'nullable|string|in:daily,weekly',
             'venue' => 'required|string|max:255',
             'notes' => 'nullable|string',
             'session_type' => 'nullable|string',
-        ]);
+        ];
 
-        $conflictError = $this->hasConflict(
-            $request->course_intake_id,
-            $request->date,
-            $request->start_time,
-            $request->end_time,
-            $request->venue
-        );
+        if ($request->input('schedule_type', 'daily') === 'daily') {
+            $rules['start_time'] = 'required';
+            $rules['end_time'] = 'required|after:start_time';
+        } else {
+            $rules['start_time'] = 'nullable';
+            $rules['end_time'] = 'nullable';
+            $rules['start_date'] = 'required|date|after_or_equal:today';
+            $rules['end_date'] = 'required|date|after_or_equal:start_date';
+            $rules['days_of_week'] = 'required|array';
+            $rules['days_of_week.*'] = 'required|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday';
+            $rules['day_schedules'] = 'required|array';
+        }
 
-        if ($conflictError) {
-            return redirect()->back()->withErrors(['conflict' => $conflictError])->withInput();
+        $request->validate($rules);
+
+        $scheduleType = $request->input('schedule_type', 'daily');
+        $dates = [];
+
+        if ($scheduleType === 'daily') {
+            $request->validate([
+                'dates' => 'nullable|array',
+                'dates.*' => 'required|date|after_or_equal:today',
+                'date' => 'required_without:dates|nullable|date|after_or_equal:today',
+            ]);
+            
+            if ($request->filled('dates') && is_array($request->dates)) {
+                $dates = array_unique($request->dates);
+            } else {
+                $dates = [$request->date];
+            }
+        } else if ($scheduleType === 'weekly') {
+            foreach ($request->days_of_week as $day) {
+                if (!isset($request->day_schedules[$day]['start_time']) || !isset($request->day_schedules[$day]['end_time'])) {
+                    return redirect()->back()->withErrors(['conflict' => "Please specify both start and end times for {$day}."])->withInput();
+                }
+                $start = $request->day_schedules[$day]['start_time'];
+                $end = $request->day_schedules[$day]['end_time'];
+                if (strtotime($end) <= strtotime($start)) {
+                    return redirect()->back()->withErrors(['conflict' => "End time must be after start time for {$day}."])->withInput();
+                }
+            }
+
+            // Expand range of dates
+            $startDate = \Carbon\Carbon::parse($request->start_date);
+            $endDate = \Carbon\Carbon::parse($request->end_date);
+            $daysOfWeek = $request->days_of_week;
+
+            $currentDate = $startDate->copy();
+            while ($currentDate->lte($endDate)) {
+                $dayName = $currentDate->format('l');
+                if (in_array($dayName, $daysOfWeek)) {
+                    $dates[] = $currentDate->toDateString();
+                }
+                $currentDate->addDay();
+            }
+
+            if (empty($dates)) {
+                return redirect()->back()->withErrors(['conflict' => 'No dates in the selected range match the selected days of the week.'])->withInput();
+            }
         }
 
         $user = Auth::user();
         $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($request->course_intake_id);
 
-        $timetable = CourseTimetable::create(array_merge($request->all(), [
-            'created_by' => $user->id,
-        ]));
+        try {
+            $createdTimetables = \DB::transaction(function () use ($intake, $dates, $request, $user, $scheduleType) {
+                $created = [];
+                foreach ($dates as $date) {
+                    $dayName = \Carbon\Carbon::parse($date)->format('l');
+                    if ($scheduleType === 'weekly') {
+                        $startTime = $request->day_schedules[$dayName]['start_time'];
+                        $endTime = $request->day_schedules[$dayName]['end_time'];
+                    } else {
+                        $startTime = $request->start_time;
+                        $endTime = $request->end_time;
+                    }
 
-        // Notify enrolled students
-        $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
-        foreach ($enrollments as $e) {
-            if ($e->user) {
-                $e->user->notify(new SystemNotification(
-                    'timetable_update',
-                    'New Class Scheduled',
-                    'A new session has been scheduled for your course "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' at ' . $timetable->start_time,
-                    route('student.timetable')
-                ));
-            }
+                    $conflictError = $this->hasConflict(
+                        $request->course_intake_id,
+                        $date,
+                        $startTime,
+                        $endTime,
+                        $request->venue
+                    );
+
+                    if ($conflictError) {
+                        $dateFormatted = date('Y-m-d', strtotime($date));
+                        throw new \Exception("Scheduling conflict on {$dateFormatted}: {$conflictError}");
+                    }
+
+                    $timetable = CourseTimetable::create([
+                        'course_intake_id' => $request->course_intake_id,
+                        'date' => $date,
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'venue' => $request->venue,
+                        'notes' => $request->notes,
+                        'session_type' => $request->session_type,
+                        'created_by' => $user->id,
+                    ]);
+                    $created[] = $timetable;
+                }
+                return $created;
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['conflict' => $e->getMessage()])->withInput();
         }
 
-        ActivityLog::log('create_timetable', 'Created new timetable session for ' . $intake->course->title, $timetable);
+        // Notify enrolled students for all created timetables
+        $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
+        foreach ($createdTimetables as $timetable) {
+            foreach ($enrollments as $e) {
+                if ($e->user) {
+                    $e->user->notify(new SystemNotification(
+                        'timetable_update',
+                        'New Class Scheduled',
+                        'A new session has been scheduled for your course "' . $intake->course->title . '" on ' . $timetable->date->format('M d, Y') . ' at ' . $timetable->start_time,
+                        route('student.timetable')
+                    ));
+                }
+            }
+            ActivityLog::log('create_timetable', 'Created new timetable session for ' . $intake->course->title, $timetable);
+        }
 
         return redirect()->back()->with('success', 'Timetable class scheduled successfully!');
     }
