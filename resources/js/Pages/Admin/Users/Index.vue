@@ -143,11 +143,11 @@
             <!-- Users Category Registry Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <!-- Tab Headers -->
-                <div class="border-b border-gray-100 px-6 py-4 bg-gray-50/50 flex flex-wrap gap-2 items-center justify-between">
-                    <div class="flex gap-2">
+                <div class="border-b border-gray-100 px-6 py-4 bg-gray-50/50 flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+                    <div class="flex flex-wrap gap-2">
                         <button @click="selectCategory('staff')" 
                                 class="px-4 py-2 text-xs font-semibold rounded-xl transition flex items-center gap-2 uppercase tracking-wide"
-                                :class="activeCategory === 'staff' ? 'bg-[#0a1f44] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'">
+                                :class="activeCategory === 'staff' ? 'bg-[#0a1f44] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-55'">
                             <span>Staff Members</span>
                             <span class="px-2 py-0.5 text-[10px] rounded-full font-bold"
                                   :class="activeCategory === 'staff' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'">
@@ -172,9 +172,31 @@
                                 {{ counts.student }}
                             </span>
                         </button>
+                        <button @click="selectCategory('all')" 
+                                class="px-4 py-2 text-xs font-semibold rounded-xl transition flex items-center gap-2 uppercase tracking-wide"
+                                :class="activeCategory === 'all' ? 'bg-[#0a1f44] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-55'">
+                            <span>All Users</span>
+                            <span class="px-2 py-0.5 text-[10px] rounded-full font-bold"
+                                  :class="activeCategory === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'">
+                                {{ counts.all }}
+                            </span>
+                        </button>
                     </div>
-                    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider italic">
-                        * Displaying Category Registry
+                    
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide mr-1">Export:</span>
+                        <button @click="exportUsers('excel')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Excel
+                        </button>
+                        <button @click="exportUsers('csv')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            CSV
+                        </button>
+                        <button @click="exportUsers('pdf')" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            PDF
+                        </button>
                     </div>
                 </div>
 
@@ -344,6 +366,19 @@ const resetFilters = () => {
         category: 'staff',
     };
     applyFilters();
+};
+
+const exportUsers = (format) => {
+    const params = new URLSearchParams();
+    params.append('format', format);
+    params.append('category', filtersForm.value.category);
+    if (filtersForm.value.search) params.append('search', filtersForm.value.search);
+    if (filtersForm.value.unit_id) params.append('unit_id', filtersForm.value.unit_id);
+    if (filtersForm.value.section_id) params.append('section_id', filtersForm.value.section_id);
+    if (filtersForm.value.role) params.append('role', filtersForm.value.role);
+    if (filtersForm.value.status) params.append('status', filtersForm.value.status);
+
+    window.location.href = route('admin.users.export') + '?' + params.toString();
 };
 
 const toggleUserStatus = (user) => {

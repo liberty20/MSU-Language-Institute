@@ -352,7 +352,11 @@ class InstructorPortalController extends Controller
 
         $user = Auth::user();
         $timetable = CourseTimetable::findOrFail($id);
-        $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($timetable->course_intake_id);
+        $intake = CourseIntake::findOrFail($timetable->course_intake_id);
+
+        if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+            abort(403, 'Unauthorized.');
+        }
 
         $conflictError = $this->hasConflict(
             $timetable->course_intake_id,
@@ -391,7 +395,11 @@ class InstructorPortalController extends Controller
     {
         $user = Auth::user();
         $timetable = CourseTimetable::findOrFail($id);
-        $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($timetable->course_intake_id);
+        $intake = CourseIntake::findOrFail($timetable->course_intake_id);
+
+        if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+            abort(403, 'Unauthorized.');
+        }
 
         ActivityLog::log('delete_timetable', 'Deleted timetable session for ' . $intake->course->title, $timetable);
         

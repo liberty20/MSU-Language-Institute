@@ -22,7 +22,7 @@ class FinanceController extends Controller
     private function checkAccess()
     {
         $user = Auth::user();
-        if (!$user->hasRole('executive_director') && !$user->hasRole('deputy_director')) {
+        if (!$user->hasRole('executive_director') && !$user->hasRole('deputy_director') && !$user->hasRole('ict_administrator')) {
             abort(403, 'Unauthorized.');
         }
     }

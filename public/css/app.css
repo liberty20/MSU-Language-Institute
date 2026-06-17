@@ -3968,6 +3968,10 @@ input:where([type='file']):focus {
   --tw-bg-opacity: 1;
   background-color: rgb(180 83 9 / var(--tw-bg-opacity, 1));
 }
+.hover\:bg-blue-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(29 78 216 / var(--tw-bg-opacity, 1));
+}
 .hover\:bg-brand-blue-light:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(28 53 93 / var(--tw-bg-opacity, 1));
@@ -4039,6 +4043,10 @@ input:where([type='file']):focus {
 .hover\:bg-rose-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(255 228 230 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-rose-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(190 18 60 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-slate-100:hover {
   --tw-bg-opacity: 1;

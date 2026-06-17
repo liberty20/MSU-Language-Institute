@@ -160,8 +160,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableIndex'])->name('instructor.timetable.index');
         Route::post('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableStore'])->name('instructor.timetable.store');
         Route::post('instructor/timetable/copy', [\App\Http\Controllers\InstructorPortalController::class, 'timetableCopy'])->name('instructor.timetable.copy');
-        Route::put('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableUpdate'])->name('instructor.timetable.update');
-        Route::delete('instructor/timetable/{timetable}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableDestroy'])->name('instructor.timetable.destroy');
+        Route::put('instructor/timetable/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableUpdate'])->name('instructor.timetable.update');
+        Route::delete('instructor/timetable/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableDestroy'])->name('instructor.timetable.destroy');
         
         Route::get('instructor/ca', [\App\Http\Controllers\InstructorPortalController::class, 'caIndex'])->name('instructor.ca.index');
         Route::post('instructor/ca/store', [\App\Http\Controllers\InstructorPortalController::class, 'caStore'])->name('instructor.ca.store');
@@ -212,6 +212,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('audit-trail', [DashboardController::class, 'auditTrail'])->name('audit-trail');
+        Route::get('users/export', [UserController::class, 'export'])->name('users.export');
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::resource('users', UserController::class);
         

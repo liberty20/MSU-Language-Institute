@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
                 UnitsSeeder::class,
                 MsunliHierarchySeeder::class,
                 // DummyDataSeeder::class,
-                CourseDummySeeder::class,
+                // CourseDummySeeder::class,
                 SystemSettingsSeeder::class,
             ]);
         } finally {

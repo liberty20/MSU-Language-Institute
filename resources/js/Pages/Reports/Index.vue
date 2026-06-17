@@ -607,6 +607,67 @@
                     </div>
                 </div>
 
+                <!-- Two Core Analysis Charts - Pie & Line for Student Enrollments -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- A. Student Enrollments Status Pie Chart -->
+                    <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[420px] group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-base font-black text-slate-850 tracking-tight">Enrollment Status Distribution</h3>
+                                <p class="text-[10px] text-slate-550 font-semibold mt-0.5">Real-time status breakdown of course enrollments</p>
+                            </div>
+                            <span class="p-2 bg-blue-550/10 rounded-xl text-blue-600 border border-blue-100">
+                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+                            </span>
+                        </div>
+ 
+                        <!-- Chart Container -->
+                        <div class="flex-grow flex items-center justify-center relative min-h-[220px]">
+                            <div id="enrollment-pie-chart" class="w-full"></div>
+                            <div v-if="!chartsLoaded" class="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-xs rounded-xl">
+                                <span class="text-xs font-black text-blue-600 flex items-center gap-2">
+                                    <svg class="animate-spin h-5 w-5 text-blue-650" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Orchestrating Matrix...
+                                </span>
+                            </div>
+                        </div>
+ 
+                        <div class="text-[10px] text-slate-500 font-bold text-center border-t border-slate-100 pt-4 flex justify-between items-center px-2">
+                            <span>Total Students Enrolled:</span>
+                            <span class="font-black text-blue-650 px-2.5 py-0.5 bg-blue-50 border border-blue-100 rounded-full">{{ props.studentEnrollmentStats.total }} registered</span>
+                        </div>
+                    </div>
+ 
+                    <!-- C. Line Chart - Enrollment Trend & Velocity -->
+                    <div class="neo-glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[420px] group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-base font-black text-slate-850 tracking-tight">Enrollment Influx Trend</h3>
+                                <p class="text-[10px] text-slate-550 font-semibold mt-0.5">Monthly student enrollment trajectory</p>
+                            </div>
+                            <span class="p-2 bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </span>
+                        </div>
+ 
+                        <!-- Chart Container -->
+                        <div class="flex-grow flex items-center justify-center relative min-h-[220px]">
+                            <div id="enrollment-line-chart" class="w-full"></div>
+                            <div v-if="!chartsLoaded" class="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-xs rounded-xl">
+                                <span class="text-xs font-black text-indigo-600 flex items-center gap-2">
+                                    <svg class="animate-spin h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Projecting trend timeline...
+                                </span>
+                            </div>
+                        </div>
+ 
+                        <div class="border-t border-slate-100 pt-4 text-[10px] text-slate-500 font-bold text-center flex items-center justify-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-indigo-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Calculated monthly totals for the past six active enrollment periods.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Short Course Enrollment Filters Card -->
                 <div class="neo-glass-card rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-200/80 transition-all duration-500 relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-[#0a1f44] opacity-85"></div>
@@ -1031,7 +1092,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
 
 const props = defineProps({
     byCategory: Object,
@@ -1046,7 +1107,8 @@ const props = defineProps({
     currentFilters: Object,
     isManagement: Boolean,
     studentEnrollmentStats: Object,
-    enrolledStudents: Object
+    enrolledStudents: Object,
+    enrollmentMonthly: Array
 });
 
 const getCategorizedStatus = (req) => {
@@ -1296,6 +1358,8 @@ const totalRequestsCount = computed(() => {
 const chartsLoaded = ref(false);
 let pieChartInstance = null;
 let lineChartInstance = null;
+let enrollmentPieChartInstance = null;
+let enrollmentLineChartInstance = null;
 
 // Dynamically fetch and install ApexCharts script tag from JSDelivr CDN
 const loadApexChartsScript = () => {
@@ -1521,6 +1585,186 @@ const renderCharts = () => {
         }
     }
 
+    // E. Enrollment Pie Chart
+    const enrollPieOptions = {
+        chart: {
+            type: 'donut',
+            height: 250,
+            fontFamily: 'Outfit, Inter, sans-serif',
+            background: 'transparent',
+            events: {
+                dataPointSelection: (event, chartContext, config) => {
+                    const idx = config.dataPointIndex;
+                    if (idx !== undefined && idx !== null && idx >= 0) {
+                        const statusMap = ['active', 'pending', 'completed', 'dropped'];
+                        const clickedStatus = statusMap[idx];
+                        if (filters.student_enrollment_status === clickedStatus) {
+                            filters.student_enrollment_status = '';
+                        } else {
+                            filters.student_enrollment_status = clickedStatus;
+                        }
+                        applyFilters();
+                    }
+                }
+            },
+            dropShadow: {
+                enabled: true,
+                top: 4,
+                left: 0,
+                blur: 8,
+                color: '#000',
+                opacity: 0.03
+            }
+        },
+        theme: { mode: 'light' },
+        stroke: { width: 2, colors: ['#ffffff'] },
+        colors: ['#10b981', '#3b82f6', '#6366f1', '#f43f5e'],
+        labels: ['Active', 'Pending Review', 'Completed', 'Dropped'],
+        series: [
+            props.studentEnrollmentStats?.active || 0,
+            props.studentEnrollmentStats?.pending || 0,
+            props.studentEnrollmentStats?.completed || 0,
+            props.studentEnrollmentStats?.dropped || 0
+        ],
+        legend: {
+            position: 'bottom',
+            fontSize: '11px',
+            fontFamily: 'Outfit, Inter, sans-serif',
+            fontWeight: 700,
+            labels: { colors: '#000000' },
+            markers: { radius: 12 }
+        },
+        dataLabels: {
+            enabled: true,
+            style: {
+                fontSize: '10px',
+                fontFamily: 'Outfit, Inter, sans-serif',
+                fontWeight: 'bold'
+            },
+            formatter: (val) => `${Math.round(val)}%`
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '72%',
+                    labels: {
+                        show: true,
+                        name: {
+                            show: true,
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            color: '#000000',
+                            offsetY: -4
+                        },
+                        value: {
+                            show: true,
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            color: '#000000',
+                            offsetY: 4,
+                            formatter: (val) => val
+                        },
+                        total: {
+                            show: true,
+                            label: 'Total Students',
+                            color: '#000000',
+                            formatter: () => props.studentEnrollmentStats?.total || 0
+                        }
+                    }
+                }
+            }
+        },
+        tooltip: {
+            theme: 'light',
+            y: { formatter: (val) => `${val} students` }
+        }
+    };
+
+    if (enrollmentPieChartInstance) {
+        enrollmentPieChartInstance.updateOptions(enrollPieOptions);
+    } else {
+        const enrollPieEl = document.querySelector('#enrollment-pie-chart');
+        if (enrollPieEl) {
+            enrollmentPieChartInstance = new window.ApexCharts(enrollPieEl, enrollPieOptions);
+            enrollmentPieChartInstance.render();
+        }
+    }
+
+    // F. Enrollment Line Chart
+    if (props.enrollmentMonthly) {
+        const enrollMonths = props.enrollmentMonthly.map(m => m.month);
+        const enrollCounts = props.enrollmentMonthly.map(m => m.count);
+
+        const enrollLineOptions = {
+            chart: {
+                type: 'area',
+                height: 250,
+                toolbar: { show: false },
+                fontFamily: 'Outfit, Inter, sans-serif',
+                background: 'transparent',
+                dropShadow: {
+                    enabled: true,
+                    top: 4,
+                    left: 0,
+                    blur: 8,
+                    color: '#000',
+                    opacity: 0.03
+                }
+            },
+            theme: { mode: 'light' },
+            colors: ['#6366f1'],
+            stroke: { width: 3, curve: 'smooth' },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.35,
+                    opacityTo: 0.02,
+                    stops: [0, 90, 100]
+                }
+            },
+            series: [
+                { name: 'Enrollments Influx', data: enrollCounts }
+            ],
+            xaxis: {
+                categories: enrollMonths,
+                labels: {
+                    style: {
+                        colors: '#000000',
+                        fontSize: '9px',
+                        fontWeight: 700
+                    }
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: {
+                title: {
+                    text: 'Enrollment Count',
+                    style: {
+                        color: '#000000',
+                        fontSize: '10px',
+                        fontWeight: 750
+                    }
+                },
+                labels: { style: { colors: '#000000', fontSize: '9px', fontWeight: 700 } }
+            },
+            legend: { show: false },
+            grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+            tooltip: { theme: 'light' }
+        };
+
+        if (enrollmentLineChartInstance) {
+            enrollmentLineChartInstance.updateOptions(enrollLineOptions);
+        } else {
+            const enrollLineEl = document.querySelector('#enrollment-line-chart');
+            if (enrollLineEl) {
+                enrollmentLineChartInstance = new window.ApexCharts(enrollLineEl, enrollLineOptions);
+                enrollmentLineChartInstance.render();
+            }
+        }
+    }
+
     chartsLoaded.value = true;
 };
 
@@ -1537,7 +1781,7 @@ onMounted(() => {
 });
 
 // Watch for props updates and refresh charts dynamically
-watch(() => [props.byStatus, props.categoryTurnaround, props.monthly], () => {
+watch(() => [props.byStatus, props.categoryTurnaround, props.monthly, props.studentEnrollmentStats, props.enrollmentMonthly], () => {
     if (window.ApexCharts) {
         renderCharts();
     }
@@ -1547,6 +1791,15 @@ watch(() => [props.byStatus, props.categoryTurnaround, props.monthly], () => {
 watch(() => props.totals, () => {
     triggerAnimations();
 }, { deep: true });
+
+// Watch for activeScope switching to trigger chart rendering post-DOM update
+watch(activeScope, () => {
+    nextTick(() => {
+        if (window.ApexCharts) {
+            renderCharts();
+        }
+    });
+});
 
 // Helpers
 const formatDate = (dateStr) => {

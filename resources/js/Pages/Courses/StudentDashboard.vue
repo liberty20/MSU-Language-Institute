@@ -6,15 +6,23 @@
 
         <div class="space-y-8">
             <!-- Header Banner -->
-            <div class="bg-gradient-to-r from-[#0a1f44] to-[#0c2859] p-6 rounded-2xl border border-gray-150 shadow-md flex flex-col md:flex-row md:justify-between md:items-center gap-4 text-white">
-                <div class="space-y-1">
-                    <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-[#f5c242] text-xs font-bold tracking-widest uppercase mb-1">
-                        Student Learning Portal
-                    </span>
-                    <h3 class="text-xl font-bold">Welcome back, {{ $page.props.auth.user.name }}!</h3>
-                    <p class="text-sm text-gray-300">View your active short course registrations, class schedules, assignments progress, and latest continuous assessment feedback.</p>
+            <div class="bg-gradient-to-r from-[#0a1f44] to-[#0c2859] p-6 rounded-2xl border border-gray-150 shadow-md flex flex-col md:flex-row md:justify-between md:items-center gap-6 text-white">
+                <div class="flex items-center gap-4 flex-grow min-w-0">
+                    <div class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center shadow flex-shrink-0 overflow-hidden">
+                        <img v-if="$page.props.auth.user.avatar" :src="'/storage/' + $page.props.auth.user.avatar" class="w-full h-full object-cover" alt="User Profile Picture" />
+                        <svg v-else class="w-10 h-10 text-brand-gold" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    </div>
+                    <div class="space-y-1 min-w-0">
+                        <span class="inline-block py-0.5 px-3 rounded-full bg-white/10 text-brand-gold text-xs font-bold tracking-widest uppercase mb-1">
+                            Student Learning Portal
+                        </span>
+                        <h3 class="text-xl font-bold truncate">{{ greeting }}, {{ $page.props.auth.user.name }}</h3>
+                        <p class="text-sm text-gray-300">View your active short course registrations, class schedules, assignments progress, and latest continuous assessment feedback.</p>
+                    </div>
                 </div>
-                <a href="/courses-catalog" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow text-sm self-start md:self-center">
+                <a href="/courses-catalog" class="bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow text-sm self-start md:self-center flex-shrink-0">
                     Browse Course Catalog &rarr;
                 </a>
             </div>
@@ -214,10 +222,34 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Inertia } from '@inertiajs/inertia';
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 defineProps({
     enrollments: Array,
+});
+
+const currentHour = ref(new Date().getHours());
+let timer = null;
+
+onMounted(() => {
+    timer = setInterval(() => {
+        currentHour.value = new Date().getHours();
+    }, 60000);
+});
+
+onUnmounted(() => {
+    if (timer) clearInterval(timer);
+});
+
+const greeting = computed(() => {
+    const hr = currentHour.value;
+    if (hr < 12) {
+        return 'Good Morning';
+    } else if (hr < 17) {
+        return 'Good Afternoon';
+    } else {
+        return 'Good Evening';
+    }
 });
 
 const certModalOpen = ref(false);

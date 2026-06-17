@@ -60,7 +60,7 @@ class AssignmentController extends Controller
                 'status' => $request->status,
                 'client' => $request->client,
             ],
-            'is_staff_outside_aos' => $isStaffOutsideAos,
+            'is_staff_outside_aos' => $isStaffOutsideAos || $user->hasAnyRole(['language_expert', 'part_time_staff']),
         ]);
     }
 

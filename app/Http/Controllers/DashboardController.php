@@ -27,19 +27,30 @@ class DashboardController extends Controller
         $stats = [];
 
         $user->loadMissing(['department', 'msunliRole']);
+        
+        $isAos = false;
+        if (!$isClient) {
+            if (($user->department && $user->department->code === 'AOS') || $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+                $isAos = true;
+            }
+        }
+        
         $isStaffOutsideAos = false;
-        if (!$isClient && $user->department && $user->department->code !== 'AOS') {
+        if (!$isClient && !$isAos) {
             $isStaffOutsideAos = true;
         }
 
         $stats['is_staff_outside_aos'] = $isStaffOutsideAos;
-        
-        $isAos = false;
-        if (!$isClient && $user->department && $user->department->code === 'AOS') {
-            $isAos = true;
-        }
         $stats['is_aos'] = $isAos;
         $stats['job_title'] = $user->msunliRole ? $user->msunliRole->name : ucwords(str_replace('_', ' ', $user->role_name));
+
+        if ($isAos) {
+            $stats['department_code'] = $user->department ? $user->department->code : 'AOS';
+            $stats['department_name'] = $user->department ? $user->department->name : 'Administration and Operations Support';
+        } elseif (!$isClient && $user->department) {
+            $stats['department_code'] = $user->department->code;
+            $stats['department_name'] = $user->department->name;
+        }
         
         if ($isClient) {
             // Client dashboard:
@@ -92,9 +103,7 @@ class DashboardController extends Controller
                 $stats['assigned_tasks']  = \App\Models\Assignment::whereNotIn('status', ['completed'])->count();
 
                 if ($isStaffOutsideAos) {
-                    $stats['total_assigned_tasks'] = Task::whereHas('assignment', function ($q) use ($user) {
-                        $q->where('assigned_to', $user->id);
-                    })->count();
+                    $stats['total_assigned_tasks'] = \App\Models\Assignment::where('assigned_to', $user->id)->count();
                     
                     $stats['pending_requests'] = ServiceRequest::whereHas('assignments', function ($q) use ($user) {
                         $q->where('assigned_to', $user->id);

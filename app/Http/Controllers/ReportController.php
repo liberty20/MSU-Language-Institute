@@ -293,6 +293,31 @@ class ReportController extends Controller
             'dropped' => (clone $seBase)->where('enrollment_status', 'dropped')->count(),
         ];
 
+        // --- Student Enrollment Trend Analysis over 6 months ---
+        $enrollmentMonthly = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $yearMonth = $date->format('Y-m');
+            $monthName = $date->format('M Y');
+            
+            $enrollQ = \App\Models\CourseEnrollment::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
+            if ($request->filled('student_course_id')) {
+                $enrollQ->whereHas('intake.course', function($q) use ($request) {
+                    $q->where('id', $request->student_course_id);
+                });
+            }
+            if ($request->filled('student_unit_id')) {
+                $enrollQ->whereHas('intake.course.department', function($q) use ($request) {
+                    $q->where('id', $request->student_unit_id);
+                });
+            }
+
+            $enrollmentMonthly[] = [
+                'month' => $monthName,
+                'count' => $enrollQ->count(),
+            ];
+        }
+
         $seQuery = \App\Models\CourseEnrollment::with(['user', 'intake.course.department']);
         if ($request->filled('student_course_id')) {
             $seQuery->whereHas('intake.course', function($q) use ($request) {
@@ -348,6 +373,7 @@ class ReportController extends Controller
             ],
             'studentEnrollmentStats' => $studentEnrollmentStats,
             'enrolledStudents' => $enrolledStudents,
+            'enrollmentMonthly' => $enrollmentMonthly,
             'staffProductivity' => $staffProductivity,
             'reports' => $reports,
             'filterOptions' => $filterOptions,
