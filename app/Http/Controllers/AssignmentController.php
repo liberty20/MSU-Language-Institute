@@ -15,7 +15,7 @@ class AssignmentController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (Auth::user() && Auth::user()->hasRole('student')) {
+            if (Auth::user() && Auth::user()->primary_category === 'Student') {
                 abort(403, 'Unauthorized. Students cannot access client modules.');
             }
             return $next($request);
@@ -28,7 +28,7 @@ class AssignmentController extends Controller
         $user->loadMissing('department');
         
         $isStaffOutsideAos = false;
-        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+        if ($user->department && $user->department->code !== 'AOS' && $user->primary_category === 'Staff') {
             $isStaffOutsideAos = true;
         }
 
@@ -98,7 +98,7 @@ class AssignmentController extends Controller
         $user->loadMissing('department');
         
         $isStaffOutsideAos = false;
-        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+        if ($user->department && $user->department->code !== 'AOS' && $user->primary_category === 'Staff') {
             $isStaffOutsideAos = true;
         }
 
@@ -116,7 +116,7 @@ class AssignmentController extends Controller
         $user->loadMissing('department');
         
         $isStaffOutsideAos = false;
-        if ($user->department && $user->department->code !== 'AOS' && !$user->hasRole('client') && !$user->hasRole('student')) {
+        if ($user->department && $user->department->code !== 'AOS' && $user->primary_category === 'Staff') {
             $isStaffOutsideAos = true;
         }
 

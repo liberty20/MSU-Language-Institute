@@ -24,9 +24,10 @@ class InstructorMiddleware
 
         // Allow access if the user has specific spatie roles OR is assigned to at least one intake as instructor OR belongs to a non-AOS unit
         if (
-            $user->hasAnyRole(['language_expert', 'part_time_staff']) || 
-            $user->instructedIntakes()->exists() ||
-            ($user->department && $user->department->code !== 'AOS')
+            $user->primary_category === 'Staff' &&
+            ($user->hasAnyRole(['language_expert', 'part_time_staff']) || 
+             $user->instructedIntakes()->exists() ||
+             ($user->department && $user->department->code !== 'AOS'))
         ) {
             return $next($request);
         }

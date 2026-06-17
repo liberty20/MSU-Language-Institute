@@ -47,20 +47,9 @@ class UserController extends Controller
         }
 
         // Calculate counts dynamically based on active search/scoping/status filters
-        $staffCount = (clone $countQuery)->where(function ($q) {
-            $q->whereDoesntHave('roles')
-              ->orWhereHas('roles', function ($roleQuery) {
-                  $roleQuery->whereNotIn('name', ['client', 'student']);
-              });
-        })->count();
-
-        $clientCount = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
-            $roleQuery->where('name', 'client');
-        })->count();
-
-        $studentCount = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
-            $roleQuery->where('name', 'student');
-        })->count();
+        $staffCount = (clone $countQuery)->where('primary_category', 'Staff')->count();
+        $clientCount = (clone $countQuery)->where('primary_category', 'Client')->count();
+        $studentCount = (clone $countQuery)->where('primary_category', 'Student')->count();
 
         $counts = [
             'staff'   => $staffCount,
@@ -73,23 +62,14 @@ class UserController extends Controller
         $category = $request->input('category', 'staff');
 
         if ($category === 'client') {
-            $query = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
-                $roleQuery->where('name', 'client');
-            });
+            $query = (clone $countQuery)->where('primary_category', 'Client');
         } elseif ($category === 'student') {
-            $query = (clone $countQuery)->whereHas('roles', function ($roleQuery) {
-                $roleQuery->where('name', 'student');
-            });
+            $query = (clone $countQuery)->where('primary_category', 'Student');
         } elseif ($category === 'all') {
             $query = (clone $countQuery);
         } else {
             $category = 'staff';
-            $query = (clone $countQuery)->where(function ($q) {
-                $q->whereDoesntHave('roles')
-                  ->orWhereHas('roles', function ($roleQuery) {
-                      $roleQuery->whereNotIn('name', ['client', 'student']);
-                  });
-            });
+            $query = (clone $countQuery)->where('primary_category', 'Staff');
 
             // Only apply specific role filter to staff category
             if ($request->filled('role')) {
@@ -147,20 +127,11 @@ class UserController extends Controller
         }
 
         if ($category === 'client') {
-            $query->whereHas('roles', function ($roleQuery) {
-                $roleQuery->where('name', 'client');
-            });
+            $query->where('primary_category', 'Client');
         } elseif ($category === 'student') {
-            $query->whereHas('roles', function ($roleQuery) {
-                $roleQuery->where('name', 'student');
-            });
+            $query->where('primary_category', 'Student');
         } elseif ($category === 'staff') {
-            $query->where(function ($q) {
-                $q->whereDoesntHave('roles')
-                  ->orWhereHas('roles', function ($roleQuery) {
-                      $roleQuery->whereNotIn('name', ['client', 'student']);
-                  });
-            });
+            $query->where('primary_category', 'Staff');
 
             if ($request->filled('role')) {
                 $query->whereHas('roles', function($q) use ($request) {
@@ -270,24 +241,29 @@ class UserController extends Controller
             }
         }
 
-        $user = User::create([
-            'name'            => $validated['name'],
-            'email'           => $validated['email'],
-            'password'        => Hash::make($validated['password']),
-            'phone'           => $validated['phone'] ?? null,
-            'department_id'   => $validated['unit_id'],
-            'section_id'      => $validated['section_id'],
-            'msunli_role_id'  => $validated['msunli_role_id'],
-            'is_active'       => $request->has('is_active') ? $request->boolean('is_active') : true,
-        ]);
+        User::$ignoreCategoryIntegrity = true;
+        try {
+            $user = User::create([
+                'name'            => $validated['name'],
+                'email'           => $validated['email'],
+                'password'        => Hash::make($validated['password']),
+                'phone'           => $validated['phone'] ?? null,
+                'department_id'   => $validated['unit_id'],
+                'section_id'      => $validated['section_id'],
+                'msunli_role_id'  => $validated['msunli_role_id'],
+                'is_active'       => $request->has('is_active') ? $request->boolean('is_active') : true,
+            ]);
 
-        // Sync Spatie role automatically mapped according to role assignments
-        $rolesToSync = [$msunliRole->spatieRole->name];
-        $user->loadMissing('department');
-        if ($user->department && $user->department->code !== 'AOS') {
-            $rolesToSync[] = 'language_expert';
+            // Sync Spatie role automatically mapped according to role assignments
+            $rolesToSync = [$msunliRole->spatieRole->name];
+            $user->loadMissing('department');
+            if ($user->department && $user->department->code !== 'AOS') {
+                $rolesToSync[] = 'language_expert';
+            }
+            $user->syncRoles($rolesToSync);
+        } finally {
+            User::$ignoreCategoryIntegrity = false;
         }
-        $user->syncRoles($rolesToSync);
 
         // Record Audit Trail for Executive-level user creation
         if (in_array($msunliRole->name, ['Executive Director', 'Deputy Director'])) {
@@ -415,13 +391,18 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
         }
 
-        $user->save();
-        $rolesToSync = [$msunliRole->spatieRole->name];
-        $user->loadMissing('department');
-        if ($user->department && $user->department->code !== 'AOS') {
-            $rolesToSync[] = 'language_expert';
+        User::$ignoreCategoryIntegrity = true;
+        try {
+            $user->save();
+            $rolesToSync = [$msunliRole->spatieRole->name];
+            $user->loadMissing('department');
+            if ($user->department && $user->department->code !== 'AOS') {
+                $rolesToSync[] = 'language_expert';
+            }
+            $user->syncRoles($rolesToSync);
+        } finally {
+            User::$ignoreCategoryIntegrity = false;
         }
-        $user->syncRoles($rolesToSync);
 
         // Record Audit Trail for Executive-level user modification
         if (in_array($originalRoleName, ['Executive Director', 'Deputy Director']) || in_array($msunliRole->name, ['Executive Director', 'Deputy Director'])) {

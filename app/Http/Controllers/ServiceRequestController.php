@@ -14,7 +14,7 @@ class ServiceRequestController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (Auth::user() && Auth::user()->hasRole('student')) {
+            if (Auth::user() && Auth::user()->primary_category === 'Student') {
                 abort(403, 'Unauthorized. Students cannot access client modules.');
             }
             return $next($request);
@@ -27,7 +27,7 @@ class ServiceRequestController extends Controller
         $query = ServiceRequest::with(['client', 'submittedBy']);
 
         // Scope queries so clients only see their own service requests
-        if ($user->hasRole('client')) {
+        if ($user->primary_category === 'Client') {
             $query->where('submitted_by', $user->id);
         }
 

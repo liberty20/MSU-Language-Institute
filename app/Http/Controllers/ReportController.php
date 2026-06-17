@@ -188,9 +188,7 @@ class ReportController extends Controller
         }
 
         // --- Staff Productivity Metrics ---
-        $staff = User::whereHas('roles', function($q) {
-            $q->whereNotIn('name', ['client']);
-        })->get();
+        $staff = User::where('primary_category', 'Staff')->get();
         
         $staffProductivity = [];
         foreach ($staff as $s) {
@@ -267,7 +265,9 @@ class ReportController extends Controller
         $reports = $reportsQuery->orderBy('created_at', 'desc')->paginate(10);
 
         // Fetch student enrollment stats & list
-        $seBase = \App\Models\CourseEnrollment::query();
+        $seBase = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+            $q->where('primary_category', 'Student');
+        });
         if ($request->filled('student_course_id')) {
             $seBase->whereHas('intake.course', function($q) use ($request) {
                 $q->where('id', $request->student_course_id);
@@ -300,7 +300,9 @@ class ReportController extends Controller
             $yearMonth = $date->format('Y-m');
             $monthName = $date->format('M Y');
             
-            $enrollQ = \App\Models\CourseEnrollment::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
+            $enrollQ = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+                $q->where('primary_category', 'Student');
+            })->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
             if ($request->filled('student_course_id')) {
                 $enrollQ->whereHas('intake.course', function($q) use ($request) {
                     $q->where('id', $request->student_course_id);
@@ -318,7 +320,9 @@ class ReportController extends Controller
             ];
         }
 
-        $seQuery = \App\Models\CourseEnrollment::with(['user', 'intake.course.department']);
+        $seQuery = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+            $q->where('primary_category', 'Student');
+        })->with(['user', 'intake.course.department']);
         if ($request->filled('student_course_id')) {
             $seQuery->whereHas('intake.course', function($q) use ($request) {
                 $q->where('id', $request->student_course_id);
@@ -344,9 +348,7 @@ class ReportController extends Controller
         $filterOptions = [
             'departments' => Department::select('id', 'name', 'code')->get(),
             'courses' => \App\Models\Course::select('id', 'title', 'code')->get(),
-            'staff' => User::whereHas('roles', function($q) {
-                $q->whereNotIn('name', ['client']);
-            })->select('id', 'name', 'email')->get(),
+            'staff' => User::where('primary_category', 'Staff')->select('id', 'name', 'email')->get(),
             'categories' => array_map(fn($c) => ['value' => $c, 'label' => ucwords(str_replace('_', ' ', $c))], $categoriesList),
         ];
 
@@ -870,9 +872,7 @@ class ReportController extends Controller
 
         // 4. Staff Workload Report calculates user allocations and capacity scores
         if ($reportType === 'staff_workload' || $reportType === 'administrative') {
-            $staffUsers = User::whereHas('roles', function($q) {
-                $q->whereNotIn('name', ['client']);
-            })->get();
+            $staffUsers = User::where('primary_category', 'Staff')->get();
             
             foreach ($staffUsers as $s) {
                 if (!$isManagement && $s->id !== $user->id) {
@@ -918,7 +918,9 @@ class ReportController extends Controller
 
         // 6. Student Enrollment Report type pipeline
         if ($reportType === 'student_enrollment') {
-            $seQuery = \App\Models\CourseEnrollment::with(['user', 'intake.course.department']);
+            $seQuery = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+                $q->where('primary_category', 'Student');
+            })->with(['user', 'intake.course.department']);
             if (!empty($filters['student_course_id'])) {
                 $seQuery->whereHas('intake.course', function($q) use ($filters) {
                     $q->where('id', $filters['student_course_id']);
@@ -941,7 +943,9 @@ class ReportController extends Controller
             $studentEnrollments = $seQuery->orderBy('created_at', 'desc')->get();
 
             // Calculate stats for metrics
-            $seBase = \App\Models\CourseEnrollment::query();
+            $seBase = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+                $q->where('primary_category', 'Student');
+            });
             if (!empty($filters['student_course_id'])) {
                 $seBase->whereHas('intake.course', function($q) use ($filters) {
                     $q->where('id', $filters['student_course_id']);

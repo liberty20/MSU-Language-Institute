@@ -18,6 +18,17 @@ use Inertia\Inertia;
 
 class StudentPortalController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!$user || $user->primary_category !== 'Student') {
+                abort(403, 'Unauthorized. Only students can access student modules.');
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * View Continuous Assessment (CA) marks, assignments scores, and progress.
      */

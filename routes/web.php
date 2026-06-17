@@ -74,6 +74,7 @@ Route::get('/run-migrations', function () {
     }
 });
 
+
 Route::get('/db-test', function () {
     $hasNotes = \Illuminate\Support\Facades\Schema::hasColumn('service_requests', 'notes');
     $hasPaymentsTable = \Illuminate\Support\Facades\Schema::hasTable('payments');

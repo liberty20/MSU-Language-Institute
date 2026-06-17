@@ -180,7 +180,9 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-grow flex flex-col h-full overflow-hidden">
+        <div class="flex-grow flex flex-col h-full overflow-hidden relative">
+            <!-- Background Image Layer -->
+            <div class="absolute inset-0 pointer-events-none bg-cover bg-center bg-no-repeat" style="background-image: url('/msuli-build.jpg'); opacity: 0.08; z-index: 0;"></div>
             <!-- Header -->
             <header class="bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-10 sticky top-0 flex-shrink-0">
                 <div class="px-4 md:px-6 py-4 flex items-center justify-between">
@@ -316,7 +318,7 @@
             </div>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 relative z-10">
                 <slot />
             </main>
         </div>

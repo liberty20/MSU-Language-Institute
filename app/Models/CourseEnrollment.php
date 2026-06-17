@@ -19,6 +19,18 @@ class CourseEnrollment extends Model
         'amount_paid' => 'decimal:2',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($enrollment) {
+            $user = $enrollment->user;
+            if ($user && $user->primary_category !== 'Student') {
+                throw new \InvalidArgumentException("Enrollment conflict: Only users in the Student category can be enrolled in courses.");
+            }
+        });
+    }
+
     public function intake()
     {
         return $this->belongsTo(CourseIntake::class, 'course_intake_id');

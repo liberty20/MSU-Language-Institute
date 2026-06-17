@@ -1050,9 +1050,9 @@ class CourseController extends Controller
             abort(401, 'Unauthorized.');
         }
 
-        // Enforce that clients cannot access student dashboard
-        if ($user->hasRole('client')) {
-            abort(403, 'Unauthorized. Clients cannot access student modules.');
+        // Enforce that only students can access student dashboard
+        if ($user->primary_category !== 'Student') {
+            abort(403, 'Unauthorized. Only students can access student modules.');
         }
 
         $enrollments = CourseEnrollment::with(['intake.course', 'intake.instructor'])

@@ -17,12 +17,12 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        if ($user->hasRole('student')) {
+        if ($user->primary_category === 'Student') {
             return redirect()->route('student.courses');
         }
         
         $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary']);
-        $isClient = $user->hasRole('client');
+        $isClient = $user->primary_category === 'Client';
 
         $stats = [];
 
@@ -645,7 +645,7 @@ class DashboardController extends Controller
         }
 
         // 2. Assessments / Course Assignment Deadlines (Students & Instructors)
-        if ($user->hasRole('student')) {
+        if ($user->primary_category === 'Student') {
             $intakeIds = \App\Models\CourseEnrollment::where('user_id', $user->id)
                 ->where('payment_status', 'verified')
                 ->pluck('course_intake_id');
