@@ -738,4 +738,14 @@ class DashboardController extends Controller
         Auth::user()->unreadNotifications->markAsRead();
         return response()->json(['status' => 'success']);
     }
+
+    public function notificationsHistory()
+    {
+        $user = Auth::user();
+        $notifications = $user ? $user->notifications()->orderBy('created_at', 'desc')->paginate(15) : collect();
+
+        return \Inertia\Inertia::render('Notifications/History', [
+            'notifications' => $notifications,
+        ]);
+    }
 }

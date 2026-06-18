@@ -17,6 +17,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -142,6 +143,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('notifications', [DashboardController::class, 'getNotifications'])->name('notifications.index');
     Route::post('notifications/{id}/read', [DashboardController::class, 'markNotificationAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [DashboardController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
+    Route::get('notifications-history', [DashboardController::class, 'notificationsHistory'])->name('notifications.history');
+
+    // Centralized Messaging / Chat Routes
+    Route::get('chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('chat/messages/{contactId}', [ChatController::class, 'getMessages'])->name('chat.messages');
+    Route::post('chat/messages', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::post('chat/read/{contactId}', [ChatController::class, 'markAsRead'])->name('chat.read');
+    Route::get('chat/unread-count', [ChatController::class, 'getUnreadCount'])->name('chat.unread-count');
 
     // Student Short Course Portal Routes
     Route::middleware('role:student')->group(function () {

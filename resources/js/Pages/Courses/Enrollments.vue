@@ -12,6 +12,12 @@
                     <p class="text-blue-100 text-sm max-w-2xl font-light">Monitor student enrollments, instructor assignments, pass rate metrics, and manage payment verification and certification across all active short courses.</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <button v-if="['ict_administrator', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" 
+                            @click="openManualEnrollModal" 
+                            class="px-5 py-2.5 bg-[#f5c242] hover:bg-yellow-500 text-[#0a1f44] rounded-xl transition font-extrabold text-sm flex items-center gap-2 shadow-md">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        Manual Enroll Student
+                    </button>
                     <button @click="showFilters = !showFilters" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition font-semibold text-sm flex items-center gap-2 border border-white/20">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z"/></svg>
                         {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
@@ -543,6 +549,64 @@
                 </form>
             </div>
         </div>
+
+        <!-- Manual Enroll Student Modal -->
+        <div v-if="manualEnrollModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="manualEnrollModalOpen = false">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-scaleUp">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b-4 border-[#f5c242]">
+                    <h3 class="text-base font-extrabold tracking-wide uppercase">Manual Enroll Student</h3>
+                    <button @click="manualEnrollModalOpen = false" class="text-gray-300 hover:text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form @submit.prevent="submitManualEnroll" class="p-6 space-y-4">
+                    <!-- Student Selection -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-650 uppercase tracking-wide mb-1.5">Select Student</label>
+                        <select v-model="enrollForm.user_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] text-xs" required>
+                            <option value="">-- Choose Student --</option>
+                            <option v-for="student in studentUsers" :key="student.id" :value="student.id">
+                                {{ student.name }} ({{ student.email }})
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Course Intake Selection -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-650 uppercase tracking-wide mb-1.5">Select Course Intake</label>
+                        <select v-model="enrollForm.course_intake_id" @change="onIntakeChange" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] text-xs" required>
+                            <option value="">-- Choose Intake --</option>
+                            <option v-for="intake in activeIntakes" :key="intake.id" :value="intake.id">
+                                {{ intake.course?.title }} - {{ intake.name }} ({{ intake.course?.course_code }})
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Payment Status -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-650 uppercase tracking-wide mb-1.5">Payment Status</label>
+                            <select v-model="enrollForm.payment_status" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] text-xs" required>
+                                <option value="pending">Pending Verification</option>
+                                <option value="verified">Verified (Active)</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+
+                        <!-- Amount Paid -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-650 uppercase tracking-wide mb-1.5">Amount Paid</label>
+                            <input v-model="enrollForm.amount_paid" type="number" step="0.01" min="0" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] text-xs" required />
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
+                        <button type="button" @click="manualEnrollModalOpen = false" class="px-5 py-2.5 rounded-full border border-gray-300 font-semibold text-gray-750 hover:bg-gray-50 transition text-xs">Cancel</button>
+                        <button type="submit" class="px-5 py-2.5 rounded-full bg-[#0a1f44] hover:bg-[#143264] text-white font-extrabold transition shadow-sm text-xs uppercase tracking-wider">Enroll Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
@@ -556,6 +620,8 @@ const props = defineProps({
     summaryCards: Object,
     filters: Object,
     departments: Array,
+    studentUsers: Array,
+    activeIntakes: Array,
 });
 
 // Expandable course section states
@@ -666,6 +732,39 @@ const formatDate = (dateString) => {
     if (!dateString || dateString === 'N/A') return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// Manual enrollment reactive states and methods
+const manualEnrollModalOpen = ref(false);
+const enrollForm = reactive({
+    user_id: '',
+    course_intake_id: '',
+    payment_status: 'verified',
+    amount_paid: 0,
+});
+
+const openManualEnrollModal = () => {
+    enrollForm.user_id = '';
+    enrollForm.course_intake_id = '';
+    enrollForm.payment_status = 'verified';
+    enrollForm.amount_paid = 0;
+    manualEnrollModalOpen.value = true;
+};
+
+const onIntakeChange = () => {
+    const intake = props.activeIntakes.find(i => i.id === enrollForm.course_intake_id);
+    if (intake && intake.course) {
+        enrollForm.amount_paid = Number(intake.course.price) || 0;
+    }
+};
+
+const submitManualEnroll = () => {
+    Inertia.post(route('course-enrollments.manual'), enrollForm, {
+        onSuccess: () => {
+            manualEnrollModalOpen.value = false;
+            Inertia.reload({ only: ['intakes', 'summaryCards'] });
+        }
+    });
 };
 </script>
 

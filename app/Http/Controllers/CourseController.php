@@ -337,13 +337,121 @@ class CourseController extends Controller
             'completed_courses' => $completedCoursesCount,
         ];
 
+        $students = User::where('primary_category', 'Student')->orderBy('name')->get(['id', 'name', 'email']);
+        $activeIntakes = CourseIntake::with('course')->whereIn('status', ['open', 'ongoing'])->get();
+
         return Inertia::render('Courses/Enrollments', [
             'intakes' => $filteredIntakes,
             'summaryCards' => $summaryCards,
             'filters' => $request->all(),
             'departments' => Department::orderBy('name')->get(['id', 'name', 'code']),
+            'studentUsers' => $students,
+            'activeIntakes' => $activeIntakes,
         ]);
     }
+
+    /**
+     * Manually enroll a student (new or existing) into a course intake.
+     */
+    public function manualEnroll(Request $request)
+    {
+        $authUser = Auth::user();
+        if (!$authUser->hasAnyRole(['ict_administrator', 'admin_assistant'])) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'course_intake_id' => 'required|exists:course_intakes,id',
+            'user_id' => 'nullable|exists:users,id',
+            'name' => 'required_without:user_id|nullable|string|max:255',
+            'email' => 'required_without:user_id|nullable|email|max:255',
+            'phone' => 'nullable|string|max:30',
+            'payment_status' => 'nullable|string|in:pending,verified,failed',
+            'amount_paid' => 'nullable|numeric|min:0',
+        ]);
+
+        $intake = CourseIntake::with('course')->findOrFail($validated['course_intake_id']);
+
+        // Check capacity
+        $currentEnrollmentsCount = CourseEnrollment::where('course_intake_id', $intake->id)->count();
+        if ($currentEnrollmentsCount >= $intake->capacity) {
+            return redirect()->back()->with('error', 'Sorry, this intake has reached its maximum enrollment capacity.');
+        }
+
+        $user = null;
+        if (!empty($validated['user_id'])) {
+            $user = User::find($validated['user_id']);
+        } elseif (!empty($validated['email'])) {
+            $user = User::where('email', $validated['email'])->first();
+        }
+
+        if (!$user) {
+            $tempPassword = 'Password123!';
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($tempPassword),
+                'is_active' => true,
+            ]);
+            $user->assignRole('student');
+        } else {
+            // Check for category conflict: only allow student category or users with no roles
+            $roles = $user->roles->pluck('name')->toArray();
+            if (!empty($roles) && !in_array('student', $roles)) {
+                return redirect()->back()->with('error', 'Only users of the Student primary category can be enrolled in course intakes.');
+            }
+            if (!$user->hasRole('student')) {
+                $user->assignRole('student');
+            }
+        }
+
+        // Ensure user has Student category
+        if ($user->primary_category !== 'Student') {
+            $user->updatePrimaryCategory();
+            if ($user->primary_category !== 'Student') {
+                return redirect()->back()->with('error', 'Only users of the Student primary category can be enrolled in course intakes.');
+            }
+        }
+
+        // Check if already enrolled
+        $exists = CourseEnrollment::where('user_id', $user->id)
+            ->where('course_intake_id', $intake->id)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()->with('error', 'Student is already enrolled in this course intake.');
+        }
+
+        $paymentStatus = $validated['payment_status'] ?? 'verified';
+        $amountPaid = $validated['amount_paid'] ?? $intake->course->price;
+        $enrollmentStatus = ($paymentStatus === 'verified') ? 'active' : 'pending';
+
+        $enrollment = CourseEnrollment::create([
+            'course_intake_id' => $intake->id,
+            'user_id' => $user->id,
+            'payment_status' => $paymentStatus,
+            'amount_paid' => $amountPaid,
+            'enrollment_status' => $enrollmentStatus,
+        ]);
+
+        // Audit Trail Log
+        ActivityLog::log(
+            'manual_enrollment',
+            'Manually enrolled student ' . $user->name . ' into course intake ' . $intake->name . ' (' . $intake->course->title . ').',
+            $enrollment,
+            [
+                'intake_id' => $intake->id,
+                'student_id' => $user->id,
+                'student_name' => $user->name,
+                'enrolled_by' => $authUser->name,
+                'date_time' => now()->toDateTimeString(),
+            ]
+        );
+
+        return redirect()->back()->with('success', 'Student manually enrolled successfully.');
+    }
+
 
     /**
      * Helper to retrieve, compute, and filter course intakes and performance metrics.
@@ -850,83 +958,7 @@ class CourseController extends Controller
         return redirect()->back()->with('success', 'Certificate issued successfully! Code: ' . $certCode);
     }
 
-    /**
-     * Manually enroll a student (new or existing) into a course intake.
-     */
-    public function manualEnroll(Request $request)
-    {
-        $authUser = Auth::user();
-        if (!$authUser->hasAnyRole(['ict_administrator', 'admin_assistant', 'deputy_director', 'executive_director'])) {
-            abort(403, 'Unauthorized.');
-        }
 
-        $validated = $request->validate([
-            'course_intake_id' => 'required|exists:course_intakes,id',
-            'user_id' => 'nullable|exists:users,id',
-            'name' => 'required_without:user_id|nullable|string|max:255',
-            'email' => 'required_without:user_id|nullable|email|max:255',
-            'phone' => 'nullable|string|max:30',
-        ]);
-
-        $intake = CourseIntake::findOrFail($validated['course_intake_id']);
-
-        // Check capacity
-        $currentEnrollmentsCount = CourseEnrollment::where('course_intake_id', $intake->id)->count();
-        if ($currentEnrollmentsCount >= $intake->capacity) {
-            return redirect()->back()->with('error', 'Sorry, this intake has reached its maximum enrollment capacity.');
-        }
-
-        $user = null;
-        if (!empty($validated['user_id'])) {
-            $user = User::find($validated['user_id']);
-        } elseif (!empty($validated['email'])) {
-            $user = User::where('email', $validated['email'])->first();
-        }
-
-        if (!$user) {
-            $tempPassword = 'Password123!';
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'password' => Hash::make($tempPassword),
-                'is_active' => true,
-            ]);
-            $user->assignRole('student');
-        } else {
-            if (!$user->hasRole('student')) {
-                $user->assignRole('student');
-            }
-        }
-
-        $enrollment = CourseEnrollment::updateOrCreate(
-            [
-                'course_intake_id' => $intake->id,
-                'user_id' => $user->id,
-            ],
-            [
-                'payment_status' => 'verified',
-                'amount_paid' => $intake->course->price,
-                'enrollment_status' => 'active',
-            ]
-        );
-
-        // Audit Trail Log
-        ActivityLog::log(
-            'manual_enrollment',
-            'Manually enrolled student ' . $user->name . ' into course intake ' . $intake->name,
-            $enrollment,
-            [
-                'intake_id' => $intake->id,
-                'student_id' => $user->id,
-                'student_name' => $user->name,
-                'enrolled_by' => $authUser->name,
-                'date_time' => now()->toDateTimeString(),
-            ]
-        );
-
-        return redirect()->back()->with('success', 'Student manually enrolled successfully.');
-    }
 
     /**
      * Public page/listing of all published courses for community members.

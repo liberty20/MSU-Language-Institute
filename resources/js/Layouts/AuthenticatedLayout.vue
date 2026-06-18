@@ -76,6 +76,17 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Reports</span>
                 </Link>
 
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'client'].some(r => $page.props.auth.roles.includes(r)) || $page.props.auth.is_instructor" :href="route('chat.index')" :class="navClass('chat.*')" title="Internal Messages" class="flex justify-between items-center w-full relative">
+                    <div class="flex items-center">
+                        <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Internal Messages</span>
+                    </div>
+                    <span v-if="unreadMessagesCount > 0 && !sidebarCollapsed" class="bg-amber-500 text-[#0a1f44] font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm ml-auto">
+                        {{ unreadMessagesCount }}
+                    </span>
+                    <span v-if="unreadMessagesCount > 0 && sidebarCollapsed" class="absolute top-2 right-2 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse border border-[#0a1f44]"></span>
+                </Link>
+
                 <!-- Short Courses (Admin / Staff) -->
                 <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('courses.index')" :class="navClass('courses.*')" title="Short Courses">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -288,7 +299,7 @@
                                     </div>
                                 </div>
                                 <div class="border-t border-gray-100 px-4 py-2 bg-gray-50 text-center flex-shrink-0">
-                                    <Link :href="route('dashboard')" @click="showNotifications = false" class="text-[11px] font-extrabold text-brand-gold-dark hover:text-brand-gold transition uppercase tracking-wider">
+                                    <Link :href="route('notifications.history')" @click="showNotifications = false" class="text-[11px] font-extrabold text-brand-gold-dark hover:text-brand-gold transition uppercase tracking-wider">
                                         View All Notifications &rarr;
                                     </Link>
                                 </div>
@@ -349,6 +360,7 @@ const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true'
 
 const notifications = ref([]);
 const unreadCount = ref(0);
+const unreadMessagesCount = ref(0);
 const showNotifications = ref(false);
 
 const toggleNotificationDropdown = () => {
@@ -363,6 +375,16 @@ const fetchNotifications = () => {
         notifications.value = res.data.notifications;
         unreadCount.value = res.data.unread_count;
     }).catch(err => console.error("Error fetching notifications", err));
+
+    const roles = page.props.value.auth.roles || [];
+    const isInstructor = page.props.value.auth.is_instructor || false;
+    const canAccessChat = ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'client'].some(r => roles.includes(r)) || isInstructor;
+
+    if (canAccessChat) {
+        axios.get(route('chat.unread-count')).then(res => {
+            unreadMessagesCount.value = res.data.unread_messages_count;
+        }).catch(err => console.error("Error fetching unread chat count", err));
+    }
 };
 
 const markRead = (id) => {

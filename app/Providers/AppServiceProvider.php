@@ -242,10 +242,15 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\Task::updated(function ($task) {
-            if ($task->isDirty('status') && $task->status === 'completed') {
+            if ($task->isDirty('status')) {
                 $a = $task->assignment;
                 if ($a && $a->assignedBy) {
-                    $a->assignedBy->notify(new \App\Notifications\SystemNotification('Tasks', 'Task Completed', 'Your assigned task "' . $task->title . '" has been completed.', route('completed-tasks.index')));
+                    $a->assignedBy->notify(new \App\Notifications\SystemNotification(
+                        'Tasks',
+                        'Task Status Updated',
+                        'The status of task "' . $task->title . '" has been changed to ' . $task->status . '.',
+                        route('completed-tasks.index')
+                    ));
                 }
             }
         });
@@ -344,6 +349,30 @@ class AppServiceProvider extends ServiceProvider
                         'System Alerts',
                         'New Service Request',
                         'A new service request "' . $sr->title . '" has been submitted by ' . ($sr->client ? ($sr->client->organization ?? $sr->client->contact_person) : 'Client') . '.',
+                        route('service-requests.show', $sr->id)
+                    ));
+                }
+            }
+        });
+
+        \App\Models\ServiceRequest::updated(function ($sr) {
+            if ($sr->isDirty('status')) {
+                if ($sr->submittedBy) {
+                    $sr->submittedBy->notify(new \App\Notifications\SystemNotification(
+                        'System Alerts',
+                        'Service Request Status Changed',
+                        'The status of your service request "' . $sr->title . '" has been updated to ' . $sr->status . '.',
+                        route('service-requests.show', $sr->id)
+                    ));
+                }
+            }
+
+            if ($sr->isDirty('assigned_to') && $sr->assigned_to) {
+                if ($sr->assignedTo) {
+                    $sr->assignedTo->notify(new \App\Notifications\SystemNotification(
+                        'System Alerts',
+                        'Service Request Assigned',
+                        'You have been assigned to service request "' . $sr->title . '".',
                         route('service-requests.show', $sr->id)
                     ));
                 }
