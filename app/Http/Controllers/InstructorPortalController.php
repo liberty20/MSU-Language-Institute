@@ -166,7 +166,7 @@ class InstructorPortalController extends Controller
         $intake = CourseIntake::findOrFail($intakeId);
         $instructorId = $intake->instructor_id;
 
-        $query = CourseTimetable::where('date', $date)
+        $query = CourseTimetable::whereDate('date', $date)
             ->where(function ($q) use ($startTime, $endTime) {
                 $q->where('start_time', '<', $endTime)
                   ->where('end_time', '>', $startTime);
@@ -355,7 +355,7 @@ class InstructorPortalController extends Controller
         $intake = CourseIntake::findOrFail($timetable->course_intake_id);
 
         if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
-            abort(403, 'Unauthorized.');
+            abort(404, 'Unauthorized.');
         }
 
         $conflictError = $this->hasConflict(
@@ -398,7 +398,7 @@ class InstructorPortalController extends Controller
         $intake = CourseIntake::findOrFail($timetable->course_intake_id);
 
         if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
-            abort(403, 'Unauthorized.');
+            abort(404, 'Unauthorized.');
         }
 
         ActivityLog::log('delete_timetable', 'Deleted timetable session for ' . $intake->course->title, $timetable);
@@ -880,5 +880,134 @@ class InstructorPortalController extends Controller
         return Inertia::render('Courses/InstructorCompletedTasks', [
             'completedAssignments' => $completedAssignments,
         ]);
+    }
+
+    /**
+     * View learning contents for intakes assigned to this instructor.
+     */
+    public function learningContentIndex(Request $request)
+    {
+        $user = Auth::user();
+
+        // Get instructor assigned intakes
+        $intakes = CourseIntake::where('instructor_id', $user->id)
+            ->with(['course'])
+            ->get();
+
+        $intakeIds = $intakes->pluck('id');
+
+        // Fetch learning content
+        $learningContents = \App\Models\LearningContent::whereIn('course_intake_id', $intakeIds)
+            ->with(['intake.course'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Courses/InstructorLearningContent', [
+            'intakes' => $intakes,
+            'learningContents' => $learningContents,
+        ]);
+    }
+
+    /**
+     * Store new learning content.
+     */
+    public function learningContentStore(Request $request)
+    {
+        $user = Auth::user();
+        
+        $request->validate([
+            'course_intake_id' => 'required|exists:course_intakes,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'file' => 'required|file|max:51200', // Max 50MB
+        ]);
+
+        $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($request->course_intake_id);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            $filePath = $file->store('learning_materials', 'public');
+            $fileSize = $file->getSize();
+            $mimeType = $file->getMimeType();
+
+            \App\Models\LearningContent::create([
+                'course_intake_id' => $intake->id,
+                'uploaded_by' => $user->id,
+                'title' => $request->title,
+                'description' => $request->description,
+                'file_name' => $filename,
+                'file_path' => $filePath,
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
+            ]);
+
+            return redirect()->back()->with('success', 'Learning content uploaded successfully.');
+        }
+
+        return redirect()->back()->with('error', 'Failed to upload learning content file.');
+    }
+
+    /**
+     * Update learning content metadata or replace file.
+     */
+    public function learningContentUpdate(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'file' => 'nullable|file|max:51200', // Max 50MB
+        ]);
+
+        $content = \App\Models\LearningContent::findOrFail($id);
+        
+        // Ensure the content belongs to an intake assigned to this instructor
+        CourseIntake::where('instructor_id', $user->id)->findOrFail($content->course_intake_id);
+
+        $updateData = [
+            'title' => $request->title,
+            'description' => $request->description,
+        ];
+
+        if ($request->hasFile('file')) {
+            // Delete old file
+            if (Storage::disk('public')->exists($content->file_path)) {
+                Storage::disk('public')->delete($content->file_path);
+            }
+
+            $file = $request->file('file');
+            $updateData['file_name'] = $file->getClientOriginalName();
+            $updateData['file_path'] = $file->store('learning_materials', 'public');
+            $updateData['file_size'] = $file->getSize();
+            $updateData['mime_type'] = $file->getMimeType();
+        }
+
+        $content->update($updateData);
+
+        return redirect()->back()->with('success', 'Learning content updated successfully.');
+    }
+
+    /**
+     * Delete learning content.
+     */
+    public function learningContentDestroy($id)
+    {
+        $user = Auth::user();
+        
+        $content = \App\Models\LearningContent::findOrFail($id);
+        
+        // Ensure the content belongs to an intake assigned to this instructor
+        CourseIntake::where('instructor_id', $user->id)->findOrFail($content->course_intake_id);
+
+        // Delete file
+        if (Storage::disk('public')->exists($content->file_path)) {
+            Storage::disk('public')->delete($content->file_path);
+        }
+
+        $content->delete();
+
+        return redirect()->back()->with('success', 'Learning content deleted successfully.');
     }
 }

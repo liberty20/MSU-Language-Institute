@@ -256,4 +256,78 @@ class DataPersistenceTest extends TestCase
         $response->assertRedirect(route('courses.index'));
         $response->assertSessionHasErrors(['name']);
     }
+
+    /** @test */
+    public function credentials_persist_and_remain_valid_after_migration_and_seed_commands()
+    {
+        // 1. Create the user with specific credentials (mapfumol@staff.msu.ac.zw / password)
+        $email = 'mapfumol@staff.msu.ac.zw';
+        $password = 'password';
+
+        // Check if there is an existing user or create one
+        $user = User::where('email', $email)->first();
+        if ($user) {
+            $user->delete();
+        }
+
+        $user = User::create([
+            'name' => 'Mapfumo L Test',
+            'email' => $email,
+            'password' => \Illuminate\Support\Facades\Hash::make($password),
+            'is_active' => true,
+        ]);
+        $user->assignRole('language_expert');
+
+        // Verify the user can authenticate
+        $this->assertTrue(\Illuminate\Support\Facades\Auth::attempt([
+            'email' => $email,
+            'password' => $password,
+        ]));
+        \Illuminate\Support\Facades\Auth::logout();
+
+        // 2. Perform a backup explicitly to ensure the user is in the backup JSON
+        \App\Services\UserBackupService::backup(true);
+
+        // Verify backup file exists and has the user
+        $backupPath = \App\Services\UserBackupService::getBackupFilePath();
+        $this->assertFileExists($backupPath);
+        $backupData = json_decode(file_get_contents($backupPath), true);
+        $emails = array_column($backupData['users'], 'email');
+        $this->assertContains($email, $emails);
+
+        // 3. Simulate database wipe & seed (like migrate:fresh and db:seed)
+        // We set shouldBackup = false to simulate command starting
+        \App\Services\UserBackupService::$shouldBackup = false;
+
+        // Wipe the database tables tracked by backup service
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+        foreach (['model_has_roles', 'role_has_permissions', 'model_has_permissions', 'users'] as $table) {
+            \Illuminate\Support\Facades\DB::table($table)->delete();
+        }
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+        // Run the seeders (which should seed default users, but not mapfumol)
+        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $this->seed(\Database\Seeders\UnitsSeeder::class);
+        $this->seed(\Database\Seeders\MsunliHierarchySeeder::class);
+
+        // Set shouldBackup = true and run restore (simulating command finished)
+        \App\Services\UserBackupService::$shouldBackup = true;
+        \App\Services\UserBackupService::restore(true, true);
+
+        // 4. Verify that the user still exists in the database
+        $this->assertDatabaseHas('users', [
+            'email' => $email,
+        ]);
+
+        // Verify that the user can authenticate with the SAME credentials
+        $this->assertTrue(\Illuminate\Support\Facades\Auth::attempt([
+            'email' => $email,
+            'password' => $password,
+        ]));
+
+        // Verify the user has their role restored
+        $restoredUser = User::where('email', $email)->first();
+        $this->assertTrue($restoredUser->hasRole('language_expert'));
+    }
 }

@@ -105,14 +105,17 @@ class MsunliHierarchySeeder extends Seeder
         foreach ($map as $email => $info) {
             $user = \App\Models\User::where('email', $email)->first();
             if ($user) {
-                $section = MsunliSection::where('name', $info['section'])->first();
-                if ($section) {
-                    $msRole = MsunliRole::where('section_id', $section->id)->where('name', $info['role'])->first();
-                    if ($msRole) {
-                        $user->update([
-                            'section_id' => $section->id,
-                            'msunli_role_id' => $msRole->id
-                        ]);
+                // Only set default hierarchy if they are not already configured
+                if (is_null($user->section_id) && is_null($user->msunli_role_id)) {
+                    $section = MsunliSection::where('name', $info['section'])->first();
+                    if ($section) {
+                        $msRole = MsunliRole::where('section_id', $section->id)->where('name', $info['role'])->first();
+                        if ($msRole) {
+                            $user->update([
+                                'section_id' => $section->id,
+                                'msunli_role_id' => $msRole->id
+                            ]);
+                        }
                     }
                 }
             }

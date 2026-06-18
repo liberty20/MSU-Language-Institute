@@ -207,8 +207,8 @@
                                       :class="{
                                           'text-emerald-600': curr === 'USD',
                                           'text-blue-600': curr === 'ZAR',
-                                          'text-[#d4af37]': curr === 'ZWL',
-                                          'text-slate-800': !['USD', 'ZAR', 'ZWL'].includes(curr)
+                                          'text-[#d4af37]': curr === 'ZWG',
+                                          'text-slate-800': !['USD', 'ZAR', 'ZWG'].includes(curr)
                                       }">
                                     {{ curr }} {{ Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                                 </span>

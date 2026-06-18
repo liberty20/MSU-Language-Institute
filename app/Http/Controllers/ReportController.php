@@ -226,15 +226,18 @@ class ReportController extends Controller
         $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore * 20, 1) : 94.0;
 
         // --- Trend Analysis over 6 months ---
+        $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+        $rawDateFormat = $isSqlite ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')";
+
         $monthlyTrends = [];
         for ($i = 5; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $yearMonth = $date->format('Y-m');
             $monthName = $date->format('M Y');
             
-            $volQ = ServiceRequest::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
+            $volQ = ServiceRequest::whereRaw("{$rawDateFormat} = ?", [$yearMonth]);
             $compQ = ServiceRequest::where('status', 'completed')
-                ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
+                ->whereRaw("{$rawDateFormat} = ?", [$yearMonth]);
 
             if (!$isManagement) {
                 $volQ->where('assigned_to', $user->id);
@@ -302,7 +305,7 @@ class ReportController extends Controller
             
             $enrollQ = \App\Models\CourseEnrollment::whereHas('user', function($q) {
                 $q->where('primary_category', 'Student');
-            })->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth]);
+            })->whereRaw("{$rawDateFormat} = ?", [$yearMonth]);
             if ($request->filled('student_course_id')) {
                 $enrollQ->whereHas('intake.course', function($q) use ($request) {
                     $q->where('id', $request->student_course_id);

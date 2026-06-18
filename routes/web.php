@@ -151,6 +151,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('student/assignments', [\App\Http\Controllers\StudentPortalController::class, 'assignments'])->name('student.assignments');
         Route::post('student/assignments/{assignment}/submit', [\App\Http\Controllers\StudentPortalController::class, 'submitAssignment'])->name('student.assignments.submit');
         Route::post('student/testimonials', [\App\Http\Controllers\StudentPortalController::class, 'submitTestimonial'])->name('student.testimonials.store');
+        Route::get('student/learning-content', [\App\Http\Controllers\StudentPortalController::class, 'learningContent'])->name('student.learning-content');
     });
 
     // Instructor Short Course Portal Routes
@@ -175,6 +176,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('instructor/assignments/{assignment}/submissions', [\App\Http\Controllers\InstructorPortalController::class, 'assignmentsSubmissions'])->name('instructor.assignments.submissions');
         Route::post('instructor/submissions/{submission}/grade', [\App\Http\Controllers\InstructorPortalController::class, 'gradeSubmission'])->name('instructor.submissions.grade');
         Route::get('instructor/completed-tasks', [\App\Http\Controllers\InstructorPortalController::class, 'completedTasks'])->name('instructor.completed-tasks');
+        
+        // Learning Content Management Routes
+        Route::get('instructor/learning-content', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentIndex'])->name('instructor.learning-content.index');
+        Route::post('instructor/learning-content', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentStore'])->name('instructor.learning-content.store');
+        Route::put('instructor/learning-content/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentUpdate'])->name('instructor.learning-content.update');
+        Route::delete('instructor/learning-content/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentDestroy'])->name('instructor.learning-content.destroy');
     });
 
     Route::resource('clients', ClientController::class);
@@ -182,6 +189,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('service-requests/{service_request}/attach', [ServiceRequestController::class, 'attachDocument'])->name('service-requests.attach');
     Route::post('service-requests/{service_request}/deliver', [ServiceRequestController::class, 'deliverRequest'])->name('service-requests.deliver');
     Route::get('documents/{document}/download', [ServiceRequestController::class, 'downloadDocument'])->name('documents.download');
+    
+    // Centralized Secure File Preview and Download
+    Route::get('files/preview/{type}/{id}/{field?}', [\App\Http\Controllers\FileManagementController::class, 'preview'])->name('files.preview');
+    Route::get('files/download/{type}/{id}/{field?}', [\App\Http\Controllers\FileManagementController::class, 'download'])->name('files.download');
     Route::get('completed-tasks', [ServiceRequestController::class, 'completedTasksIndex'])->name('completed-tasks.index');
     Route::get('reviews', [ServiceRequestController::class, 'reviews'])->name('reviews.index');
     Route::post('service-requests/{service_request}/rate', [ServiceRequestController::class, 'rate'])->name('service-requests.rate');

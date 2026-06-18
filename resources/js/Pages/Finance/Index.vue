@@ -52,7 +52,7 @@
                                     class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
                                 <option value="" disabled>Select currency...</option>
                                 <option value="USD">USD - US Dollar</option>
-                                <option value="ZWL">ZWL - Zimbabwean Dollar</option>
+                                <option value="ZWG">ZWG - Zimbabwe Gold</option>
                                 <option value="ZAR">ZAR - South African Rand</option>
                             </select>
                             <p v-if="bankForm.errors.currency" class="text-red-500 text-xs mt-1">{{ bankForm.errors.currency }}</p>

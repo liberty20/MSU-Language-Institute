@@ -122,10 +122,16 @@
                                 <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 <span class="text-xs font-bold text-gray-500 block truncate">{{ fileName(application.national_id_copy_path) }}</span>
                             </div>
-                            <a :href="route('course-applications.download-file', { id: application.id, type: 'national_id' })" target="_blank"
-                               class="w-full text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-full border border-brand-blue/10 transition shadow-sm block">
-                                Open/Download ID &rarr;
-                            </a>
+                            <div class="flex gap-2">
+                                <button type="button" @click="triggerPreview('National ID', application.national_id_copy_path, 'national_id')"
+                                        class="flex-1 text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-xl border border-brand-blue/10 transition shadow-sm block">
+                                    Preview
+                                </button>
+                                <a :href="route('files.download', { type: 'course_application', id: application.id, field: 'national_id' })"
+                                   class="flex-1 text-center bg-green-55 hover:bg-green-700 hover:text-white text-green-700 border border-green-200 font-bold text-xs py-2.5 rounded-xl transition shadow-sm block">
+                                    Download
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Proof of Payment -->
@@ -141,10 +147,16 @@
                                 <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 <span class="text-xs font-bold text-gray-500 block truncate">{{ fileName(application.payment_proof_path) }}</span>
                             </div>
-                            <a :href="route('course-applications.download-file', { id: application.id, type: 'payment_proof' })" target="_blank"
-                               class="w-full text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-full border border-brand-blue/10 transition shadow-sm block">
-                                Open/Download Receipt &rarr;
-                            </a>
+                            <div class="flex gap-2">
+                                <button type="button" @click="triggerPreview('Proof of Payment', application.payment_proof_path, 'payment_proof')"
+                                        class="flex-1 text-center bg-gray-50 hover:bg-[#0a1f44] hover:text-white text-[#0a1f44] font-bold text-xs py-2.5 rounded-xl border border-brand-blue/10 transition shadow-sm block">
+                                    Preview
+                                </button>
+                                <a :href="route('files.download', { type: 'course_application', id: application.id, field: 'payment_proof' })"
+                                   class="flex-1 text-center bg-green-55 hover:bg-green-700 hover:text-white text-green-700 border border-green-200 font-bold text-xs py-2.5 rounded-xl transition shadow-sm block">
+                                    Download
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -315,6 +327,44 @@
                             <div v-if="!emailLogs || emailLogs.length === 0" class="text-xs text-gray-400 italic py-2">
                                 No email transmission records found.
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Universal Document Preview Modal -->
+        <div v-if="previewModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm" @click.self="closePreviewModal">
+            <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden border border-gray-100 h-[80vh] flex flex-col">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-[#f5c242]/20">
+                    <div>
+                        <h3 class="text-base font-bold text-[#f5c242] uppercase tracking-wide">Preview Material: {{ previewTitle }}</h3>
+                        <p class="text-[10px] text-gray-300 mt-0.5">Document Viewer ({{ previewFileName }})</p>
+                    </div>
+                    <button @click="closePreviewModal" class="text-gray-300 hover:text-white transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="flex-grow p-4 bg-gray-100 flex items-center justify-center overflow-auto relative">
+                    <div v-if="previewLoading" class="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+                        <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#0a1f44] border-t-transparent"></div>
+                    </div>
+
+                    <iframe v-if="isPdf(previewMime)" :src="previewSrc" class="w-full h-full rounded border-0" @load="previewLoading = false"></iframe>
+                    <img v-else-if="isImage(previewMime)" :src="previewSrc" class="max-w-full max-h-full object-contain rounded shadow" @load="previewLoading = false" />
+                    <video v-else-if="isVideo(previewMime)" :src="previewSrc" controls autoplay class="max-w-full max-h-full rounded shadow" @loadeddata="previewLoading = false"></video>
+
+                    <div v-else class="text-center p-8 bg-white rounded-xl shadow-sm border border-gray-150 max-w-md">
+                        <svg class="w-12 h-12 text-amber-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <h4 class="font-extrabold text-brand-blue text-sm">Preview Not Supported Inline</h4>
+                        <p class="text-xs text-gray-500 mt-1">Word Documents, Excel, and PowerPoints cannot be previewed natively in the web browser.</p>
+                        <div class="mt-4 flex gap-2 justify-center">
+                            <a :href="previewSrc" target="_blank" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition">
+                                Open in New Tab
+                            </a>
+                            <a :href="previewDownloadSrc" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition shadow">
+                                Download File
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -501,4 +551,46 @@ const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
+
+// Preview handlers
+const previewModalOpen = ref(false);
+const previewTitle = ref('');
+const previewFileName = ref('');
+const previewMime = ref('');
+const previewSrc = ref('');
+const previewDownloadSrc = ref('');
+const previewLoading = ref(false);
+
+const triggerPreview = (title, path, field) => {
+    previewTitle.value = title;
+    previewFileName.value = path ? path.split('/').pop() : '';
+    
+    const ext = previewFileName.value.split('.').pop().toLowerCase();
+    let mime = 'application/octet-stream';
+    if (ext === 'pdf') mime = 'application/pdf';
+    else if (['jpg', 'jpeg'].includes(ext)) mime = 'image/jpeg';
+    else if (ext === 'png') mime = 'image/png';
+    else if (ext === 'mp4') mime = 'video/mp4';
+    
+    previewMime.value = mime;
+    previewSrc.value = route('files.preview', { type: 'course_application', id: props.application.id, field: field });
+    previewDownloadSrc.value = route('files.download', { type: 'course_application', id: props.application.id, field: field });
+    
+    const isInline = ['pdf', 'jpg', 'jpeg', 'png', 'mp4'].includes(ext);
+    previewLoading.value = isInline;
+    previewModalOpen.value = true;
+};
+
+const closePreviewModal = () => {
+    previewModalOpen.value = false;
+    previewTitle.value = '';
+    previewFileName.value = '';
+    previewMime.value = '';
+    previewSrc.value = '';
+    previewDownloadSrc.value = '';
+};
+
+const isPdf = (mime) => mime === 'application/pdf';
+const isImage = (mime) => mime.startsWith('image/');
+const isVideo = (mime) => mime.startsWith('video/');
 </script>

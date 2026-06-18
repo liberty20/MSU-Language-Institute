@@ -23,6 +23,12 @@ class CourseEnrollment extends Model
     {
         parent::boot();
 
+        static::addGlobalScope('students_only', function ($builder) {
+            $builder->whereHas('user', function ($q) {
+                $q->where('primary_category', 'Student');
+            });
+        });
+
         static::saving(function ($enrollment) {
             $user = $enrollment->user;
             if ($user && $user->primary_category !== 'Student') {

@@ -1058,6 +1058,9 @@ input:where([type='file']):focus {
 .grid {
   display: grid;
 }
+.contents {
+  display: contents;
+}
 .hidden {
   display: none;
 }
@@ -1148,6 +1151,9 @@ input:where([type='file']):focus {
 .h-\[4px\] {
   height: 4px;
 }
+.h-\[80vh\] {
+  height: 80vh;
+}
 .h-auto {
   height: auto;
 }
@@ -1191,11 +1197,17 @@ input:where([type='file']):focus {
 .max-h-\[90vh\] {
   max-height: 90vh;
 }
+.max-h-full {
+  max-height: 100%;
+}
 .min-h-\[140px\] {
   min-height: 140px;
 }
 .min-h-\[220px\] {
   min-height: 220px;
+}
+.min-h-\[4\.5rem\] {
+  min-height: 4.5rem;
 }
 .min-h-\[400px\] {
   min-height: 400px;
@@ -1297,6 +1309,9 @@ input:where([type='file']):focus {
 .min-w-0 {
   min-width: 0px;
 }
+.min-w-\[150px\] {
+  min-width: 150px;
+}
 .min-w-\[200px\] {
   min-width: 200px;
 }
@@ -1324,6 +1339,9 @@ input:where([type='file']):focus {
 }
 .max-w-\[200px\] {
   max-width: 200px;
+}
+.max-w-full {
+  max-width: 100%;
 }
 .max-w-lg {
   max-width: 32rem;
@@ -1709,6 +1727,9 @@ input:where([type='file']):focus {
 .self-end {
   align-self: flex-end;
 }
+.overflow-auto {
+  overflow: auto;
+}
 .overflow-hidden {
   overflow: hidden;
 }
@@ -1785,6 +1806,9 @@ input:where([type='file']):focus {
 }
 .border {
   border-width: 1px;
+}
+.border-0 {
+  border-width: 0px;
 }
 .border-2 {
   border-width: 2px;
@@ -2179,6 +2203,9 @@ input:where([type='file']):focus {
 .bg-black\/60 {
   background-color: rgb(0 0 0 / 0.6);
 }
+.bg-black\/65 {
+  background-color: rgb(0 0 0 / 0.65);
+}
 .bg-black\/90 {
   background-color: rgb(0 0 0 / 0.9);
 }
@@ -2447,6 +2474,9 @@ input:where([type='file']):focus {
 }
 .bg-white\/5 {
   background-color: rgb(255 255 255 / 0.05);
+}
+.bg-white\/50 {
+  background-color: rgb(255 255 255 / 0.5);
 }
 .bg-white\/80 {
   background-color: rgb(255 255 255 / 0.8);
@@ -3963,6 +3993,10 @@ input:where([type='file']):focus {
   --tw-bg-opacity: 1;
   background-color: rgb(224 176 52 / var(--tw-bg-opacity, 1));
 }
+.hover\:bg-amber-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 243 199 / var(--tw-bg-opacity, 1));
+}
 .hover\:bg-amber-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(217 119 6 / var(--tw-bg-opacity, 1));
@@ -4034,6 +4068,10 @@ input:where([type='file']):focus {
 .hover\:bg-purple-800:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(107 33 168 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-red-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 226 226 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-red-50:hover {
   --tw-bg-opacity: 1;
@@ -4893,6 +4931,14 @@ input:where([type='file']):focus {
 
   .xl\:grid-cols-6 {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .xl\:flex-row {
+    flex-direction: row;
+  }
+
+  .xl\:items-center {
+    align-items: center;
   }
 }
 @media (min-width: 1536px) {

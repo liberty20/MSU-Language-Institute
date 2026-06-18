@@ -24,7 +24,7 @@
 
             <!-- Tabs and Filters Grid -->
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                     <!-- Status Filter Tabs -->
                     <div class="flex flex-wrap gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-150">
                         <button v-for="tab in tabs" :key="tab.value"
@@ -34,6 +34,37 @@
                                     ? 'bg-[#0a1f44] text-[#f5c242] shadow-sm' 
                                     : 'text-gray-600 hover:bg-gray-100 hover:text-brand-blue'">
                             {{ tab.label }}
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Filters for Course & Instructor -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Course:</label>
+                            <select v-model="currentCourse" @change="filterByCourse"
+                                    class="border-gray-200 rounded-lg text-xs font-semibold focus:border-[#0a1f44] focus:ring-[#0a1f44] py-1.5 min-w-[150px]">
+                                <option value="">All Courses</option>
+                                <option v-for="c in courses" :key="c.id" :value="c.id">
+                                    {{ c.code }} — {{ c.title }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Instructor:</label>
+                            <select v-model="currentInstructor" @change="filterByInstructor"
+                                    class="border-gray-200 rounded-lg text-xs font-semibold focus:border-[#0a1f44] focus:ring-[#0a1f44] py-1.5 min-w-[150px]">
+                                <option value="">All Instructors</option>
+                                <option v-for="inst in instructors" :key="inst.id" :value="inst.id">
+                                    {{ inst.name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <button @click="resetFilters" v-if="currentCourse || currentInstructor || currentStatus !== 'all'"
+                                class="text-xs font-bold text-red-500 hover:text-red-750 flex items-center gap-1 transition">
+                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Reset
                         </button>
                     </div>
                 </div>
@@ -112,15 +143,19 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
     applications: Object,
+    courses: Array,
+    instructors: Array,
     filters: Object,
 });
 
 const currentStatus = ref(props.filters.status || 'all');
+const currentCourse = ref(props.filters.course_id || '');
+const currentInstructor = ref(props.filters.instructor_id || '');
 
 const tabs = [
     { value: 'all', label: 'All Applications' },
@@ -131,16 +166,41 @@ const tabs = [
     { value: 'rejected', label: 'Rejected' },
 ];
 
-const filterByStatus = (statusVal) => {
-    currentStatus.value = statusVal;
+const applyFilters = () => {
     const query = {};
-    if (statusVal !== 'all') {
-        query.status = statusVal;
+    if (currentStatus.value !== 'all') {
+        query.status = currentStatus.value;
+    }
+    if (currentCourse.value) {
+        query.course_id = currentCourse.value;
+    }
+    if (currentInstructor.value) {
+        query.instructor_id = currentInstructor.value;
     }
     Inertia.get(route('course-applications.index'), query, {
         preserveState: true,
         replace: true,
     });
+};
+
+const filterByStatus = (statusVal) => {
+    currentStatus.value = statusVal;
+    applyFilters();
+};
+
+const filterByCourse = () => {
+    applyFilters();
+};
+
+const filterByInstructor = () => {
+    applyFilters();
+};
+
+const resetFilters = () => {
+    currentStatus.value = 'all';
+    currentCourse.value = '';
+    currentInstructor.value = '';
+    applyFilters();
 };
 
 const statusBadgeClass = (status) => {

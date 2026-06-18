@@ -49,6 +49,7 @@ class UserBackupService
         'comments',
         'reports',
         'email_logs',
+        'learning_contents',
     ];
 
     /**
@@ -68,6 +69,12 @@ class UserBackupService
     public static function backup($force = false)
     {
         if (!self::$shouldBackup) {
+            return;
+        }
+
+        // Prevent backups during console commands (migrations, seeders, etc.)
+        // to avoid overwriting the backup JSON with partial or empty data.
+        if (app()->runningInConsole() && !app()->runningUnitTests()) {
             return;
         }
 
@@ -144,27 +151,38 @@ class UserBackupService
                         DB::table($table)->truncate();
                     }
 
+                    $columns = Schema::getColumnListing($table);
+                    $columnsFlip = array_flip($columns);
+
                     foreach ($backupData[$table] as $record) {
+                        // Filter record keys to only include columns that exist in the table schema
+                        $record = array_intersect_key($record, $columnsFlip);
+
                         $keys = [];
                         if ($table === 'model_has_roles') {
                             $keys = [
-                                'role_id' => $record['role_id'],
-                                'model_type' => $record['model_type'],
-                                'model_id' => $record['model_id']
+                                'role_id' => $record['role_id'] ?? null,
+                                'model_type' => $record['model_type'] ?? null,
+                                'model_id' => $record['model_id'] ?? null
                             ];
                         } elseif ($table === 'role_has_permissions') {
                             $keys = [
-                                'permission_id' => $record['permission_id'],
-                                'role_id' => $record['role_id']
+                                'permission_id' => $record['permission_id'] ?? null,
+                                'role_id' => $record['role_id'] ?? null
                             ];
                         } elseif ($table === 'model_has_permissions') {
                             $keys = [
-                                'permission_id' => $record['permission_id'],
-                                'model_type' => $record['model_type'],
-                                'model_id' => $record['model_id']
+                                'permission_id' => $record['permission_id'] ?? null,
+                                'model_type' => $record['model_type'] ?? null,
+                                'model_id' => $record['model_id'] ?? null
                             ];
                         } else {
-                            $keys = ['id' => $record['id']];
+                            $keys = ['id' => $record['id'] ?? null];
+                        }
+
+                        // Ensure keys do not contain nulls
+                        if (in_array(null, $keys, true)) {
+                            continue;
                         }
 
                         DB::table($table)->updateOrInsert($keys, $record);

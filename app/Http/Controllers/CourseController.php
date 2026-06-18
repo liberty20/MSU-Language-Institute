@@ -178,8 +178,8 @@ class CourseController extends Controller
 
         $exists = CourseIntake::where('course_id', $validated['course_id'])
             ->where('name', $validated['name'])
-            ->where('start_date', $validated['start_date'])
-            ->where('end_date', $validated['end_date'])
+            ->whereDate('start_date', $validated['start_date'])
+            ->whereDate('end_date', $validated['end_date'])
             ->exists();
         if ($exists) {
             return redirect()->back()->withErrors(['name' => 'A course intake with the same course, name, start date, and end date already exists.'])->withInput();
@@ -240,8 +240,8 @@ class CourseController extends Controller
 
         $exists = CourseIntake::where('course_id', $intake->course_id)
             ->where('name', $validated['name'])
-            ->where('start_date', $validated['start_date'])
-            ->where('end_date', $validated['end_date'])
+            ->whereDate('start_date', $validated['start_date'])
+            ->whereDate('end_date', $validated['end_date'])
             ->where('id', '!=', $intake->id)
             ->exists();
         if ($exists) {
@@ -1153,16 +1153,41 @@ class CourseController extends Controller
 
         $query = CourseApplication::with(['intake.course']);
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('course_id')) {
+            $query->whereHas('intake', function ($q) use ($request) {
+                $q->where('course_id', $request->course_id);
+            });
+        }
+
+        if ($request->filled('instructor_id')) {
+            $query->whereHas('intake', function ($q) use ($request) {
+                $q->where('instructor_id', $request->instructor_id);
+            });
         }
 
         $applications = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
+        $courses = Course::orderBy('title')->get(['id', 'title', 'code']);
+
+        $instructors = User::whereHas('instructedIntakes')
+            ->orWhereHas('roles', function ($q) {
+                $q->whereIn('name', ['language_expert', 'part_time_staff', 'instructor']);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('Courses/Applications', [
             'applications' => $applications,
+            'courses'      => $courses,
+            'instructors'  => $instructors,
             'filters'      => [
-                'status' => $request->status,
+                'status'        => $request->status ?? 'all',
+                'course_id'     => $request->course_id,
+                'instructor_id' => $request->instructor_id,
             ],
         ]);
     }

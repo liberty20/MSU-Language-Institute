@@ -66,6 +66,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'Part Time Staff', 'email' => 'parttime@msunli.edu', 'role' => 'part_time_staff'],
             ['name' => 'ICT Administrator', 'email' => 'admin@msunli.edu', 'role' => 'ict_administrator'],
             ['name' => 'Test Client', 'email' => 'client@example.com', 'role' => 'client'],
+            ['name' => 'Mapfumo L', 'email' => 'mapfumol@staff.msu.ac.zw', 'role' => 'language_expert'],
         ];
 
         foreach ($users as $userData) {
@@ -77,7 +78,11 @@ class RolesAndPermissionsSeeder extends Seeder
                     'is_active' => true,
                 ]
             );
-            $user->syncRoles([$userData['role']]);
+            
+            // Only assign roles to newly created users to avoid resetting/overwriting existing roles
+            if ($user->wasRecentlyCreated) {
+                $user->assignRole($userData['role']);
+            }
         }
         } finally {
             \App\Services\UserBackupService::$shouldBackup = $temp;

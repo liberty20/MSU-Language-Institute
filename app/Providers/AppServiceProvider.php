@@ -492,12 +492,23 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // Artisan Command Starting Listener to Disable Backup during Database Operations
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event) {
+            if (app()->runningUnitTests()) {
+                return;
+            }
+            if (in_array($event->command, ['migrate', 'db:seed', 'migrate:fresh', 'migrate:refresh', 'migrate:rollback', 'migrate:reset'])) {
+                \App\Services\UserBackupService::$shouldBackup = false;
+            }
+        });
+
         // Artisan Command Finished Listener for Automated Restore
         \Illuminate\Support\Facades\Event::listen(\Illuminate\Console\Events\CommandFinished::class, function ($event) {
             if (app()->runningUnitTests()) {
                 return;
             }
-            if (in_array($event->command, ['migrate', 'db:seed', 'migrate:fresh', 'migrate:refresh'])) {
+            if (in_array($event->command, ['migrate', 'db:seed', 'migrate:fresh', 'migrate:refresh', 'migrate:rollback', 'migrate:reset'])) {
+                \App\Services\UserBackupService::$shouldBackup = true;
                 \App\Services\UserBackupService::restore(true, true);
             }
         });
@@ -533,6 +544,7 @@ class AppServiceProvider extends ServiceProvider
             \App\Models\Comment::class,
             \App\Models\Report::class,
             \App\Models\EmailLog::class,
+            \App\Models\LearningContent::class,
             \Spatie\Permission\Models\Role::class,
             \Spatie\Permission\Models\Permission::class,
         ];
@@ -728,5 +740,28 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\User::deleted(function ($user) {
             \App\Services\UserBackupService::deleteClientForUser($user);
         });
+
+        // Automated Course Intake Expiration Check (Real-time auto completion)
+        if (!app()->runningInConsole()) {
+            try {
+                $expiredIntakesExist = \Illuminate\Support\Facades\DB::table('course_intakes')
+                    ->where('status', '!=', 'completed')
+                    ->where('end_date', '<=', now()->toDateString())
+                    ->exists();
+
+                if ($expiredIntakesExist) {
+                    $intakesToComplete = \App\Models\CourseIntake::where('status', '!=', 'completed')
+                        ->where('end_date', '<=', now()->toDateString())
+                        ->get();
+
+                    foreach ($intakesToComplete as $intake) {
+                        $intake->status = 'completed';
+                        $intake->save();
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error("Failed to automatically complete expired course intakes: " . $e->getMessage());
+            }
+        }
     }
 }

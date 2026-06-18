@@ -37,7 +37,7 @@ class StudentPortalController extends Controller
         $user = Auth::user();
         
         $enrollments = CourseEnrollment::with(['intake.course', 'intake.instructor'])
-            ->where('user_id', $user->id)
+            ->where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
             ->get();
 
@@ -48,18 +48,18 @@ class StudentPortalController extends Controller
             $course = $intake->course;
 
             // Fetch course assignments
-            $assignments = CourseAssignment::where('course_intake_id', $intake->id)->get();
+            $assignments = CourseAssignment::where(['course_intake_id' => $intake->id])->get();
             $assignmentIds = $assignments->pluck('id');
 
             // Fetch submissions
             $submissions = CourseAssignmentSubmission::whereIn('course_assignment_id', $assignmentIds)
-                ->where('user_id', $user->id)
+                ->where(['user_id' => $user->id])
                 ->get()
-                ->keyBy('course_assignment_id');
+                ->keyBy(fn($item) => $item->course_assignment_id);
 
             // Fetch extra CA marks (tests, quizzes etc.)
-            $caMarks = CourseCaMark::where('course_intake_id', $intake->id)
-                ->where('user_id', $user->id)
+            $caMarks = CourseCaMark::where(['course_intake_id' => $intake->id])
+                ->where(['user_id' => $user->id])
                 ->get();
 
             $totalPossible = 0;
@@ -145,7 +145,7 @@ class StudentPortalController extends Controller
         $user = Auth::user();
         
         $enrollments = CourseEnrollment::with(['intake.course'])
-            ->where('user_id', $user->id)
+            ->where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
             ->get();
 
@@ -168,15 +168,15 @@ class StudentPortalController extends Controller
                 fputcsv($file, ['Assessment Name', 'Type', 'Status', 'Marks Obtained', 'Max Marks', 'Feedback']);
 
                 // Fetch assignments and ca marks
-                $assignments = CourseAssignment::where('course_intake_id', $intake->id)->get();
+                $assignments = CourseAssignment::where(['course_intake_id' => $intake->id])->get();
                 $assignmentIds = $assignments->pluck('id');
                 $submissions = CourseAssignmentSubmission::whereIn('course_assignment_id', $assignmentIds)
-                    ->where('user_id', $user->id)
+                    ->where(['user_id' => $user->id])
                     ->get()
-                    ->keyBy('course_assignment_id');
+                    ->keyBy(fn($item) => $item->course_assignment_id);
 
-                $caMarks = CourseCaMark::where('course_intake_id', $intake->id)
-                    ->where('user_id', $user->id)
+                $caMarks = CourseCaMark::where(['course_intake_id' => $intake->id])
+                    ->where(['user_id' => $user->id])
                     ->get();
 
                 foreach ($assignments as $asg) {
@@ -214,14 +214,14 @@ class StudentPortalController extends Controller
         $user = Auth::user();
         
         // Find enrolled intakes
-        $intakeIds = CourseEnrollment::where('user_id', $user->id)
+        $intakeIds = CourseEnrollment::where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
             ->pluck('course_intake_id');
 
         $timetables = CourseTimetable::with(['intake.course', 'intake.instructor'])
             ->whereIn('course_intake_id', $intakeIds)
             ->orderBy('date', 'asc')
-            ->orderBy('start_time', 'asc')
+            ->orderByRaw('start_time asc')
             ->get();
 
         return Inertia::render('Courses/StudentTimetable', [
@@ -237,21 +237,21 @@ class StudentPortalController extends Controller
         $user = Auth::user();
 
         // Enrolled intakes
-        $intakeIds = CourseEnrollment::where('user_id', $user->id)
+        $intakeIds = CourseEnrollment::where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
             ->pluck('course_intake_id');
 
         $assignments = CourseAssignment::with(['intake.course'])
             ->whereIn('course_intake_id', $intakeIds)
-            ->orderBy('due_date', 'asc')
+            ->orderByRaw('due_date asc')
             ->get();
 
         $assignmentIds = $assignments->pluck('id');
 
         $submissions = CourseAssignmentSubmission::whereIn('course_assignment_id', $assignmentIds)
-            ->where('user_id', $user->id)
+            ->where(['user_id' => $user->id])
             ->get()
-            ->keyBy('course_assignment_id');
+            ->keyBy(fn($item) => $item->course_assignment_id);
 
         $mappedAssignments = $assignments->map(function ($asg) use ($submissions) {
             $sub = $submissions->get($asg->id);
@@ -360,9 +360,9 @@ class StudentPortalController extends Controller
         $user = Auth::user();
 
         // Check if enrollment belongs to user and is completed
-        $enrollment = CourseEnrollment::where('id', $validated['enrollment_id'])
-            ->where('user_id', $user->id)
-            ->where('enrollment_status', 'completed')
+        $enrollment = CourseEnrollment::where(['id' => $validated['enrollment_id']])
+            ->where(['user_id' => $user->id])
+            ->where(['enrollment_status' => 'completed'])
             ->firstOrFail();
 
         // Store the pending testimony under a separate setting key
@@ -385,6 +385,33 @@ class StudentPortalController extends Controller
         );
 
         return redirect()->back()->with('success', 'Your testimonial has been submitted successfully and is awaiting administrator review!');
+    }
+
+    /**
+     * View learning materials uploaded by instructors for enrolled courses.
+     */
+    public function learningContent()
+    {
+        $user = Auth::user();
+
+        // Get student active enrollments
+        $enrollments = CourseEnrollment::with(['intake.course', 'intake.instructor'])
+            ->where(['user_id' => $user->id])
+            ->where(['enrollment_status' => 'active'])
+            ->get();
+
+        $intakeIds = $enrollments->pluck('course_intake_id')->toArray();
+
+        // Fetch learning content materials
+        $learningContents = \App\Models\LearningContent::whereIn('course_intake_id', $intakeIds)
+            ->with(['intake.course', 'uploader'])
+            ->orderByRaw('created_at desc')
+            ->get();
+
+        return Inertia::render('Courses/StudentLearningContent', [
+            'enrollments' => $enrollments,
+            'learningContents' => $learningContents,
+        ]);
     }
 }
 

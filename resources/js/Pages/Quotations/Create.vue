@@ -45,7 +45,7 @@
                         <select v-model="form.currency"
                                 class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
                             <option value="USD">USD – US Dollar</option>
-                            <option value="ZWL">ZWL – Zimbabwean Dollar</option>
+                            <option value="ZWG">ZWG – Zimbabwe Gold</option>
                             <option value="ZAR">ZAR – South African Rand</option>
                         </select>
                     </div>

@@ -38,6 +38,26 @@ class CheckDeadlinesCommand extends Command
     public function handle()
     {
         Log::info("CheckDeadlinesCommand started.");
+        
+        // Auto-complete expired intakes
+        try {
+            $expiredIntakesCount = 0;
+            $intakesToComplete = CourseIntake::where('status', '!=', 'completed')
+                ->where('end_date', '<=', now()->toDateString())
+                ->get();
+
+            foreach ($intakesToComplete as $intake) {
+                $intake->status = 'completed';
+                $intake->save();
+                $expiredIntakesCount++;
+            }
+            if ($expiredIntakesCount > 0) {
+                Log::info("CheckDeadlinesCommand: Completed {$expiredIntakesCount} expired course intakes.");
+            }
+        } catch (\Exception $e) {
+            Log::error("CheckDeadlinesCommand error completing intakes: " . $e->getMessage());
+        }
+
         $this->info("Checking deadlines...");
 
         $now = now();

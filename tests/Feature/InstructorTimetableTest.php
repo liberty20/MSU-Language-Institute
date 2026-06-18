@@ -23,6 +23,7 @@ class InstructorTimetableTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Carbon\Carbon::setTestNow('2026-06-01');
 
         $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
 
@@ -64,6 +65,12 @@ class InstructorTimetableTest extends TestCase
             'status' => 'open',
             'capacity' => 30,
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        \Carbon\Carbon::setTestNow();
+        parent::tearDown();
     }
 
     /** @test */
@@ -323,11 +330,11 @@ class InstructorTimetableTest extends TestCase
         $response->assertRedirect();
         
         $this->assertEquals(2, CourseTimetable::count());
-        $timetable1 = CourseTimetable::where('date', '2026-06-15')->first();
+        $timetable1 = CourseTimetable::whereDate('date', '2026-06-15')->first();
         $this->assertNotNull($timetable1);
         $this->assertEquals('Language Lab A', $timetable1->venue);
 
-        $timetable2 = CourseTimetable::where('date', '2026-06-16')->first();
+        $timetable2 = CourseTimetable::whereDate('date', '2026-06-16')->first();
         $this->assertNotNull($timetable2);
         $this->assertEquals('Language Lab A', $timetable2->venue);
     }
@@ -342,8 +349,10 @@ class InstructorTimetableTest extends TestCase
                 'start_date' => '2026-06-08', // Monday
                 'end_date' => '2026-06-21', // Sunday (2 weeks duration)
                 'days_of_week' => ['Monday', 'Wednesday'],
-                'start_time' => '10:00',
-                'end_time' => '12:00',
+                'day_schedules' => [
+                    'Monday' => ['start_time' => '10:00', 'end_time' => '12:00'],
+                    'Wednesday' => ['start_time' => '10:00', 'end_time' => '12:00'],
+                ],
                 'venue' => 'Room 10',
                 'session_type' => 'Lecture',
             ]);
@@ -352,10 +361,10 @@ class InstructorTimetableTest extends TestCase
 
         // 2026-06-08 (Mon), 2026-06-10 (Wed), 2026-06-15 (Mon), 2026-06-17 (Wed)
         $this->assertEquals(4, CourseTimetable::count());
-        $this->assertTrue(CourseTimetable::where('date', '2026-06-08')->exists());
-        $this->assertTrue(CourseTimetable::where('date', '2026-06-10')->exists());
-        $this->assertTrue(CourseTimetable::where('date', '2026-06-15')->exists());
-        $this->assertTrue(CourseTimetable::where('date', '2026-06-17')->exists());
+        $this->assertTrue(CourseTimetable::whereDate('date', '2026-06-08')->exists());
+        $this->assertTrue(CourseTimetable::whereDate('date', '2026-06-10')->exists());
+        $this->assertTrue(CourseTimetable::whereDate('date', '2026-06-15')->exists());
+        $this->assertTrue(CourseTimetable::whereDate('date', '2026-06-17')->exists());
     }
 
     /** @test */
@@ -380,8 +389,9 @@ class InstructorTimetableTest extends TestCase
                 'start_date' => '2026-06-08',
                 'end_date' => '2026-06-14',
                 'days_of_week' => ['Wednesday'], // Overlaps on Wednesday 2026-06-10
-                'start_time' => '11:00', // overlaps
-                'end_time' => '13:00',
+                'day_schedules' => [
+                    'Wednesday' => ['start_time' => '11:00', 'end_time' => '13:00'],
+                ],
                 'venue' => 'Room 10',
                 'session_type' => 'Lecture',
             ]);
