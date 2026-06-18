@@ -1,5 +1,12 @@
 <script setup>
 import { Link } from '@inertiajs/inertia-vue3';
+
+defineProps({
+    wide: {
+        type: Boolean,
+        default: false,
+    }
+});
 </script>
 
 <template>
@@ -30,8 +37,8 @@ import { Link } from '@inertiajs/inertia-vue3';
             </div>
 
             <!-- Login Box (White to keep form inputs easily readable) -->
-            <div class="w-full max-w-md bg-white p-8 sm:p-12 shadow-2xl rounded-3xl border border-gray-100">
-                <!-- The actual form (Login.vue) will be injected here -->
+            <div class="w-full bg-white p-8 sm:p-12 shadow-2xl rounded-3xl border border-gray-100" :class="wide ? 'max-w-2xl' : 'max-w-md'">
+                <!-- The actual form will be injected here -->
                 <slot />
             </div>
             

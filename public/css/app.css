@@ -4159,6 +4159,10 @@ input:where([type='file']):focus {
   --tw-text-opacity: 1;
   color: rgb(10 31 68 / var(--tw-text-opacity, 1));
 }
+.hover\:text-brand-blue-light:hover {
+  --tw-text-opacity: 1;
+  color: rgb(28 53 93 / var(--tw-text-opacity, 1));
+}
 .hover\:text-brand-gold:hover {
   --tw-text-opacity: 1;
   color: rgb(245 194 66 / var(--tw-text-opacity, 1));

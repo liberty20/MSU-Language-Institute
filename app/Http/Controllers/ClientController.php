@@ -34,11 +34,11 @@ class ClientController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->whereStatus($request->status);
         }
 
         return Inertia::render('Clients/Index', [
-            'clients' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'clients' => $query->orderByDesc('created_at')->paginate(10)->withQueryString(),
             'filters' => $request->only(['search', 'status']),
         ]);
     }
@@ -65,22 +65,17 @@ class ClientController extends Controller
         \App\Services\UserBackupService::$isSyncing = true;
         try {
             $client = Client::create($request->except(['password', 'password_confirmation']));
-        } finally {
-            \App\Services\UserBackupService::$isSyncing = false;
-        }
 
-        $user = User::create([
-            'name'      => $validated['organization'] ?: $validated['contact_person'],
-            'email'     => $validated['email'],
-            'password'  => Hash::make($validated['password']),
-            'phone'     => $validated['phone'] ?? null,
-            'is_active' => $validated['status'] === 'active',
-        ]);
+            $user = User::create([
+                'name'      => $validated['organization'] ?: $validated['contact_person'],
+                'email'     => $validated['email'],
+                'password'  => Hash::make($validated['password']),
+                'phone'     => $validated['phone'] ?? null,
+                'is_active' => $validated['status'] === 'active',
+            ]);
 
-        $user->assignRole('client');
+            $user->assignRole('client');
 
-        \App\Services\UserBackupService::$isSyncing = true;
-        try {
             $client->update(['user_id' => $user->id]);
         } finally {
             \App\Services\UserBackupService::$isSyncing = false;
@@ -102,7 +97,7 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
-        $user = User::where('email', $client->email)->first();
+        $user = User::whereEmail($client->email)->first();
 
         $rules = [
             'client_type'    => 'required|in:individual,organization',
@@ -125,7 +120,7 @@ class ClientController extends Controller
         $oldEmail = $client->email;
         
         $client->fill($validated);
-        $user = User::where('email', $oldEmail)->first();
+        $user = User::whereEmail($oldEmail)->first();
         $userDirty = false;
         if ($user) {
             $user->fill([
@@ -156,7 +151,7 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
-        $user = User::where('email', $client->email)->first();
+        $user = User::whereEmail($client->email)->first();
         if ($user) {
             $user->delete();
         }

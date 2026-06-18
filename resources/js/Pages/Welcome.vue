@@ -186,10 +186,10 @@
         <!-- CTA Section -->
         <section class="py-20 relative bg-gradient-to-r from-[#0a1f44] to-[#0c2859] text-white overflow-hidden">
             <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
-                <h2 class="text-3xl md:text-5xl font-black text-white mb-6">Start Your Journey Today</h2>
-                <p class="text-xl text-gray-300 mb-10">Access our student portal, submit class work, view schedules, and interact with professional language experts.</p>
-                <Link :href="route('login')" class="inline-block bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-10 py-4 rounded-full transition shadow-lg transform hover:-translate-y-1 text-lg">
-                    Log in to Portal
+                <h2 class="text-3xl md:text-5xl font-black text-white mb-6">Register and Access Our Client Portal Today</h2>
+                <p class="text-xl text-gray-300 mb-10">Sign up today to experience a streamlined and professional service by accessing your personalized client portal anytime, from anywhere, and receiving tailored guidance and support from our professional language experts.</p>
+                <Link :href="route('register')" class="inline-block bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-10 py-4 rounded-full transition shadow-lg transform hover:-translate-y-1 text-lg">
+                    Register
                 </Link>
             </div>
         </section>
