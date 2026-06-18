@@ -184,7 +184,7 @@
             <!-- Background Image Layer -->
             <div class="absolute inset-0 pointer-events-none bg-cover bg-center bg-no-repeat" style="background-image: url('/msuli-build.jpg'); opacity: 0.08; z-index: 0;"></div>
             <!-- Header -->
-            <header class="bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-10 sticky top-0 flex-shrink-0">
+            <header class="bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-20 sticky top-0 flex-shrink-0">
                 <div class="px-4 md:px-6 py-4 flex items-center justify-between">
                     <div class="flex items-center gap-3 flex-grow">
                         <!-- Mobile Hamburger Menu Button -->
@@ -297,7 +297,7 @@
                                     Edit Profile
                                 </DropdownLink>
                                 <div class="border-t border-gray-100 my-1"></div>
-                                <DropdownLink :href="route('logout')" method="post" as="button" class="text-red-600 font-medium">
+                                <DropdownLink :href="route('logout')" method="post" as="a" class="text-red-600 font-medium">
                                     Log Out
                                 </DropdownLink>
                             </template>

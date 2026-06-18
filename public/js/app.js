@@ -22725,6 +22725,20 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
   __name: 'DropdownLink',
+  props: {
+    href: {
+      type: String,
+      required: true
+    },
+    as: {
+      type: String,
+      "default": 'a'
+    },
+    method: {
+      type: String,
+      "default": 'get'
+    }
+  },
   setup: function setup(__props, _ref) {
     var __expose = _ref.expose;
     __expose();
@@ -30159,13 +30173,16 @@ __webpack_require__.r(__webpack_exports__);
 
 function render(_ctx, _cache, $props, $setup, $data, $options) {
   return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createBlock)($setup["Link"], {
+    href: $props.href,
+    as: $props.as,
+    method: $props.method,
     "class": "block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out"
   }, {
     "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
       return [(0,vue__WEBPACK_IMPORTED_MODULE_0__.renderSlot)(_ctx.$slots, "default")];
     }),
     _: 3 /* FORWARDED */
-  });
+  }, 8 /* PROPS */, ["href", "as", "method"]);
 }
 
 /***/ }),
@@ -30298,7 +30315,7 @@ var _hoisted_8 = {
   "class": "flex-grow flex flex-col h-full overflow-hidden relative"
 };
 var _hoisted_9 = {
-  "class": "bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-10 sticky top-0 flex-shrink-0"
+  "class": "bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-20 sticky top-0 flex-shrink-0"
 };
 var _hoisted_10 = {
   "class": "px-4 md:px-6 py-4 flex items-center justify-between"
@@ -31233,7 +31250,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
       }, null, -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)($setup["DropdownLink"], {
         href: _ctx.route('logout'),
         method: "post",
-        as: "button",
+        as: "a",
         "class": "text-red-600 font-medium"
       }, {
         "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
