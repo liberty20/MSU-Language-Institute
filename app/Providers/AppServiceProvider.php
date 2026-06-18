@@ -19,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
 
     public static function getUsersByRole($roleName)
     {
-        if (class_exists(\Spatie\Permission\Models\Role::class) && \Spatie\Permission\Models\Role::where('name', $roleName)->exists()) {
+        if (class_exists(\Spatie\Permission\Models\Role::class) && \Spatie\Permission\Models\Role::whereName($roleName)->exists()) {
             return \App\Models\User::role($roleName)->get();
         }
         return collect();
@@ -127,7 +127,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             // Student applicant confirmation (if registered user matches)
-            $user = \App\Models\User::where('email', $app->email)->first();
+            $user = \App\Models\User::whereEmail($app->email)->first();
             if ($user) {
                 $user->notify(new \App\Notifications\SystemNotification('Enrollment', 'Application Submitted', 'Your application for "' . ($app->course ? $app->course->title : 'Short Course') . '" has been submitted successfully.', route('student.courses')));
             }
@@ -135,7 +135,7 @@ class AppServiceProvider extends ServiceProvider
 
         \App\Models\CourseApplication::updated(function ($app) {
             if ($app->isDirty('status')) {
-                $user = \App\Models\User::where('email', $app->email)->first();
+                $user = \App\Models\User::whereEmail($app->email)->first();
                 
                 if ($app->status === 'verified') {
                     $dDs = AppServiceProvider::getUsersByRole('deputy_director');
@@ -254,7 +254,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\CourseAssignment::created(function ($ca) {
             $intake = $ca->intake;
             if ($intake) {
-                $enrollments = \App\Models\CourseEnrollment::where('course_intake_id', $intake->id)->with('user')->get();
+                $enrollments = \App\Models\CourseEnrollment::whereCourseIntakeId($intake->id)->with('user')->get();
                 foreach ($enrollments as $enrollment) {
                     if ($enrollment->user) {
                         $enrollment->user->notify(new \App\Notifications\SystemNotification('Assessments', 'New Course Assignment', 'A new coursework assignment "' . $ca->title . '" has been published.', route('student.assignments')));
@@ -293,7 +293,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\CourseTimetable::created(function ($ct) {
             $intake = $ct->intake;
             if ($intake) {
-                $enrollments = \App\Models\CourseEnrollment::where('course_intake_id', $intake->id)->with('user')->get();
+                $enrollments = \App\Models\CourseEnrollment::whereCourseIntakeId($intake->id)->with('user')->get();
                 foreach ($enrollments as $enrollment) {
                     if ($enrollment->user) {
                         $enrollment->user->notify(new \App\Notifications\SystemNotification('Timetables', 'Class Timetable Added', 'A new class schedule has been posted for "' . $intake->course->title . '".', route('student.timetable')));
@@ -308,7 +308,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\CourseTimetable::updated(function ($ct) {
             $intake = $ct->intake;
             if ($intake) {
-                $enrollments = \App\Models\CourseEnrollment::where('course_intake_id', $intake->id)->with('user')->get();
+                $enrollments = \App\Models\CourseEnrollment::whereCourseIntakeId($intake->id)->with('user')->get();
                 foreach ($enrollments as $enrollment) {
                     if ($enrollment->user) {
                         $enrollment->user->notify(new \App\Notifications\SystemNotification('Timetables', 'Class Timetable Updated', 'Class schedule has been adjusted for "' . $intake->course->title . '".', route('student.timetable')));
@@ -323,7 +323,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\CourseTimetable::deleted(function ($ct) {
             $intake = $ct->intake;
             if ($intake) {
-                $enrollments = \App\Models\CourseEnrollment::where('course_intake_id', $intake->id)->with('user')->get();
+                $enrollments = \App\Models\CourseEnrollment::whereCourseIntakeId($intake->id)->with('user')->get();
                 foreach ($enrollments as $enrollment) {
                     if ($enrollment->user) {
                         $enrollment->user->notify(new \App\Notifications\SystemNotification('Timetables', 'Class Timetable Cancelled', 'Class scheduled for "' . $intake->course->title . '" has been cancelled.', route('student.timetable')));
@@ -337,7 +337,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 7. Service Requests / Quotations Requests Triggers (for Administrative Assistant)
         \App\Models\ServiceRequest::created(function ($sr) {
-            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('admin_assistant')->exists()) {
                 $admins = \App\Models\User::role('admin_assistant')->get();
                 foreach ($admins as $admin) {
                     $admin->notify(new \App\Notifications\SystemNotification(
@@ -353,7 +353,7 @@ class AppServiceProvider extends ServiceProvider
         // 8. Document Submission Triggers (for Administrative Assistant)
         \App\Models\UploadedDocument::created(function ($doc) {
             $uploader = $doc->uploader;
-            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('admin_assistant')->exists()) {
                 $admins = \App\Models\User::role('admin_assistant')->get();
                 foreach ($admins as $admin) {
                     $admin->notify(new \App\Notifications\SystemNotification(
@@ -368,7 +368,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 9. Payment / Proof of Payment Triggers (for Administrative Assistant / Secretaries)
         \App\Models\Payment::created(function ($payment) {
-            if (\Spatie\Permission\Models\Role::where('name', 'admin_assistant')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('admin_assistant')->exists()) {
                 $admins = \App\Models\User::role('admin_assistant')->get();
                 foreach ($admins as $admin) {
                     $admin->notify(new \App\Notifications\SystemNotification(
@@ -383,7 +383,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 10. User Account Management & Provisioning Triggers (for ICT Administrator)
         \App\Models\User::created(function ($user) {
-            if (\Spatie\Permission\Models\Role::where('name', 'ict_administrator')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('ict_administrator')->exists()) {
                 $ictAdmins = \App\Models\User::role('ict_administrator')->get();
                 $roleName = $user->hasRole('student') ? 'Student' : ($user->roles->first() ? $user->roles->first()->name : 'User');
                 
@@ -407,7 +407,7 @@ class AppServiceProvider extends ServiceProvider
                     route('profile.edit')
                 ));
 
-                if (\Spatie\Permission\Models\Role::where('name', 'ict_administrator')->exists()) {
+                if (\Spatie\Permission\Models\Role::whereName('ict_administrator')->exists()) {
                     $ictAdmins = \App\Models\User::role('ict_administrator')->get();
                     foreach ($ictAdmins as $ict) {
                         $ict->notify(new \App\Notifications\SystemNotification(
@@ -423,7 +423,7 @@ class AppServiceProvider extends ServiceProvider
 
         // 11. Reports Audit & Authorization Triggers
         \App\Models\Report::created(function ($report) {
-            if (\Spatie\Permission\Models\Role::where('name', 'deputy_director')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('deputy_director')->exists()) {
                 $dDs = \App\Models\User::role('deputy_director')->get();
                 foreach ($dDs as $dD) {
                     $dD->notify(new \App\Notifications\SystemNotification(
@@ -435,7 +435,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            if (\Spatie\Permission\Models\Role::where('name', 'executive_director')->exists()) {
+            if (\Spatie\Permission\Models\Role::whereName('executive_director')->exists()) {
                 $eDs = \App\Models\User::role('executive_director')->get();
                 foreach ($eDs as $eD) {
                     $eD->notify(new \App\Notifications\SystemNotification(
@@ -509,7 +509,7 @@ class AppServiceProvider extends ServiceProvider
             }
             if (in_array($event->command, ['migrate', 'db:seed', 'migrate:fresh', 'migrate:refresh', 'migrate:rollback', 'migrate:reset'])) {
                 \App\Services\UserBackupService::$shouldBackup = true;
-                \App\Services\UserBackupService::restore(true, true);
+                \App\Services\UserBackupService::restore(true, false);
             }
         });
 
@@ -617,20 +617,72 @@ class AppServiceProvider extends ServiceProvider
                     $properties
                 );
             });
+
+            $modelClass::created(function ($model) {
+                $user = auth()->user();
+                $userStr = $user ? ($user->name . ' (' . $user->email . ')') : 'system/guest';
+
+                $values = $model->toArray();
+                if ($model instanceof \App\Models\User) {
+                    unset($values['password'], $values['remember_token']);
+                }
+
+                $properties = [
+                    'user_performing_action' => $userStr,
+                    'date_and_time' => now()->toIso8601String(),
+                    'values' => $values,
+                    'ip_address' => request() ? request()->ip() : null,
+                    'action_type' => 'Create',
+                ];
+
+                $className = class_basename($model);
+                \App\Models\ActivityLog::log(
+                    strtolower($className) . '_created',
+                    "Created {$className} #{$model->id}",
+                    $model,
+                    $properties
+                );
+            });
+
+            $modelClass::deleted(function ($model) {
+                $user = auth()->user();
+                $userStr = $user ? ($user->name . ' (' . $user->email . ')') : 'system/guest';
+
+                $values = $model->toArray();
+                if ($model instanceof \App\Models\User) {
+                    unset($values['password'], $values['remember_token']);
+                }
+
+                $properties = [
+                    'user_performing_action' => $userStr,
+                    'date_and_time' => now()->toIso8601String(),
+                    'values' => $values,
+                    'ip_address' => request() ? request()->ip() : null,
+                    'action_type' => 'Delete',
+                ];
+
+                $className = class_basename($model);
+                \App\Models\ActivityLog::log(
+                    strtolower($className) . '_deleted',
+                    "Deleted {$className} #{$model->id}",
+                    $model,
+                    $properties
+                );
+            });
         }
 
         // Relational and hierarchy consistency guards
         \App\Models\CourseEnrollment::saving(function ($enrollment) {
-            if (!\App\Models\User::where('id', $enrollment->user_id)->exists()) {
+            if (!\App\Models\User::whereId($enrollment->user_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated user does not exist.");
             }
-            if (!\App\Models\CourseIntake::where('id', $enrollment->course_intake_id)->exists()) {
+            if (!\App\Models\CourseIntake::whereId($enrollment->course_intake_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated course intake does not exist.");
             }
         });
 
         \App\Models\CourseIntake::saving(function ($intake) {
-            if (!\App\Models\Course::where('id', $intake->course_id)->exists()) {
+            if (!\App\Models\Course::whereId($intake->course_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated course does not exist.");
             }
             if ($intake->instructor_id) {
@@ -651,28 +703,28 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\ServiceRequest::saving(function ($sr) {
-            if (!\App\Models\Client::where('id', $sr->client_id)->exists()) {
+            if (!\App\Models\Client::whereId($sr->client_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated client does not exist.");
             }
         });
 
         \App\Models\Quotation::saving(function ($q) {
-            if (!\App\Models\ServiceRequest::where('id', $q->service_request_id)->exists()) {
+            if (!\App\Models\ServiceRequest::whereId($q->service_request_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated service request does not exist.");
             }
         });
 
         \App\Models\Assignment::saving(function ($a) {
-            if (!\App\Models\ServiceRequest::where('id', $a->service_request_id)->exists()) {
+            if (!\App\Models\ServiceRequest::whereId($a->service_request_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated service request does not exist.");
             }
-            if (!\App\Models\User::where('id', $a->assigned_to)->exists()) {
+            if (!\App\Models\User::whereId($a->assigned_to)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The assigned user does not exist.");
             }
         });
 
         \App\Models\Task::saving(function ($t) {
-            if (!\App\Models\Assignment::where('id', $t->assignment_id)->exists()) {
+            if (!\App\Models\Assignment::whereId($t->assignment_id)->exists()) {
                 throw new \InvalidArgumentException("Invalid relationship: The associated assignment does not exist.");
             }
         });
@@ -706,22 +758,12 @@ class AppServiceProvider extends ServiceProvider
             if ($user->department_id) {
                 $user->loadMissing('department');
                 if ($user->department && $user->department->code !== 'AOS') {
-                    $hasExpert = \Illuminate\Support\Facades\DB::table('model_has_roles')
-                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                        ->where('model_has_roles.model_id', $user->id)
-                        ->where('model_has_roles.model_type', get_class($user))
-                        ->where('roles.name', 'language_expert')
-                        ->exists();
+                    $hasExpert = $user->roles()->whereName('language_expert')->exists();
 
-                    $isStudentOrClient = \Illuminate\Support\Facades\DB::table('model_has_roles')
-                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                        ->where('model_has_roles.model_id', $user->id)
-                        ->where('model_has_roles.model_type', get_class($user))
-                        ->whereIn('roles.name', ['student', 'client'])
-                        ->exists();
+                    $isStudentOrClient = $user->roles()->whereIn('name', ['student', 'client'])->exists();
 
                     if (!$hasExpert && !$isStudentOrClient) {
-                        $role = \Spatie\Permission\Models\Role::where('name', 'language_expert')->first();
+                        $role = \Spatie\Permission\Models\Role::whereName('language_expert')->first();
                         if ($role) {
                             \Illuminate\Support\Facades\DB::table('model_has_roles')->insertOrIgnore([
                                 'role_id' => $role->id,
@@ -745,13 +787,13 @@ class AppServiceProvider extends ServiceProvider
         if (!app()->runningInConsole()) {
             try {
                 $expiredIntakesExist = \Illuminate\Support\Facades\DB::table('course_intakes')
-                    ->where('status', '!=', 'completed')
-                    ->where('end_date', '<=', now()->toDateString())
+                    ->whereRaw('status != ?', ['completed'])
+                    ->whereRaw('end_date <= ?', [now()->toDateString()])
                     ->exists();
 
                 if ($expiredIntakesExist) {
-                    $intakesToComplete = \App\Models\CourseIntake::where('status', '!=', 'completed')
-                        ->where('end_date', '<=', now()->toDateString())
+                    $intakesToComplete = \App\Models\CourseIntake::whereRaw('status != ?', ['completed'])
+                        ->whereRaw('end_date <= ?', [now()->toDateString()])
                         ->get();
 
                     foreach ($intakesToComplete as $intake) {
@@ -763,5 +805,22 @@ class AppServiceProvider extends ServiceProvider
                 \Log::error("Failed to automatically complete expired course intakes: " . $e->getMessage());
             }
         }
+
+        // Audit log for login failures
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Failed::class, function ($event) {
+            $email = $event->credentials['email'] ?? 'unknown';
+            $user = $event->user;
+
+            \App\Models\ActivityLog::log(
+                'login_failed',
+                "Failed login attempt for email: {$email}",
+                $user,
+                [
+                    'email' => $email,
+                    'date_and_time' => now()->toIso8601String(),
+                    'ip_address' => request() ? request()->ip() : null,
+                ]
+            );
+        });
     }
 }

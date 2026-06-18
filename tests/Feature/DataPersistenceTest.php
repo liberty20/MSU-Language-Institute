@@ -202,7 +202,7 @@ class DataPersistenceTest extends TestCase
         $response->assertSessionHasErrors(['name']);
 
         // Check that only 1 intake exists in the DB
-        $this->assertEquals(1, CourseIntake::where('course_id', $course->id)->count());
+        $this->assertEquals(1, CourseIntake::whereCourseId($course->id)->count());
     }
 
     /** @test */
@@ -265,7 +265,7 @@ class DataPersistenceTest extends TestCase
         $password = 'password';
 
         // Check if there is an existing user or create one
-        $user = User::where('email', $email)->first();
+        $user = User::whereEmail($email)->first();
         if ($user) {
             $user->delete();
         }
@@ -313,7 +313,7 @@ class DataPersistenceTest extends TestCase
 
         // Set shouldBackup = true and run restore (simulating command finished)
         \App\Services\UserBackupService::$shouldBackup = true;
-        \App\Services\UserBackupService::restore(true, true);
+        \App\Services\UserBackupService::restore(true, false);
 
         // 4. Verify that the user still exists in the database
         $this->assertDatabaseHas('users', [
@@ -327,7 +327,54 @@ class DataPersistenceTest extends TestCase
         ]));
 
         // Verify the user has their role restored
-        $restoredUser = User::where('email', $email)->first();
+        $restoredUser = User::whereEmail($email)->first();
         $this->assertTrue($restoredUser->hasRole('language_expert'));
+    }
+
+    /** @test */
+    public function audit_logs_track_account_modifications_and_login_failures()
+    {
+        // 1. Test creation log
+        $email = 'audit.test@msunli.edu';
+        $user = User::create([
+            'name' => 'Audit Test User',
+            'email' => $email,
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'is_active' => true,
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'user_created',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
+
+        // 2. Test update log
+        $user->update(['name' => 'Audit Test User Updated']);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'user_updated',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
+
+        // 3. Test failed login log
+        $this->post('/login', [
+            'email' => $email,
+            'password' => 'wrong-password',
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'login_failed',
+        ]);
+
+        // 4. Test deletion log
+        $user->delete();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'user_deleted',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
     }
 }

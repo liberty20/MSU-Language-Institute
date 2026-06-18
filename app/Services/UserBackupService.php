@@ -228,7 +228,7 @@ class UserBackupService
                 $user = \App\Models\User::find($client->user_id);
             }
             if (!$user) {
-                $user = \App\Models\User::where('email', $client->email)->first();
+                $user = \App\Models\User::whereEmail($client->email)->first();
             }
 
             $name = $client->organization ?: $client->contact_person;
@@ -286,7 +286,7 @@ class UserBackupService
                 $user = \App\Models\User::find($client->user_id);
             }
             if (!$user) {
-                $user = \App\Models\User::where('email', $client->email)->first();
+                $user = \App\Models\User::whereEmail($client->email)->first();
             }
 
             if ($user) {
@@ -320,9 +320,9 @@ class UserBackupService
         self::$isSyncing = true;
 
         try {
-            $client = \App\Models\Client::where('user_id', $user->id)->first();
+            $client = \App\Models\Client::whereUserId($user->id)->first();
             if (!$client) {
-                $client = \App\Models\Client::where('email', $user->email)->first();
+                $client = \App\Models\Client::whereEmail($user->email)->first();
             }
 
             $clientData = [
@@ -366,9 +366,9 @@ class UserBackupService
         self::$isSyncing = true;
 
         try {
-            $client = \App\Models\Client::where('user_id', $user->id)->first();
+            $client = \App\Models\Client::whereUserId($user->id)->first();
             if (!$client) {
-                $client = \App\Models\Client::where('email', $user->email)->first();
+                $client = \App\Models\Client::whereEmail($user->email)->first();
             }
 
             if ($client) {
