@@ -222,15 +222,15 @@
         </div>
 
         <!-- Intake Modal -->
-        <div v-if="intakeModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="intakeModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+        <div v-if="intakeModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="intakeModalOpen = false">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-8">
                 <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
                     <h3 class="text-lg font-bold">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h3>
                     <button @click="intakeModalOpen = false" class="text-gray-300 hover:text-white transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <form @submit.prevent="saveIntake" class="p-6 space-y-4">
+                <form @submit.prevent="saveIntake" class="p-6 space-y-4 transition-all duration-300" :style="{ paddingBottom: showInstructorDropdown ? '10rem' : '1.5rem' }">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2" v-if="!isEditingIntake">
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Select Course</label>
@@ -272,13 +272,13 @@
                                     type="text" 
                                     placeholder="Search instructor by name, role, or unit..." 
                                     class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-10 py-2.5"
-                                    @focus="showInstructorDropdown = true"
+                                    @focus="handleFocus"
                                 />
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                 </div>
                                 
-                                <div v-show="showInstructorDropdown" class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100 text-sm">
+                                <div v-show="showInstructorDropdown" class="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100 text-sm">
                                     <div 
                                         class="px-4 py-2.5 text-gray-500 cursor-pointer hover:bg-gray-50 font-bold"
                                         @click="selectInstructor(null)"
@@ -462,7 +462,11 @@ const showInstructorDropdown = ref(false);
 
 const filteredInstructors = computed(() => {
     const q = instructorSearch.value.toLowerCase().trim();
-    if (!q) return props.instructors;
+    const currentIns = props.instructors.find(ins => ins.id === intakeForm.instructor_id);
+    const currentDisp = currentIns ? `${currentIns.name} — ${currentIns.role_name} (${currentIns.unit_code})`.toLowerCase() : '';
+    
+    if (!q || q === currentDisp) return props.instructors;
+    
     return props.instructors.filter(ins => {
         const name = ins.name.toLowerCase();
         const role = ins.role_name.toLowerCase();
@@ -480,6 +484,11 @@ const selectInstructor = (ins) => {
         instructorSearch.value = '';
     }
     showInstructorDropdown.value = false;
+};
+
+const handleFocus = (e) => {
+    showInstructorDropdown.value = true;
+    e.target.select();
 };
 
 const handleClickOutside = (event) => {

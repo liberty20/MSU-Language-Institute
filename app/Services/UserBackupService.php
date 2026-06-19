@@ -51,6 +51,7 @@ class UserBackupService
         'email_logs',
         'learning_contents',
         'messages',
+        'notices',
     ];
 
     /**

@@ -104,6 +104,27 @@ class FileManagementController extends Controller
                     } elseif ($parent instanceof \App\Models\Assignment) {
                         $hasAccess = ($parent->assigned_to === $user->id);
                     }
+                } elseif ($parent instanceof \App\Models\Notice) {
+                    if ($parent->published_at !== null) {
+                        if ($user->primary_category === 'Student') {
+                            if ($parent->target_type === 'all_students') {
+                                $hasAccess = true;
+                            } else {
+                                $hasAccess = \App\Models\CourseEnrollment::where('user_id', $user->id)
+                                    ->where('enrollment_status', 'active')
+                                    ->whereIn('course_intake_id', function($q) use ($parent) {
+                                        $q->select('id')
+                                            ->from('course_intakes')
+                                            ->where('course_id', $parent->course_id);
+                                    })
+                                    ->exists();
+                            }
+                        } else {
+                            $hasAccess = true;
+                        }
+                    } else {
+                        $hasAccess = ($user->primary_category === 'Staff');
+                    }
                 }
 
                 if (!$hasAccess) {
