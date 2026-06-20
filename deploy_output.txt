@@ -1,0 +1,37 @@
+=== MSU Language Institute Deployment ===
+[STEP 1] Checking paramiko...
+[MISSING] paramiko not found, installing...
+Defaulting to user installation because normal site-packages is not writeable
+Collecting paramiko
+  Downloading paramiko-5.0.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting bcrypt>=3.2 (from paramiko)
+  Downloading bcrypt-5.0.0-cp39-abi3-win_amd64.whl.metadata (10 kB)
+Collecting cryptography>=3.3 (from paramiko)
+  Downloading cryptography-49.0.0-cp311-abi3-win_amd64.whl.metadata (4.3 kB)
+Collecting invoke>=2.0 (from paramiko)
+  Downloading invoke-3.0.3-py3-none-any.whl.metadata (3.2 kB)
+Collecting pynacl>=1.5 (from paramiko)
+  Downloading pynacl-1.6.2-cp38-abi3-win_amd64.whl.metadata (10 kB)
+Collecting cffi>=2.0.0 (from cryptography>=3.3->paramiko)
+  Downloading cffi-2.0.0-cp314-cp314-win_amd64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=3.3->paramiko)
+  Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Downloading paramiko-5.0.0-py3-none-any.whl (208 kB)
+Downloading bcrypt-5.0.0-cp39-abi3-win_amd64.whl (150 kB)
+Downloading cryptography-49.0.0-cp311-abi3-win_amd64.whl (3.8 MB)
+   ---------------------------------------- 3.8/3.8 MB 3.4 MB/s  0:00:01
+Downloading cffi-2.0.0-cp314-cp314-win_amd64.whl (185 kB)
+Downloading invoke-3.0.3-py3-none-any.whl (160 kB)
+Downloading pynacl-1.6.2-cp38-abi3-win_amd64.whl (239 kB)
+Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+Installing collected packages: pycparser, invoke, bcrypt, cffi, pynacl, cryptography, paramiko
+
+Successfully installed bcrypt-5.0.0 cffi-2.0.0 cryptography-49.0.0 invoke-3.0.3 paramiko-5.0.0 pycparser-3.0 pynacl-1.6.2
+
+  WARNING: The scripts inv.exe and invoke.exe are installed in 'C:\Users\user\AppData\Roaming\Python\Python314\Scripts' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+
+[notice] A new release of pip is available: 26.1.1 -> 26.1.2
+[notice] To update, run: python.exe -m pip install --upgrade pip
+
+[FAIL] Could not install paramiko

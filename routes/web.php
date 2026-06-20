@@ -18,6 +18,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\NoticeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -144,6 +145,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/{id}/read', [DashboardController::class, 'markNotificationAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [DashboardController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
     Route::get('notifications-history', [DashboardController::class, 'notificationsHistory'])->name('notifications.history');
+
+    // Notices Management Routes (Admin + Students)
+    Route::get('notices', [NoticeController::class, 'index'])->name('notices.index');
+    Route::post('notices', [NoticeController::class, 'store'])->name('notices.store');
+    Route::post('notices/{notice}', [NoticeController::class, 'update'])->name('notices.update');
+    Route::post('notices/{notice}/publish', [NoticeController::class, 'publish'])->name('notices.publish');
+    Route::delete('notices/{notice}', [NoticeController::class, 'destroy'])->name('notices.destroy');
 
     // Centralized Messaging / Chat Routes
     Route::get('chat', [ChatController::class, 'index'])->name('chat.index');

@@ -710,25 +710,65 @@ class InstructorPortalController extends Controller
     {
         $request->validate([
             'course_intake_id' => 'required|exists:course_intakes,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'attachment' => 'nullable|file|max:10240', // 10MB
-            'due_date' => 'required|date|after_or_equal:today',
-            'max_marks' => 'required|integer|min:1',
+            'title'            => 'required|string|max:255',
+            'description'      => 'nullable|string',
+            'due_date'         => 'required|date|after_or_equal:today',
+            'max_marks'        => 'required|integer|min:1',
+            // Support both legacy single `attachment` and new multiple `attachments[]`
+            'attachment'        => 'nullable|file|max:10240',
+            'attachments'       => 'nullable|array|max:5',
+            'attachments.*'     => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,zip,png,jpg,jpeg|max:10240',
         ]);
 
-        $user = Auth::user();
+        $user   = Auth::user();
         $intake = CourseIntake::where('instructor_id', $user->id)->findOrFail($request->course_intake_id);
 
+        // Keep backward-compatible single attachment path on the model
         $filePath = null;
         if ($request->hasFile('attachment')) {
             $filePath = $request->file('attachment')->store('course_assignments/materials', 'public');
+        } elseif ($request->hasFile('attachments')) {
+            // Use first file for the legacy attachment_path field
+            $filePath = $request->file('attachments')[0]->store('course_assignments/materials', 'public');
         }
 
-        $assignment = CourseAssignment::create(array_merge($request->except('attachment'), [
+        $assignment = CourseAssignment::create(array_merge($request->except(['attachment', 'attachments']), [
             'attachment_path' => $filePath,
-            'created_by' => $user->id,
+            'created_by'      => $user->id,
         ]));
+
+        // Store additional attachments (all files after the first) as UploadedDocument records
+        $files = $request->hasFile('attachments') ? $request->file('attachments') : [];
+        $startIdx = ($filePath && $request->hasFile('attachments')) ? 1 : 0; // skip first if already stored above
+
+        foreach (array_slice($files, $startIdx) as $file) {
+            $path  = $file->store('course_assignments/materials', 'public');
+            $assignment->documents()->create([
+                'uploaded_by' => $user->id,
+                'filename'    => $file->getClientOriginalName(),
+                'file_path'   => $path,
+                'file_size'   => $file->getSize(),
+                'mime_type'   => $file->getMimeType(),
+                'description' => 'Assignment resource material: ' . $assignment->title,
+            ]);
+        }
+
+        // Also handle legacy single `attachment` → store it as UploadedDocument too if multi-file used
+        if ($request->hasFile('attachments') && count($files) > 1) {
+            // First file already stored as UploadedDocument above if $startIdx=0
+            // If $filePath was set from attachments[0], create its document record
+            \App\Models\UploadedDocument::firstOrCreate([
+                'documentable_type' => CourseAssignment::class,
+                'documentable_id'   => $assignment->id,
+                'file_path'         => $filePath,
+            ], [
+                'uploaded_by' => $user->id,
+                'filename'    => $request->file('attachments')[0]->getClientOriginalName(),
+                'file_size'   => $request->file('attachments')[0]->getSize(),
+                'mime_type'   => $request->file('attachments')[0]->getMimeType(),
+                'description' => 'Assignment resource material: ' . $assignment->title,
+            ]);
+        }
 
         // Notify enrolled students
         $enrollments = CourseEnrollment::has('user')->where('course_intake_id', $intake->id)->where('enrollment_status', 'active')->get();
@@ -747,6 +787,7 @@ class InstructorPortalController extends Controller
 
         return redirect()->back()->with('success', 'Assignment created successfully!');
     }
+
 
     public function assignmentsUpdate(Request $request, $id)
     {

@@ -37,4 +37,9 @@ class CourseAssignment extends Model
     {
         return $this->hasMany(CourseAssignmentSubmission::class);
     }
+
+    public function documents()
+    {
+        return $this->morphMany(UploadedDocument::class, 'documentable');
+    }
 }

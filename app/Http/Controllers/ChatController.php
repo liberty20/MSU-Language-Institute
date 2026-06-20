@@ -10,66 +10,37 @@ use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
-    private function isAdmin($user)
+    private function isStudent($user)
     {
-        return $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary']);
-    }
-
-    private function isClient($user)
-    {
-        return $user->hasRole('client');
-    }
-
-    private function isInstructor($user)
-    {
-        return $user->hasAnyRole(['language_expert', 'part_time_staff']) || $user->instructedIntakes()->exists();
+        return $user->hasRole('student');
     }
 
     private function canChat($userA, $userB)
     {
-        if ($userA->id === $userB->id) {
-            return false;
-        }
-
-        if ($this->isAdmin($userA)) {
-            return $this->isClient($userB) || $this->isInstructor($userB);
-        }
-
-        if ($this->isClient($userA)) {
-            return $this->isAdmin($userB);
-        }
-
-        if ($this->isInstructor($userA)) {
-            return $this->isAdmin($userB);
-        }
-
-        return false;
+        if ($userA->id === $userB->id) return false;
+        // Students cannot use messaging at all
+        if ($this->isStudent($userA) || $this->isStudent($userB)) return false;
+        // All other authenticated users can message each other freely
+        return true;
     }
 
     public function index()
     {
         $user = Auth::user();
-        if (!$this->isAdmin($user) && !$this->isClient($user) && !$this->isInstructor($user)) {
-            abort(403, 'Unauthorized.');
+
+        // Students are not allowed to use messaging
+        if ($this->isStudent($user)) {
+            abort(403, 'Students do not have access to the messaging system.');
         }
 
-        if ($this->isAdmin($user)) {
-            $contacts = User::where('id', '!=', $user->id)
-                ->where(function($q) {
-                    $q->whereHas('roles', function($r) {
-                        $r->whereIn('name', ['client', 'language_expert', 'part_time_staff']);
-                    })->orWhereHas('instructedIntakes');
-                })
-                ->orderBy('name')
-                ->get();
-        } else {
-            $contacts = User::whereHas('roles', function($q) {
-                $q->whereIn('name', ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary']);
+        // All non-student users see all other non-student users as contacts
+        $contacts = User::where('id', '!=', $user->id)
+            ->whereDoesntHave('roles', function ($q) {
+                $q->where('name', 'student');
             })
-            ->where('id', '!=', $user->id)
             ->orderBy('name')
+            ->with('roles')
             ->get();
-        }
 
         $contactsData = $contacts->map(function($contact) use ($user) {
             $lastMsg = Message::where(function($q) use ($user, $contact) {
@@ -82,16 +53,16 @@ class ChatController extends Controller
                 ->first();
 
             return [
-                'id' => $contact->id,
-                'name' => $contact->name,
-                'email' => $contact->email,
-                'role' => $contact->roles->first() ? $contact->roles->first()->name : 'User',
+                'id'           => $contact->id,
+                'name'         => $contact->name,
+                'email'        => $contact->email,
+                'role'         => $contact->roles->first() ? $contact->roles->first()->name : 'User',
                 'unread_count' => Message::where('sender_id', $contact->id)
                     ->where('receiver_id', $user->id)
                     ->whereNull('read_at')
                     ->count(),
                 'last_message' => $lastMsg ? [
-                    'message' => $lastMsg->message,
+                    'message'    => $lastMsg->message,
                     'created_at' => $lastMsg->created_at->toIso8601String(),
                 ] : null,
             ];
@@ -101,6 +72,7 @@ class ChatController extends Controller
             'contacts' => $contactsData,
         ]);
     }
+
 
     public function getMessages($contactId)
     {

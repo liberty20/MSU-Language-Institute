@@ -93,34 +93,59 @@
                     </div>
 
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Attach Files / Source Documents</label>
-                        <div class="relative border-2 border-dashed border-gray-300 hover:border-[#0a1f44] rounded-xl p-6 text-center cursor-pointer transition-colors"
-                             :class="{ 'border-[#0a1f44] bg-blue-50/10': isDragOver }"
-                             @dragover.prevent="isDragOver = true"
-                             @dragleave="isDragOver = false"
-                             @drop.prevent="handleFileDrop">
-                            <input type="file" multiple ref="fileInput" @change="handleFileChange" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                            
-                            <div class="space-y-2">
-                                <svg class="w-10 h-10 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                <div class="text-sm font-semibold text-gray-700">
-                                    Click to select or drag & drop files
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Attach Files / Source Documents</label>
+
+                        <!-- Dynamic file rows -->
+                        <div class="space-y-2 mb-3">
+                            <div v-for="(row, idx) in fileRows" :key="row.id"
+                                class="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 hover:border-[#0a1f44]/30 transition group"
+                                :class="{'border-dashed border-2 border-gray-300 bg-blue-50/10': idx === 0 && isDragOver}"
+                                @dragover.prevent="idx === 0 && (isDragOver = true)"
+                                @dragleave="isDragOver = false"
+                                @drop.prevent="idx === 0 ? handleFileDrop($event, idx) : null"
+                            >
+                                <!-- File icon -->
+                                <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" :class="row.file ? 'bg-[#0a1f44]/10' : 'bg-gray-100'">
+                                    <svg class="w-4 h-4" :class="row.file ? 'text-[#0a1f44]' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                                 </div>
-                                <div class="text-xs text-gray-400">
-                                    Supported file types: PDF, DOC, DOCX, ZIP, PNG, JPG (Max 10MB per file)
+
+                                <!-- File picker -->
+                                <div class="flex-grow min-w-0">
+                                    <div v-if="row.file" class="flex items-center gap-2">
+                                        <span class="text-sm font-semibold text-gray-800 truncate">{{ row.file.name }}</span>
+                                        <span class="text-xs text-gray-400 flex-shrink-0">({{ (row.file.size / 1024).toFixed(0) }} KB)</span>
+                                    </div>
+                                    <div v-else class="flex items-center gap-2">
+                                        <label :for="`file-row-${row.id}`" class="text-sm text-[#0a1f44] font-semibold cursor-pointer hover:underline truncate">
+                                            {{ idx === 0 ? 'Click to select or drag & drop' : 'Click to select file' }}
+                                        </label>
+                                        <span class="text-xs text-gray-400 flex-shrink-0">PDF, DOC, ZIP, PNG, JPG</span>
+                                    </div>
+                                    <input :id="`file-row-${row.id}`" type="file"
+                                        accept=".pdf,.doc,.docx,.zip,.png,.jpg,.jpeg"
+                                        class="sr-only"
+                                        @change="handleRowFileChange(idx, $event)" />
                                 </div>
-                                <div v-if="form.files && form.files.length > 0" class="text-xs text-[#0a1f44] font-semibold mt-2 text-left bg-gray-50 p-3 rounded-lg border border-gray-150">
-                                    Selected files ({{ form.files.length }}):
-                                    <ul class="mt-1 space-y-1 text-gray-700 list-disc list-inside">
-                                        <li v-for="(file, index) in form.files" :key="index">
-                                            {{ file.name }} ({{ (file.size / 1024).toFixed(1) }} KB)
-                                        </li>
-                                    </ul>
-                                </div>
+
+                                <!-- Remove button -->
+                                <button v-if="fileRows.length > 1" type="button" @click="removeFileRow(idx)"
+                                    class="flex-shrink-0 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition opacity-0 group-hover:opacity-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
                             </div>
                         </div>
+
+                        <!-- Add another file button -->
+                        <div class="flex items-center justify-between">
+                            <button type="button" @click="addFileRow"
+                                :disabled="fileRows.length >= 10"
+                                class="inline-flex items-center gap-2 text-sm font-semibold text-[#0a1f44] hover:text-white bg-[#0a1f44]/5 hover:bg-[#0a1f44] border border-[#0a1f44]/15 hover:border-[#0a1f44] px-4 py-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Add Another File
+                            </button>
+                            <span class="text-xs text-gray-400 font-medium">{{ fileRows.filter(r => r.file).length }}/10 files · Max 10MB each</span>
+                        </div>
+
                         <div v-if="form.errors.files" class="text-red-500 text-xs mt-1">{{ form.errors.files }}</div>
                     </div>
                 </div>
@@ -170,6 +195,52 @@ const zimbabweanLanguages = [
 
 const isDragOver = ref(false);
 
+// --- Dynamic multi-file row system ---
+let _rowCounter = 0;
+const fileRows = ref([{ id: _rowCounter++, file: null }]);
+
+const ALLOWED_EXT = /\.(pdf|doc|docx|zip|png|jpg|jpeg)$/i;
+
+const validateFile = (file) => {
+    if (file.size > 10 * 1024 * 1024) return 'File "' + file.name + '" exceeds 10MB limit.';
+    if (!ALLOWED_EXT.test(file.name)) return 'File "' + file.name + '" has an unsupported type. Use PDF, DOC, DOCX, ZIP, PNG or JPG.';
+    return null;
+};
+
+const syncFormFiles = () => {
+    form.files = fileRows.value.filter(r => r.file).map(r => r.file);
+};
+
+const addFileRow = () => {
+    if (fileRows.value.length < 10) {
+        fileRows.value.push({ id: _rowCounter++, file: null });
+    }
+};
+
+const removeFileRow = (idx) => {
+    fileRows.value.splice(idx, 1);
+    syncFormFiles();
+};
+
+const handleRowFileChange = (idx, e) => {
+    const file = e.target.files[0];
+    if (!file) { fileRows.value[idx].file = null; syncFormFiles(); return; }
+    const err = validateFile(file);
+    if (err) { alert(err); e.target.value = ''; fileRows.value[idx].file = null; return; }
+    fileRows.value[idx].file = file;
+    syncFormFiles();
+};
+
+const handleFileDrop = (e, idx) => {
+    isDragOver.value = false;
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const err = validateFile(file);
+    if (err) { alert(err); return; }
+    fileRows.value[idx].file = file;
+    syncFormFiles();
+};
+
 const form = useForm({
     client_id: props.default_client_id || '',
     service_category: '',
@@ -204,16 +275,8 @@ const updateTargetLanguage = () => {
     }
 };
 
-const handleFileChange = (e) => {
-    form.files = Array.from(e.target.files);
-};
-
-const handleFileDrop = (e) => {
-    isDragOver.value = false;
-    form.files = Array.from(e.dataTransfer.files);
-};
-
 const submit = () => {
     form.post(route('service-requests.store'));
 };
+
 </script>

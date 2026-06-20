@@ -76,7 +76,7 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Reports</span>
                 </Link>
 
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'client'].some(r => $page.props.auth.roles.includes(r)) || $page.props.auth.is_instructor" :href="route('chat.index')" :class="navClass('chat.*')" title="Internal Messages" class="flex justify-between items-center w-full relative">
+                <Link v-if="!$page.props.auth.roles.includes('student')" :href="route('chat.index')" :class="navClass('chat.*')" title="Internal Messages" class="flex justify-between items-center w-full relative">
                     <div class="flex items-center">
                         <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Internal Messages</span>
@@ -102,6 +102,12 @@
                 <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" :href="route('course-applications.index')" :class="navClass('course-applications.*')" title="Course Applications">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Course Applications</span>
+                </Link>
+
+                <!-- Notices & Announcements (Admin + Students) -->
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r)) || $page.props.auth.roles.includes('student')" :href="route('notices.index')" :class="navClass('notices.*')" title="Notices &amp; Announcements">
+                    <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                    <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Notices</span>
                 </Link>
 
                 <!-- Short Courses (Student only) -->
@@ -339,8 +345,10 @@
             </div>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 relative z-10">
-                <slot />
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 relative z-10 min-w-0">
+                <div class="max-w-full">
+                    <slot />
+                </div>
             </main>
         </div>
     </div>
@@ -378,9 +386,10 @@ const fetchNotifications = () => {
 
     const roles = page.props.value.auth.roles || [];
     const isInstructor = page.props.value.auth.is_instructor || false;
-    const canAccessChat = ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'client'].some(r => roles.includes(r)) || isInstructor;
+    const isStudent = roles.includes('student');
 
-    if (canAccessChat) {
+    // All non-student users can access chat
+    if (!isStudent) {
         axios.get(route('chat.unread-count')).then(res => {
             unreadMessagesCount.value = res.data.unread_messages_count;
         }).catch(err => console.error("Error fetching unread chat count", err));

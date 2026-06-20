@@ -122,11 +122,40 @@
                         </div>
                     </div>
 
-                    <!-- Reference file -->
-                    <div v-if="!editMode">
-                        <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Upload Resource Material (Optional)</label>
-                        <input type="file" @change="handleFileUpload" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#0a1f44]/10 file:text-brand-blue hover:file:bg-[#0a1f44]/20" />
+                    <!-- Resource Files (Dynamic multi-file) -->
+                    <div v-if="!editMode" class="space-y-2">
+                        <label class="block text-xs font-bold text-gray-750 uppercase tracking-wide mb-1.5">Upload Resource Materials (Optional)</label>
+                        
+                        <div v-for="(field, idx) in fileFields" :key="field.id" class="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200 transition hover:border-[#0a1f44]/20">
+                            <div class="flex-grow">
+                                <input 
+                                    type="file"
+                                    :id="`assign-file-${field.id}`"
+                                    @change="handleFileChange(idx, $event)"
+                                    accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.png,.jpg,.jpeg"
+                                    class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-[#0a1f44]/10 file:text-brand-blue hover:file:bg-[#0a1f44]/20 cursor-pointer"
+                                />
+                            </div>
+                            <div class="flex-shrink-0 flex items-center gap-2">
+                                <span v-if="field.file" class="text-[10px] text-green-600 font-bold">{{ (field.file.size / 1024).toFixed(0) }} KB</span>
+                                <button v-if="fileFields.length > 1" type="button" @click="removeFileField(idx)"
+                                    class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <button type="button" @click="addFileField"
+                                :disabled="fileFields.length >= 5"
+                                class="text-xs font-bold text-[#0a1f44] hover:text-white bg-[#0a1f44]/5 hover:bg-[#0a1f44] px-3 py-1.5 rounded-lg border border-[#0a1f44]/15 hover:border-[#0a1f44] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Add Another File
+                            </button>
+                            <span class="text-[10px] text-gray-400 font-semibold">{{ fileFields.filter(f => f.file).length }}/5 files · PDF, DOC, PPT, ZIP, IMG · Max 10MB</span>
+                        </div>
                     </div>
+
 
                     <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
                         <button type="button" @click="closeModal" class="px-4 py-2 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition text-xs">Cancel</button>
@@ -251,7 +280,33 @@ const modalOpen = ref(false);
 const editMode = ref(false);
 const submitting = ref(false);
 const selectedId = ref(null);
-const fileAttachment = ref(null);
+
+// Multi-file upload state
+let _fieldCounter = 0;
+const fileFields = ref([{ id: _fieldCounter++, file: null }]);
+
+const addFileField = () => {
+    if (fileFields.value.length < 5) {
+        fileFields.value.push({ id: _fieldCounter++, file: null });
+    }
+};
+
+const removeFileField = (idx) => {
+    fileFields.value.splice(idx, 1);
+};
+
+const handleFileChange = (idx, e) => {
+    const file = e.target.files[0];
+    if (!file) { fileFields.value[idx].file = null; return; }
+    // 10MB size check
+    if (file.size > 10 * 1024 * 1024) {
+        alert('File "' + file.name + '" exceeds the 10MB limit.');
+        e.target.value = '';
+        fileFields.value[idx].file = null;
+        return;
+    }
+    fileFields.value[idx].file = file;
+};
 
 const form = reactive({
     course_intake_id: '',
@@ -299,11 +354,8 @@ const closeModal = () => {
     form.description = '';
     form.due_date = '';
     form.max_marks = '';
-    fileAttachment.value = null;
-};
-
-const handleFileUpload = (e) => {
-    fileAttachment.value = e.target.files[0];
+    // Reset multi-file fields
+    fileFields.value = [{ id: _fieldCounter++, file: null }];
 };
 
 const submitForm = () => {
@@ -311,13 +363,8 @@ const submitForm = () => {
 
     if (editMode.value) {
         Inertia.put(route('instructor.assignments.update', selectedId.value), form, {
-            onSuccess: () => {
-                submitting.value = false;
-                closeModal();
-            },
-            onError: () => {
-                submitting.value = false;
-            }
+            onSuccess: () => { submitting.value = false; closeModal(); },
+            onError:   () => { submitting.value = false; }
         });
     } else {
         const formData = new FormData();
@@ -326,18 +373,16 @@ const submitForm = () => {
         formData.append('description', form.description || '');
         formData.append('due_date', form.due_date);
         formData.append('max_marks', form.max_marks);
-        if (fileAttachment.value) {
-            formData.append('attachment', fileAttachment.value);
-        }
+
+        // Append each selected file as attachments[]
+        const selectedFiles = fileFields.value.filter(f => f.file);
+        selectedFiles.forEach(f => {
+            formData.append('attachments[]', f.file, f.file.name);
+        });
 
         Inertia.post(route('instructor.assignments.store'), formData, {
-            onSuccess: () => {
-                submitting.value = false;
-                closeModal();
-            },
-            onError: () => {
-                submitting.value = false;
-            }
+            onSuccess: () => { submitting.value = false; closeModal(); },
+            onError:   () => { submitting.value = false; }
         });
     }
 };

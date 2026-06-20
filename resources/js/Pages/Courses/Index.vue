@@ -222,15 +222,16 @@
         </div>
 
         <!-- Intake Modal -->
-        <div v-if="intakeModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="intakeModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-8">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
+        <div v-if="intakeModalOpen" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="intakeModalOpen = false">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-8 max-h-[90vh] flex flex-col">
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl flex-shrink-0">
                     <h3 class="text-lg font-bold">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h3>
                     <button @click="intakeModalOpen = false" class="text-gray-300 hover:text-white transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <form @submit.prevent="saveIntake" class="p-6 space-y-4 transition-all duration-300" :style="{ paddingBottom: showInstructorDropdown ? '10rem' : '1.5rem' }">
+                <div class="overflow-y-auto flex-1">
+                <form @submit.prevent="saveIntake" class="p-6 space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2" v-if="!isEditingIntake">
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Select Course</label>
@@ -264,41 +265,52 @@
                                 <option value="completed">Completed</option>
                             </select>
                         </div>
-                        <div class="col-span-2 relative" ref="dropdownContainer">
+                        <!-- Instructor Combobox — uses Teleport to escape modal overflow clipping -->
+                        <div class="col-span-2" ref="dropdownContainer">
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Assign Instructor</label>
                             <div class="relative">
                                 <input 
+                                    id="instructor-search-input"
                                     v-model="instructorSearch" 
                                     type="text" 
                                     placeholder="Search instructor by name, role, or unit..." 
                                     class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-10 py-2.5"
                                     @focus="handleFocus"
+                                    @input="showInstructorDropdown = true"
+                                    autocomplete="off"
                                 />
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                 </div>
-                                
-                                <div v-show="showInstructorDropdown" class="absolute z-[100] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100 text-sm">
+                            </div>
+                            <!-- Teleported dropdown — renders at body level to avoid any overflow/z-index clipping -->
+                            <Teleport to="body">
+                                <div 
+                                    v-show="showInstructorDropdown && intakeModalOpen"
+                                    :style="dropdownStyle"
+                                    class="fixed bg-white border border-gray-200 rounded-xl shadow-2xl overflow-y-auto divide-y divide-gray-100 text-sm"
+                                    style="z-index: 9999;"
+                                >
                                     <div 
-                                        class="px-4 py-2.5 text-gray-500 cursor-pointer hover:bg-gray-50 font-bold"
-                                        @click="selectInstructor(null)"
+                                        class="px-4 py-2.5 text-gray-500 cursor-pointer hover:bg-gray-50 font-bold sticky top-0 bg-white border-b border-gray-100"
+                                        @mousedown.prevent="selectInstructor(null)"
                                     >
-                                        Unassigned
+                                        — Unassigned
                                     </div>
                                     <div 
                                         v-for="ins in filteredInstructors" 
                                         :key="ins.id"
-                                        class="px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition flex flex-col text-left"
-                                        @click="selectInstructor(ins)"
+                                        class="px-4 py-2.5 cursor-pointer hover:bg-brand-gold/5 transition flex flex-col text-left"
+                                        @mousedown.prevent="selectInstructor(ins)"
                                     >
                                         <span class="font-bold text-gray-800">{{ ins.name }}</span>
                                         <span class="text-xs text-gray-400 mt-0.5">{{ ins.role_name }} — {{ ins.unit_code }}</span>
                                     </div>
-                                    <div v-if="filteredInstructors.length === 0" class="px-4 py-3 text-xs text-gray-400 italic text-center">
+                                    <div v-if="filteredInstructors.length === 0" class="px-4 py-4 text-xs text-gray-400 italic text-center">
                                         No matching instructors found.
                                     </div>
                                 </div>
-                            </div>
+                            </Teleport>
                         </div>
                     </div>
                     <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
@@ -306,6 +318,7 @@
                         <button type="submit" class="px-5 py-2.5 rounded-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold transition shadow text-sm">Save Intake</button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>
@@ -314,7 +327,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Inertia } from '@inertiajs/inertia';
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
     courses: Array,
@@ -459,6 +472,27 @@ const intakeForm = reactive({
 const dropdownContainer = ref(null);
 const instructorSearch = ref('');
 const showInstructorDropdown = ref(false);
+const dropdownPos = ref({ top: 0, left: 0, width: 300 });
+
+// Computed style for the Teleported dropdown — positions it below the input
+const dropdownStyle = computed(() => ({
+    top: dropdownPos.value.top + 'px',
+    left: dropdownPos.value.left + 'px',
+    width: dropdownPos.value.width + 'px',
+    maxHeight: '15rem',
+}));
+
+const updateDropdownPosition = () => {
+    const input = document.getElementById('instructor-search-input');
+    if (input) {
+        const rect = input.getBoundingClientRect();
+        dropdownPos.value = {
+            top: rect.bottom + window.scrollY + 4,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+        };
+    }
+};
 
 const filteredInstructors = computed(() => {
     const q = instructorSearch.value.toLowerCase().trim();
@@ -487,6 +521,7 @@ const selectInstructor = (ins) => {
 };
 
 const handleFocus = (e) => {
+    updateDropdownPosition();
     showInstructorDropdown.value = true;
     e.target.select();
 };
@@ -507,10 +542,14 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('scroll', updateDropdownPosition, true);
+    window.removeEventListener('resize', updateDropdownPosition);
 });
 
 const openCreateIntakeModal = () => {
