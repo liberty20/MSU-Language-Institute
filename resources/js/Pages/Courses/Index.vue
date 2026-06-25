@@ -223,7 +223,7 @@
 
         <!-- Intake Modal -->
         <div v-if="intakeModalOpen" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="intakeModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-8 max-h-[90vh] flex flex-col">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
                 <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl flex-shrink-0">
                     <h3 class="text-lg font-bold">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h3>
                     <button @click="intakeModalOpen = false" class="text-gray-300 hover:text-white transition">
@@ -274,33 +274,46 @@
                                     v-model="instructorSearch" 
                                     type="text" 
                                     placeholder="Search instructor by name, role, or unit..." 
-                                    class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-10 py-2.5"
+                                    class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-16 py-2.5"
                                     @focus="handleFocus"
-                                    @input="showInstructorDropdown = true"
+                                    @input="handleInput"
+                                    @keydown="handleKeyDown"
                                     autocomplete="off"
                                 />
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 gap-1.5">
+                                    <button 
+                                        v-if="instructorSearch" 
+                                        type="button" 
+                                        @click="selectInstructor(null)" 
+                                        class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition"
+                                        title="Clear selection"
+                                    >
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                    <svg class="h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                 </div>
                             </div>
                             <!-- Teleported dropdown — renders at body level to avoid any overflow/z-index clipping -->
                             <Teleport to="body">
                                 <div 
+                                    ref="dropdownEl"
                                     v-show="showInstructorDropdown && intakeModalOpen"
                                     :style="dropdownStyle"
                                     class="fixed bg-white border border-gray-200 rounded-xl shadow-2xl overflow-y-auto divide-y divide-gray-100 text-sm"
                                     style="z-index: 9999;"
                                 >
                                     <div 
-                                        class="px-4 py-2.5 text-gray-500 cursor-pointer hover:bg-gray-50 font-bold sticky top-0 bg-white border-b border-gray-100"
+                                        class="px-4 py-2.5 text-gray-500 cursor-pointer font-bold sticky top-0 bg-white border-b border-gray-100 transition-colors"
+                                        :class="highlightedIndex === 0 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-gray-50'"
                                         @mousedown.prevent="selectInstructor(null)"
                                     >
                                         — Unassigned
                                     </div>
                                     <div 
-                                        v-for="ins in filteredInstructors" 
+                                        v-for="(ins, idx) in filteredInstructors" 
                                         :key="ins.id"
-                                        class="px-4 py-2.5 cursor-pointer hover:bg-brand-gold/5 transition flex flex-col text-left"
+                                        class="px-4 py-2.5 cursor-pointer transition flex flex-col text-left"
+                                        :class="highlightedIndex === idx + 1 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-brand-gold/5'"
                                         @mousedown.prevent="selectInstructor(ins)"
                                     >
                                         <span class="font-bold text-gray-800">{{ ins.name }}</span>
@@ -470,27 +483,51 @@ const intakeForm = reactive({
 
 // Combobox Search-Enabled Instructor Dropdown
 const dropdownContainer = ref(null);
+const dropdownEl = ref(null);
 const instructorSearch = ref('');
 const showInstructorDropdown = ref(false);
-const dropdownPos = ref({ top: 0, left: 0, width: 300 });
+const highlightedIndex = ref(-1);
+const dropdownPos = ref({ top: 0, bottom: 0, left: 0, width: 300 });
+const dropdownPlacement = ref('bottom');
 
-// Computed style for the Teleported dropdown — positions it below the input
-const dropdownStyle = computed(() => ({
-    top: dropdownPos.value.top + 'px',
-    left: dropdownPos.value.left + 'px',
-    width: dropdownPos.value.width + 'px',
-    maxHeight: '15rem',
-}));
+// Computed style for the Teleported dropdown — positions it above or below the input
+const dropdownStyle = computed(() => {
+    const style = {
+        left: dropdownPos.value.left + 'px',
+        width: dropdownPos.value.width + 'px',
+        maxHeight: '15rem',
+    };
+    if (dropdownPlacement.value === 'top') {
+        style.bottom = dropdownPos.value.bottom + 'px';
+    } else {
+        style.top = dropdownPos.value.top + 'px';
+    }
+    return style;
+});
 
 const updateDropdownPosition = () => {
     const input = document.getElementById('instructor-search-input');
     if (input) {
         const rect = input.getBoundingClientRect();
-        dropdownPos.value = {
-            top: rect.bottom + window.scrollY + 4,
-            left: rect.left + window.scrollX,
-            width: rect.width,
-        };
+        const dropdownMaxHeight = 240; // 15rem max height
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+            dropdownPlacement.value = 'top';
+            dropdownPos.value = {
+                bottom: window.innerHeight - rect.top + 4,
+                left: rect.left,
+                width: rect.width,
+            };
+        } else {
+            dropdownPlacement.value = 'bottom';
+            dropdownPos.value = {
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+            };
+        }
     }
 };
 
@@ -518,16 +555,69 @@ const selectInstructor = (ins) => {
         instructorSearch.value = '';
     }
     showInstructorDropdown.value = false;
+    highlightedIndex.value = -1;
 };
 
 const handleFocus = (e) => {
     updateDropdownPosition();
     showInstructorDropdown.value = true;
+    highlightedIndex.value = -1;
     e.target.select();
 };
 
+const handleInput = () => {
+    showInstructorDropdown.value = true;
+    highlightedIndex.value = -1;
+    updateDropdownPosition();
+};
+
+const scrollHighlightedIntoView = () => {
+    nextTick(() => {
+        if (!dropdownEl.value) return;
+        const children = dropdownEl.value.children;
+        const target = children[highlightedIndex.value];
+        if (target) {
+            target.scrollIntoView({ block: 'nearest' });
+        }
+    });
+};
+
+const handleKeyDown = (e) => {
+    if (!showInstructorDropdown.value) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            showInstructorDropdown.value = true;
+            updateDropdownPosition();
+        }
+        return;
+    }
+
+    const totalItems = filteredInstructors.value.length + 1; // +1 for "Unassigned"
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightedIndex.value = (highlightedIndex.value + 1) % totalItems;
+        scrollHighlightedIntoView();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightedIndex.value = (highlightedIndex.value - 1 + totalItems) % totalItems;
+        scrollHighlightedIntoView();
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (highlightedIndex.value === 0) {
+            selectInstructor(null);
+        } else if (highlightedIndex.value > 0 && highlightedIndex.value < totalItems) {
+            selectInstructor(filteredInstructors.value[highlightedIndex.value - 1]);
+        }
+    } else if (e.key === 'Escape') {
+        showInstructorDropdown.value = false;
+    }
+};
+
 const handleClickOutside = (event) => {
-    if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
+    const clickedInsideInputContainer = dropdownContainer.value && dropdownContainer.value.contains(event.target);
+    const clickedInsideDropdownMenu = dropdownEl.value && dropdownEl.value.contains(event.target);
+    
+    if (!clickedInsideInputContainer && !clickedInsideDropdownMenu) {
         showInstructorDropdown.value = false;
         if (intakeForm.instructor_id) {
             const current = props.instructors.find(ins => ins.id === intakeForm.instructor_id);
@@ -563,6 +653,8 @@ const openCreateIntakeModal = () => {
     intakeForm.status = 'draft';
     intakeForm.instructor_id = null;
     instructorSearch.value = '';
+    showInstructorDropdown.value = false;
+    highlightedIndex.value = -1;
     intakeModalOpen.value = true;
 };
 
@@ -576,6 +668,8 @@ const openEditIntakeModal = (intake) => {
     intakeForm.capacity = intake.capacity;
     intakeForm.status = intake.status;
     intakeForm.instructor_id = intake.instructor_id;
+    showInstructorDropdown.value = false;
+    highlightedIndex.value = -1;
     
     if (intake.instructor_id) {
         const ins = props.instructors.find(i => i.id === intake.instructor_id);
