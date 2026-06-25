@@ -65,6 +65,70 @@
     }
 }
 
+/* Responsive Modal Layout */
+.modal {
+    overflow: visible;
+}
+
+.modal-dialog {
+    max-width: 900px;
+    width: 90%;
+    overflow: visible;
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: visible;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 1055;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0a2a66;
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: visible;
+}
+
+.modal-footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+}
+
+/* Z-Index Fix and Dropdown Scroll Support */
+.select2-container,
+.select2-dropdown,
+.ts-dropdown {
+    z-index: 99999 !important;
+}
+
+.select2-results__options,
+.ts-dropdown-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+
 @keyframes fadeInUp {
     from {
         opacity: 0;

@@ -88,89 +88,91 @@
             </div>
 
             <!-- Write Review Modal -->
-            <div v-if="showModal" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col relative transform transition-all duration-300 scale-100">
-                    
-                    <!-- Decorative Top Accent -->
-                    <div class="h-2 bg-gradient-to-r from-amber-400 to-[#f5c242]"></div>
+            <Teleport to="body">
+                <div v-if="showModal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div class="modal-dialog modal-content bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-150 relative transform transition-all duration-300 scale-100">
+                        
+                        <!-- Decorative Top Accent -->
+                        <div class="h-2 bg-gradient-to-r from-amber-400 to-[#f5c242]"></div>
 
-                    <!-- Header -->
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                        <div>
-                            <h3 class="text-lg font-extrabold text-gray-900">Submit Service Review</h3>
-                            <p class="text-xs text-gray-500 mt-0.5">Reference: {{ selectedRequest?.reference_number }}</p>
+                        <!-- Header -->
+                        <div class="modal-header">
+                            <div>
+                                <h4 class="modal-title">Submit Service Review</h4>
+                                <p class="text-xs text-gray-500 mt-0.5">Reference: {{ selectedRequest?.reference_number }}</p>
+                            </div>
+                            <button @click="closeModal" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
                         </div>
-                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
 
-                    <!-- Modal Body -->
-                    <div class="p-6 space-y-5">
-                        <!-- Request Quick Stats -->
-                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2">
-                            <h4 class="font-bold text-[#0a1f44] text-sm">{{ selectedRequest?.title }}</h4>
-                            <div class="flex items-center gap-2 flex-wrap text-xs text-gray-500 font-medium">
-                                <span class="capitalize">{{ selectedRequest?.service_category.replace('_', ' ') }}</span>
-                                <span>•</span>
-                                <span>Completed {{ new Date(selectedRequest?.completed_at || selectedRequest?.updated_at).toLocaleDateString() }}</span>
+                        <!-- Modal Body -->
+                        <div class="modal-body p-6 space-y-5">
+                            <!-- Request Quick Stats -->
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2">
+                                <h4 class="font-bold text-[#0a1f44] text-sm">{{ selectedRequest?.title }}</h4>
+                                <div class="flex items-center gap-2 flex-wrap text-xs text-gray-500 font-medium">
+                                    <span class="capitalize">{{ selectedRequest?.service_category.replace('_', ' ') }}</span>
+                                    <span>•</span>
+                                    <span>Completed {{ new Date(selectedRequest?.completed_at || selectedRequest?.updated_at).toLocaleDateString() }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Star Rating Picker -->
+                            <div class="flex flex-col gap-1.5">
+                                <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Your Rating</span>
+                                <div class="flex items-center gap-1.5">
+                                    <button v-for="star in 5" :key="star"
+                                            type="button"
+                                            @click="setRating(star)"
+                                            @mouseover="hoverRating = star"
+                                            @mouseleave="hoverRating = 0"
+                                            class="p-1 focus:outline-none transition transform hover:scale-110 duration-150">
+                                        <svg class="w-8 h-8 transition-colors duration-200"
+                                             :class="star <= (hoverRating || rating) ? 'text-amber-400 fill-current' : 'text-gray-200 fill-current'"
+                                             viewBox="0 0 24 24"
+                                             xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                        </svg>
+                                    </button>
+                                    <span v-if="rating" class="ml-3 text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full capitalize">
+                                        {{ getRatingLabel(rating) }}
+                                    </span>
+                                </div>
+                                <p v-if="rateForm.errors.rating" class="text-red-500 text-xs mt-1">{{ rateForm.errors.rating }}</p>
+                            </div>
+
+                            <!-- Feedback Comments Textarea -->
+                            <div class="space-y-1.5">
+                                <label for="modal_review_comments" class="text-xs font-bold uppercase tracking-wider text-gray-400 block">
+                                    Feedback Comments
+                                </label>
+                                <textarea id="modal_review_comments"
+                                          v-model="rateForm.review_comments"
+                                          rows="4"
+                                          class="w-full border-gray-250 rounded-xl shadow-sm focus:border-amber-500 focus:ring-amber-500 text-sm resize-none"
+                                          placeholder="Tell us about your experience and how we did…"></textarea>
+                                <p v-if="rateForm.errors.review_comments" class="text-red-500 text-xs mt-1">{{ rateForm.errors.review_comments }}</p>
                             </div>
                         </div>
 
-                        <!-- Star Rating Picker -->
-                        <div class="flex flex-col gap-1.5">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Your Rating</span>
-                            <div class="flex items-center gap-1.5">
-                                <button v-for="star in 5" :key="star"
-                                        type="button"
-                                        @click="setRating(star)"
-                                        @mouseover="hoverRating = star"
-                                        @mouseleave="hoverRating = 0"
-                                        class="p-1 focus:outline-none transition transform hover:scale-110 duration-150">
-                                    <svg class="w-8 h-8 transition-colors duration-200"
-                                         :class="star <= (hoverRating || rating) ? 'text-amber-400 fill-current' : 'text-gray-200 fill-current'"
-                                         viewBox="0 0 24 24"
-                                         xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                                    </svg>
-                                </button>
-                                <span v-if="rating" class="ml-3 text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full capitalize">
-                                    {{ getRatingLabel(rating) }}
-                                </span>
-                            </div>
-                            <p v-if="rateForm.errors.rating" class="text-red-500 text-xs mt-1">{{ rateForm.errors.rating }}</p>
+                        <!-- Footer Actions -->
+                        <div class="modal-footer p-6 border-t border-gray-50 flex justify-end gap-3 bg-gray-50/50">
+                            <button @click="closeModal"
+                                    class="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 transition hover:bg-gray-100 rounded-lg">
+                                Cancel
+                            </button>
+                            <button @click="submitRating"
+                                    :disabled="rateForm.processing || !rating"
+                                    class="bg-amber-500 text-white font-bold text-xs px-5 py-2.5 rounded-lg hover:bg-amber-600 active:scale-95 transition-all shadow-sm shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ rateForm.processing ? 'Submitting…' : 'Submit Review' }}
+                            </button>
                         </div>
-
-                        <!-- Feedback Comments Textarea -->
-                        <div class="space-y-1.5">
-                            <label for="modal_review_comments" class="text-xs font-bold uppercase tracking-wider text-gray-400 block">
-                                Feedback Comments
-                            </label>
-                            <textarea id="modal_review_comments"
-                                      v-model="rateForm.review_comments"
-                                      rows="4"
-                                      class="w-full border-gray-250 rounded-xl shadow-sm focus:border-amber-500 focus:ring-amber-500 text-sm resize-none"
-                                      placeholder="Tell us about your experience and how we did…"></textarea>
-                            <p v-if="rateForm.errors.review_comments" class="text-red-500 text-xs mt-1">{{ rateForm.errors.review_comments }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Footer Actions -->
-                    <div class="p-6 border-t border-gray-50 flex justify-end gap-3 bg-gray-50/50">
-                        <button @click="closeModal"
-                                class="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 transition hover:bg-gray-100 rounded-lg">
-                            Cancel
-                        </button>
-                        <button @click="submitRating"
-                                :disabled="rateForm.processing || !rating"
-                                class="bg-amber-500 text-white font-bold text-xs px-5 py-2.5 rounded-lg hover:bg-amber-600 active:scale-95 transition-all shadow-sm shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                            {{ rateForm.processing ? 'Submitting…' : 'Submit Review' }}
-                        </button>
                     </div>
                 </div>
-            </div>
+            </Teleport>
         </div>
     </AuthenticatedLayout>
 </template>

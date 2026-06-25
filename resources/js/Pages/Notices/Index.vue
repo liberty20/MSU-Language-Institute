@@ -117,104 +117,106 @@
         </div>
 
         <!-- Sleek Notice Form Modal (Create / Edit) -->
-        <div v-if="modalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl my-8 overflow-hidden transform transition-all duration-300">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center">
-                    <h3 class="text-lg font-bold">{{ isEditing ? 'Edit Notice Announcement' : 'Create New Notice' }}</h3>
-                    <button @click="modalOpen = false" class="text-gray-300 hover:text-white transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                
-                <form @submit.prevent="saveNotice" class="p-6 space-y-5">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Notice Title *</label>
-                        <input v-model="form.title" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Winter Schedule Updates" />
-                        <div v-if="form.errors.title" class="text-red-500 text-xs mt-1">{{ form.errors.title }}</div>
+        <Teleport to="body">
+            <div v-if="modalOpen" class="modal fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="modalOpen = false">
+                <form @submit.prevent="saveNotice" class="modal-dialog modal-content bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 relative text-slate-800" @click.stop>
+                    <div class="modal-header">
+                        <h4 class="modal-title">{{ isEditing ? 'Edit Notice Announcement' : 'Create New Notice' }}</h4>
+                        <button type="button" @click="modalOpen = false" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
                     </div>
-
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Notice Content *</label>
-                        <textarea v-model="form.content" rows="5" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="Provide full announcement text..."></textarea>
-                        <div v-if="form.errors.content" class="text-red-500 text-xs mt-1">{{ form.errors.content }}</div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
+                    
+                    <div class="modal-body p-6 space-y-5">
                         <div class="space-y-1">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Audience *</label>
-                            <select v-model="form.target_type" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
-                                <option value="all_students">All Students</option>
-                                <option value="specific_course">Specific Course Offerings</option>
-                            </select>
-                            <div v-if="form.errors.target_type" class="text-red-500 text-xs mt-1">{{ form.errors.target_type }}</div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Notice Title *</label>
+                            <input v-model="form.title" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Winter Schedule Updates" />
+                            <div v-if="form.errors.title" class="text-red-500 text-xs mt-1">{{ form.errors.title }}</div>
                         </div>
 
-                        <div class="space-y-1" v-if="form.target_type === 'specific_course'">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Course *</label>
-                            <select v-model="form.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
-                                <option :value="null" disabled>Select course offering...</option>
-                                <option v-for="course in courses" :key="course.id" :value="course.id">{{ course.code }} - {{ course.title }}</option>
-                            </select>
-                            <div v-if="form.errors.course_id" class="text-red-500 text-xs mt-1">{{ form.errors.course_id }}</div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Notice Content *</label>
+                            <textarea v-model="form.content" rows="5" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="Provide full announcement text..."></textarea>
+                            <div v-if="form.errors.content" class="text-red-500 text-xs mt-1">{{ form.errors.content }}</div>
                         </div>
-                    </div>
 
-                    <!-- Existing Attachments Manager for editing -->
-                    <div v-if="isEditing && existingDocuments.length > 0" class="space-y-2">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Current Files (Click to delete):</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button v-for="doc in existingDocuments" :key="doc.id" type="button"
-                                    @click="toggleDeleteAttachment(doc.id)"
-                                    class="flex items-center gap-2 border rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-                                    :class="form.deleted_file_ids.includes(doc.id) ? 'bg-red-50 border-red-300 text-red-600 line-through' : 'bg-gray-50 hover:bg-red-50/50 border-gray-200 hover:border-red-200 text-gray-700 hover:text-red-600'">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                <span>{{ doc.filename }}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Dynamic Multiple Files Uploader -->
-                    <div class="space-y-3">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Attach Files</label>
-                        
-                        <div v-for="(field, idx) in fileFields" :key="field.id" class="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-200 transition hover:border-[#0a1f44]/20">
-                            <div class="flex-grow">
-                                <input 
-                                    type="file" 
-                                    @change="handleFieldFileChange(idx, $event)"
-                                    class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-[#0a1f44]/10 file:text-[#0a1f44] hover:file:bg-[#0a1f44]/20 cursor-pointer"
-                                />
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Audience *</label>
+                                <select v-model="form.target_type" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                    <option value="all_students">All Students</option>
+                                    <option value="specific_course">Specific Course Offerings</option>
+                                </select>
+                                <div v-if="form.errors.target_type" class="text-red-500 text-xs mt-1">{{ form.errors.target_type }}</div>
                             </div>
-                            <button v-if="fileFields.length > 1" type="button" @click="removeFileField(idx)" class="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </button>
+
+                            <div class="space-y-1" v-if="form.target_type === 'specific_course'">
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Course *</label>
+                                <select v-model="form.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                    <option :value="null" disabled>Select course offering...</option>
+                                    <option v-for="course in courses" :key="course.id" :value="course.id">{{ course.code }} - {{ course.title }}</option>
+                                </select>
+                                <div v-if="form.errors.course_id" class="text-red-500 text-xs mt-1">{{ form.errors.course_id }}</div>
+                            </div>
                         </div>
 
-                        <div>
-                            <button type="button" @click="addFileField" class="text-xs font-bold text-[#0a1f44] hover:text-white bg-[#0a1f44]/5 hover:bg-[#0a1f44] px-4 py-2 rounded-lg border border-[#0a1f44]/15 hover:border-[#0a1f44] transition-all flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                Add Another File
-                            </button>
+                        <!-- Existing Attachments Manager for editing -->
+                        <div v-if="isEditing && existingDocuments.length > 0" class="space-y-2">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Current Files (Click to delete):</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button v-for="doc in existingDocuments" :key="doc.id" type="button"
+                                        @click="toggleDeleteAttachment(doc.id)"
+                                        class="flex items-center gap-2 border rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+                                        :class="form.deleted_file_ids.includes(doc.id) ? 'bg-red-50 border-red-300 text-red-600 line-through' : 'bg-gray-50 hover:bg-red-50/50 border-gray-200 hover:border-red-200 text-gray-700 hover:text-red-600'">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <span>{{ doc.filename }}</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 font-semibold">
-                            Supported file formats: PDF, DOC, DOCX, JPG, JPEG, PNG (Max 10MB per file)
+
+                        <!-- Dynamic Multiple Files Uploader -->
+                        <div class="space-y-3">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Attach Files</label>
+                            
+                            <div v-for="(field, idx) in fileFields" :key="field.id" class="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-200 transition hover:border-[#0a1f44]/20">
+                                <div class="flex-grow">
+                                    <input 
+                                        type="file" 
+                                        @change="handleFieldFileChange(idx, $event)"
+                                        class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-[#0a1f44]/10 file:text-[#0a1f44] hover:file:bg-[#0a1f44]/20 cursor-pointer"
+                                    />
+                                </div>
+                                <button v-if="fileFields.length > 1" type="button" @click="removeFileField(idx)" class="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+
+                            <div>
+                                <button type="button" @click="addFileField" class="text-xs font-bold text-[#0a1f44] hover:text-white bg-[#0a1f44]/5 hover:bg-[#0a1f44] px-4 py-2 rounded-lg border border-[#0a1f44]/15 hover:border-[#0a1f44] transition-all flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    Add Another File
+                                </button>
+                            </div>
+                            <div class="text-[10px] text-gray-400 font-semibold">
+                                Supported file formats: PDF, DOC, DOCX, JPG, JPEG, PNG (Max 10MB per file)
+                            </div>
+                            <div v-if="form.errors.files" class="text-red-500 text-xs font-semibold">{{ form.errors.files }}</div>
                         </div>
-                        <div v-if="form.errors.files" class="text-red-500 text-xs font-semibold">{{ form.errors.files }}</div>
+
+                        <!-- Publish immediately option (only for create) -->
+                        <div class="flex items-center gap-2 py-1" v-if="!isEditing">
+                            <input v-model="form.publish_immediately" type="checkbox" id="publish_immediately" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
+                            <label for="publish_immediately" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish announcement immediately to students</label>
+                        </div>
+
+                        <!-- Publish on update option -->
+                        <div class="flex items-center gap-2 py-1" v-if="isEditing && !editingNoticePublished">
+                            <input v-model="form.publish" type="checkbox" id="publish_update" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
+                            <label for="publish_update" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish now (Make visible to students)</label>
+                        </div>
                     </div>
 
-                    <!-- Publish immediately option (only for create) -->
-                    <div class="flex items-center gap-2 py-1" v-if="!isEditing">
-                        <input v-model="form.publish_immediately" type="checkbox" id="publish_immediately" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
-                        <label for="publish_immediately" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish announcement immediately to students</label>
-                    </div>
-
-                    <!-- Publish on update option -->
-                    <div class="flex items-center gap-2 py-1" v-if="isEditing && !editingNoticePublished">
-                        <input v-model="form.publish" type="checkbox" id="publish_update" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
-                        <label for="publish_update" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish now (Make visible to students)</label>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
+                    <div class="modal-footer pt-4 border-t border-gray-150 flex justify-end gap-3 px-6 py-4 bg-gray-50">
                         <button type="button" @click="modalOpen = false" class="px-4 py-2 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition text-xs uppercase tracking-wide">Cancel</button>
                         <button type="submit" :disabled="form.processing" class="px-4 py-2 rounded-xl bg-[#0a1f44] hover:bg-[#0c2859] disabled:opacity-50 text-white font-bold transition shadow text-xs uppercase tracking-wide flex items-center gap-2">
                             <span v-if="form.processing" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -223,7 +225,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
 

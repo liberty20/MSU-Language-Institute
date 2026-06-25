@@ -1007,72 +1007,75 @@
             </div>
 
         <!-- 5. Report Generation Glassmorphic Modal -->
-        <div v-if="openGenerateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <!-- Modal Backdrop Blur -->
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300" @click="openGenerateModal = false"></div>
-            
-            <div class="bg-white border border-slate-200/80 rounded-[2rem] shadow-2xl w-full max-w-lg z-10 overflow-hidden transform transition-all duration-300 scale-100 relative animate-fade-in-up text-slate-800">
-                <div class="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-slate-400 via-slate-650 to-blue-600"></div>
+        <!-- 5. Report Generation Glassmorphic Modal -->
+        <Teleport to="body">
+            <div v-if="openGenerateModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
+                <!-- Modal Backdrop Blur -->
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300" @click="openGenerateModal = false"></div>
                 
-                <div class="bg-slate-50/80 px-8 py-6 flex justify-between items-center relative border-b border-slate-100">
-                    <div>
-                        <h3 class="text-lg font-black tracking-tight flex items-center gap-2 text-slate-850">
-                            <img src="/msu-logo-2.png" alt="MSU" class="h-6 w-auto bg-white p-0.5 rounded shadow-sm" />
-                            Compile Operations Report
-                        </h3>
-                        <p class="text-xs text-slate-500 mt-0.5 font-medium">Capture dynamic performance coordinates into a saved document</p>
-                    </div>
-                    <button @click="openGenerateModal = false" class="text-slate-400 hover:text-slate-650 transition duration-200 p-1.5 bg-white shadow-sm border border-slate-200 rounded-full">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-
-                <form @submit.prevent="submitGenerateReport" class="p-8 space-y-6">
-                     <div class="space-y-1.5">
-                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Custom Title</label>
-                        <input type="text" v-model="form.title" placeholder="e.g. Q2 Performance Overview" required 
-                               class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs" />
-                    </div>
-
-                    <div class="space-y-1.5">
-                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Aggregation Type</label>
-                        <select v-model="form.report_type" 
-                                class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs">
-                            <option value="client_services">Client Service Report</option>
-                            <option value="quotations">Quotation Report</option>
-                            <option value="workflow_progress">Workflow Progress Report</option>
-                            <option value="staff_workload">Staff Workload Report</option>
-                            <option value="kpi_performance">KPI Performance Report</option>
-                            <option value="administrative">Administrative Report</option>
-                            <option value="student_enrollment">Student Enrollment Report</option>
-                        </select>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Target Export Format</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-indigo-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
-                                   :class="form.format === 'pdf' ? 'border-indigo-500 bg-indigo-50/40 ring-2 ring-indigo-500/10' : ''">
-                                <input type="radio" v-model="form.format" value="pdf" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
-                                <span class="text-xs font-black text-slate-800">PDF Document</span>
-                            </label>
-                            
-                            <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-blue-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
-                                   :class="form.format === 'excel' ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20' : ''">
-                                <input type="radio" v-model="form.format" value="excel" class="text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
-                                <span class="text-xs font-black text-slate-800">Excel Spread</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 border-l-4 border-slate-600 p-4 rounded-r-2xl text-[10px] text-slate-800 font-bold flex gap-2">
-                        <svg class="w-4.5 h-4.5 text-slate-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                <form @submit.prevent="submitGenerateReport" class="modal-dialog modal-content bg-white border border-slate-200/80 rounded-[2rem] shadow-2xl z-10 overflow-hidden transform transition-all duration-300 scale-100 relative animate-fade-in-up text-slate-800" @click.stop>
+                    <div class="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-slate-400 via-slate-650 to-blue-600"></div>
+                    
+                    <div class="modal-header">
                         <div>
-                            <strong>Active Filters Bound:</strong> All active filter variables set in the dashboard panel will be mirrored in the generated report.
+                            <h4 class="modal-title flex items-center gap-2">
+                                <img src="/msu-logo-2.png" alt="MSU" class="h-6 w-auto bg-white p-0.5 rounded shadow-sm" />
+                                Compile Operations Report
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-0.5 font-medium">Capture dynamic performance coordinates into a saved document</p>
+                        </div>
+                        <button type="button" @click="openGenerateModal = false" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="modal-body p-8 space-y-6">
+                         <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Custom Title</label>
+                            <input type="text" v-model="form.title" placeholder="e.g. Q2 Performance Overview" required 
+                                   class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs" />
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Report Aggregation Type</label>
+                            <select v-model="form.report_type" 
+                                    class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 hover:bg-slate-50/50 shadow-xs">
+                                <option value="client_services">Client Service Report</option>
+                                <option value="quotations">Quotation Report</option>
+                                <option value="workflow_progress">Workflow Progress Report</option>
+                                <option value="staff_workload">Staff Workload Report</option>
+                                <option value="kpi_performance">KPI Performance Report</option>
+                                <option value="administrative">Administrative Report</option>
+                                <option value="student_enrollment">Student Enrollment Report</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-wider">Target Export Format</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-indigo-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
+                                       :class="form.format === 'pdf' ? 'border-indigo-500 bg-indigo-50/40 ring-2 ring-indigo-500/10' : ''">
+                                    <input type="radio" v-model="form.format" value="pdf" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
+                                    <span class="text-xs font-black text-slate-800">PDF Document</span>
+                                </label>
+                                
+                                <label class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/35 cursor-pointer hover:bg-slate-100/50 hover:border-blue-500/40 transition-all duration-300 shadow-xs relative overflow-hidden group animate-fade-in-up"
+                                       :class="form.format === 'excel' ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20' : ''">
+                                    <input type="radio" v-model="form.format" value="excel" class="text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer bg-white border-slate-300" />
+                                    <span class="text-xs font-black text-slate-800">Excel Spread</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 border-l-4 border-slate-600 p-4 rounded-r-2xl text-[10px] text-slate-800 font-bold flex gap-2">
+                            <svg class="w-4.5 h-4.5 text-slate-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong>Active Filters Bound:</strong> All active filter variables set in the dashboard panel will be mirrored in the generated report.
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end gap-3 pt-6 border-t border-slate-100">
+                    <div class="modal-footer flex justify-end gap-3 pt-6 border-t border-slate-100 px-8 py-6 bg-slate-50">
                         <button type="button" @click="openGenerateModal = false" class="px-5 py-2.5 rounded-xl text-xs font-black text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition duration-200">
                             Cancel
                         </button>
@@ -1084,7 +1087,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
 
