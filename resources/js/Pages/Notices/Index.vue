@@ -4,7 +4,7 @@
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center w-full">
-                <span class="text-white font-extrabold">Notices & Announcements</span>
+                <span class="text-black font-extrabold">Notices & Announcements</span>
                 <button v-if="isAdmin" @click="openCreateModal" class="bg-[#f5c242] hover:bg-yellow-500 text-[#0a1f44] font-bold px-5 py-2 rounded-xl transition duration-200 shadow flex items-center gap-2 text-xs">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Create Notice
@@ -22,19 +22,37 @@
                         <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                 </div>
-                <div class="w-48" v-if="isAdmin">
+                <div class="w-40" v-if="isAdmin">
                     <select v-model="statusFilter" class="w-full text-xs rounded-xl border-gray-200 focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] py-2.5 font-medium">
                         <option value="all">All Statuses</option>
                         <option value="published">Published</option>
                         <option value="draft">Draft</option>
                     </select>
                 </div>
-                <div class="w-56">
+                <div class="w-44">
                     <select v-model="targetFilter" class="w-full text-xs rounded-xl border-gray-200 focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] py-2.5 font-medium">
                         <option value="all">All Targets</option>
                         <option value="all_students">All Students</option>
                         <option value="specific_course">Specific Course</option>
                     </select>
+                </div>
+                <!-- Sort Dropdown -->
+                <div class="w-40">
+                    <select v-model="sortBy" class="w-full text-xs rounded-xl border-gray-200 focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] py-2.5 font-medium">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="title_asc">Title (A-Z)</option>
+                        <option value="title_desc">Title (Z-A)</option>
+                    </select>
+                </div>
+                <!-- View Mode Switcher -->
+                <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden p-0.5 bg-gray-50 flex-shrink-0">
+                    <button type="button" @click="viewMode = 'cards'" :class="viewMode === 'cards' ? 'bg-white text-[#0A2A66] shadow-sm font-bold' : 'text-gray-400 hover:text-gray-600'" class="p-2 rounded-lg transition-all duration-200" title="Card View">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    </button>
+                    <button type="button" @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-white text-[#0A2A66] shadow-sm font-bold' : 'text-gray-400 hover:text-gray-600'" class="p-2 rounded-lg transition-all duration-200" title="Table View">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
                 </div>
             </div>
 
@@ -44,7 +62,8 @@
                 No notices match your selection.
             </div>
 
-            <div v-else class="grid grid-cols-1 gap-6">
+            <!-- Card View Mode -->
+            <div v-else-if="viewMode === 'cards'" class="grid grid-cols-1 gap-6">
                 <!-- Premium Notice Card -->
                 <div v-for="notice in filteredNotices" :key="notice.id" 
                      class="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group hover:-translate-y-0.5">
@@ -63,7 +82,10 @@
                         <!-- Content Area -->
                         <div class="flex-grow space-y-3 min-w-0">
                             <div class="flex flex-wrap items-baseline gap-2">
-                                <h3 class="text-base font-black text-gray-900 leading-snug break-words pr-12">{{ notice.title }}</h3>
+                                <!-- Prominent Title Clickable to View Detail -->
+                                <h3 @click="viewNoticeDetails(notice)" class="text-lg md:text-xl font-extrabold text-[#0A2A66] hover:text-blue-700 transition cursor-pointer leading-snug break-words pr-12">
+                                    {{ notice.title }}
+                                </h3>
                                 
                                 <span class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider"
                                       :class="notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
@@ -79,7 +101,9 @@
                             </div>
 
                             <!-- Notice Text Content -->
-                            <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line break-words font-medium">{{ notice.content }}</p>
+                            <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line break-words font-medium line-clamp-3 group-hover:line-clamp-none transition-all duration-300">
+                                {{ notice.content }}
+                            </p>
 
                             <!-- Attachments Area -->
                             <div v-if="notice.documents && notice.documents.length > 0" class="pt-3 border-t border-gray-100 space-y-2">
@@ -87,7 +111,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     <a v-for="doc in notice.documents" :key="doc.id"
                                        :href="route('files.download', { type: 'uploaded_document', id: doc.id })"
-                                       class="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-brand-blue border border-gray-200 rounded-lg px-3 py-1.5 transition text-xs font-semibold">
+                                       class="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-[#0A2A66] border border-gray-200 rounded-lg px-3 py-1.5 transition text-xs font-semibold">
                                         <svg class="w-4 h-4 text-gray-450" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                         <span class="truncate max-w-[180px]">{{ doc.filename }}</span>
                                         <span class="text-[9px] text-gray-400 font-medium">({{ (doc.file_size / 1024).toFixed(0) }} KB)</span>
@@ -95,23 +119,89 @@
                                 </div>
                             </div>
 
-                            <!-- Admin Actions Footer -->
-                            <div v-if="isAdmin" class="flex gap-3 pt-4 justify-end border-t border-gray-50">
-                                <button v-if="!notice.published_at" @click="publishNotice(notice.id)" 
+                            <!-- Actions Footer -->
+                            <div class="flex gap-3 pt-4 justify-end border-t border-gray-50 items-center">
+                                <button @click="viewNoticeDetails(notice)" 
+                                        class="text-xs font-bold text-[#0A2A66] hover:underline transition uppercase tracking-wide mr-auto flex items-center gap-1">
+                                    <span>Read Full Announcement</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                                
+                                <button v-if="isAdmin && !notice.published_at" @click="publishNotice(notice.id)" 
                                         class="text-xs font-bold text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3.5 py-1.5 rounded-lg border border-green-200 transition uppercase tracking-wide">
                                     Publish
                                 </button>
-                                <button @click="openEditModal(notice)" 
+                                <button v-if="isAdmin" @click="openEditModal(notice)" 
                                         class="text-xs font-bold text-brand-gold-dark hover:text-brand-gold bg-amber-50/50 hover:bg-amber-50 px-3.5 py-1.5 rounded-lg border border-amber-200 transition uppercase tracking-wide">
                                     Edit
                                 </button>
-                                <button @click="deleteNotice(notice)" 
+                                <button v-if="isAdmin" @click="deleteNotice(notice)" 
                                         class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3.5 py-1.5 rounded-lg border border-red-200 transition uppercase tracking-wide">
                                     Delete
                                 </button>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Table View Mode -->
+            <div v-else-if="viewMode === 'table'" class="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-[#0A2A66] text-white uppercase text-[10px] tracking-wider font-bold">
+                                <th class="p-4">Title</th>
+                                <th class="p-4">Target Audience</th>
+                                <th class="p-4">Posted By</th>
+                                <th class="p-4">Date</th>
+                                <th class="p-4" v-if="isAdmin">Status</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-150 font-medium text-gray-700">
+                            <tr v-for="notice in filteredNotices" :key="notice.id" class="hover:bg-gray-50/50 transition">
+                                <td class="p-4">
+                                    <div class="font-extrabold text-[#0A2A66] hover:text-blue-700 cursor-pointer text-sm truncate max-w-[280px]" @click="viewNoticeDetails(notice)">
+                                        {{ notice.title }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 truncate max-w-[280px] mt-0.5">
+                                        {{ notice.content }}
+                                    </div>
+                                </td>
+                                <td class="p-4">
+                                    <span class="px-2.5 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider"
+                                          :class="notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
+                                        {{ notice.target_type === 'all_students' ? 'All Students' : (notice.course ? notice.course.code : 'Specific Course') }}
+                                    </span>
+                                </td>
+                                <td class="p-4">{{ notice.creator ? notice.creator.name : 'Administrator' }}</td>
+                                <td class="p-4">{{ notice.published_at ? formatDate(notice.published_at) : formatDate(notice.created_at) }}</td>
+                                <td class="p-4" v-if="isAdmin">
+                                    <span class="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider"
+                                          :class="notice.published_at ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'">
+                                        {{ notice.published_at ? 'Published' : 'Draft' }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button @click="viewNoticeDetails(notice)" class="text-blue-600 hover:text-blue-800 font-bold hover:underline transition py-1 px-2 text-[10px]">
+                                            View
+                                        </button>
+                                        <button v-if="isAdmin && !notice.published_at" @click="publishNotice(notice.id)" class="text-green-600 hover:text-green-800 font-bold hover:underline transition py-1 px-2 text-[10px]">
+                                            Publish
+                                        </button>
+                                        <button v-if="isAdmin" @click="openEditModal(notice)" class="text-amber-600 hover:text-amber-800 font-bold hover:underline transition py-1 px-2 text-[10px]">
+                                            Edit
+                                        </button>
+                                        <button v-if="isAdmin" @click="deleteNotice(notice)" class="text-red-600 hover:text-red-800 font-bold hover:underline transition py-1 px-2 text-[10px]">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -183,7 +273,7 @@
                                     <input 
                                         type="file" 
                                         @change="handleFieldFileChange(idx, $event)"
-                                        class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-[#0a1f44]/10 file:text-[#0a1f44] hover:file:bg-[#0a1f44]/20 cursor-pointer"
+                                        class="w-full text-xs text-gray-550 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-[#0a1f44]/10 file:text-[#0a1f44] hover:file:bg-[#0a1f44]/20 cursor-pointer"
                                     />
                                 </div>
                                 <button v-if="fileFields.length > 1" type="button" @click="removeFileField(idx)" class="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition">
@@ -205,13 +295,13 @@
 
                         <!-- Publish immediately option (only for create) -->
                         <div class="flex items-center gap-2 py-1" v-if="!isEditing">
-                            <input v-model="form.publish_immediately" type="checkbox" id="publish_immediately" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
+                            <input v-model="form.publish_immediately" type="checkbox" id="publish_immediately" class="rounded border-gray-300 text-[#0a1f44] focus:ring-[#0a1f44]" />
                             <label for="publish_immediately" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish announcement immediately to students</label>
                         </div>
 
                         <!-- Publish on update option -->
                         <div class="flex items-center gap-2 py-1" v-if="isEditing && !editingNoticePublished">
-                            <input v-model="form.publish" type="checkbox" id="publish_update" class="rounded border-gray-300 text-brand-blue focus:ring-[#0a1f44]" />
+                            <input v-model="form.publish" type="checkbox" id="publish_update" class="rounded border-gray-300 text-[#0a1f44] focus:ring-[#0a1f44]" />
                             <label for="publish_update" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish now (Make visible to students)</label>
                         </div>
                     </div>
@@ -224,6 +314,79 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </Teleport>
+
+        <!-- Notice Detail Modal -->
+        <Teleport to="body">
+            <div v-if="detailModalOpen" class="modal fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="detailModalOpen = false">
+                <div class="modal-dialog modal-content bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 relative text-slate-800" @click.stop>
+                    <div class="modal-header">
+                        <h4 class="modal-title">Notice Announcement Details</h4>
+                        <button type="button" @click="detailModalOpen = false" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body p-6 space-y-6">
+                        <!-- Primary Prominent Title Heading -->
+                        <div class="border-b border-gray-100 pb-4 space-y-2">
+                            <h2 class="text-xl md:text-2xl font-black text-[#0A2A66] leading-tight">
+                                {{ selectedNotice?.title }}
+                            </h2>
+                            <div class="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-semibold">
+                                <span class="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider"
+                                      :class="selectedNotice?.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
+                                    {{ selectedNotice?.target_type === 'all_students' ? 'All Students' : (selectedNotice?.course ? selectedNotice.course.code : 'Specific Course') }}
+                                </span>
+                                <span v-if="!selectedNotice?.published_at" class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-500 text-[#0a1f44] uppercase tracking-wider">
+                                    Draft
+                                </span>
+                                <span>Posted by: <strong class="text-gray-700">{{ selectedNotice?.creator ? selectedNotice.creator.name : 'Administrator' }}</strong></span>
+                                <span>&bull;</span>
+                                <span>Date: <strong class="text-gray-700">{{ selectedNotice?.published_at ? formatDate(selectedNotice.published_at) : formatDate(selectedNotice?.created_at) }}</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Content Body -->
+                        <div class="text-xs md:text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words font-medium">
+                            {{ selectedNotice?.content }}
+                        </div>
+
+                        <!-- Attachments Area -->
+                        <div v-if="selectedNotice?.documents && selectedNotice.documents.length > 0" class="pt-4 border-t border-gray-100 space-y-3">
+                            <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-wider">Attachments:</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <a v-for="doc in selectedNotice.documents" :key="doc.id"
+                                   :href="route('files.download', { type: 'uploaded_document', id: doc.id })"
+                                   class="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-[#0A2A66] border border-gray-200 rounded-xl px-4 py-3 transition text-xs font-semibold shadow-sm">
+                                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    <div class="flex-grow min-w-0">
+                                        <div class="truncate font-bold text-gray-800">{{ doc.filename }}</div>
+                                        <div class="text-[9px] text-gray-400 font-medium">{{ (doc.file_size / 1024).toFixed(0) }} KB</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer pt-4 border-t border-gray-150 flex justify-between gap-3 px-6 py-4 bg-gray-50">
+                        <div class="flex gap-2" v-if="isAdmin">
+                            <button v-if="!selectedNotice?.published_at" @click="publishNotice(selectedNotice?.id); detailModalOpen = false" 
+                                    class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold transition text-xs uppercase tracking-wide">
+                                Publish
+                            </button>
+                            <button @click="openEditModal(selectedNotice); detailModalOpen = false" 
+                                    class="px-4 py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-brand-gold-dark font-bold transition text-xs uppercase tracking-wide">
+                                Edit
+                            </button>
+                        </div>
+                        <div v-else></div>
+                        <button type="button" @click="detailModalOpen = false" class="px-4 py-2 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition text-xs uppercase tracking-wide">
+                            Close
+                        </button>
+                    </div>
+                </div>
             </div>
         </Teleport>
     </AuthenticatedLayout>
@@ -250,9 +413,11 @@ const isAdmin = computed(() => {
 const searchQuery = ref('');
 const statusFilter = ref('all');
 const targetFilter = ref('all');
+const sortBy = ref('newest');
+const viewMode = ref('cards');
 
 const filteredNotices = computed(() => {
-    return props.notices.filter(notice => {
+    let result = props.notices.filter(notice => {
         // Search filter
         const query = searchQuery.value.toLowerCase().trim();
         const matchesQuery = !query || 
@@ -270,15 +435,35 @@ const filteredNotices = computed(() => {
 
         return matchesQuery && matchesStatus && matchesTarget;
     });
+
+    // Sorting filter
+    if (sortBy.value === 'newest') {
+        result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortBy.value === 'oldest') {
+        result.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    } else if (sortBy.value === 'title_asc') {
+        result.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy.value === 'title_desc') {
+        result.sort((a, b) => b.title.localeCompare(a.title));
+    }
+
+    return result;
 });
 
 // Modal and Form management
 const modalOpen = ref(false);
 const isEditing = ref(false);
+const detailModalOpen = ref(false);
+const selectedNotice = ref(null);
 
-watch(modalOpen, (val) => {
+const viewNoticeDetails = (notice) => {
+    selectedNotice.value = notice;
+    detailModalOpen.value = true;
+};
+
+watch([modalOpen, detailModalOpen], ([newVal1, newVal2]) => {
     const mainEl = document.querySelector('main');
-    if (val) {
+    if (newVal1 || newVal2) {
         document.body.classList.add('overflow-hidden');
         if (mainEl) {
             mainEl.classList.add('overflow-hidden');
@@ -301,6 +486,7 @@ onUnmounted(() => {
         mainEl.style.overflow = '';
     }
 });
+
 const editingNoticeId = ref(null);
 const existingDocuments = ref([]);
 const editingNoticePublished = ref(false);
