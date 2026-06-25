@@ -538,19 +538,28 @@ class DashboardController extends Controller
                 if ($route) {
                     $middleware = $route->gatherMiddleware();
                     foreach ($middleware as $m) {
-                        if (substr($m, 0, 5) === 'role:') {
+                        if (!is_string($m)) {
+                            continue;
+                        }
+
+                        if (str_starts_with($m, 'role:')) {
                             $roles = explode(',', substr($m, 5));
+
                             if ($userRoles->intersect($roles)->isEmpty()) {
                                 return false;
                             }
                         }
-                        if (substr($m, 0, 11) === 'permission:') {
+
+                        if (str_starts_with($m, 'permission:')) {
                             $permissions = explode(',', substr($m, 11));
+
                             $userPermissions = $user->getAllPermissions()->pluck('name');
+
                             if ($userPermissions->intersect($permissions)->isEmpty()) {
                                 return false;
                             }
                         }
+
                         if ($m === 'instructor') {
                             $isInst = $userRoles->intersect(['language_expert', 'part_time_staff'])->isNotEmpty() || $user->instructedIntakes()->exists();
                             if (!$isInst) {

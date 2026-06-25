@@ -167,7 +167,7 @@ class QuotationController extends Controller
 
         $user = Auth::user();
         $isDeputy = $user->hasRole('deputy_director');
-        $isExecutive = $user->hasRole('executive_director') || $user->hasRole('ict_administrator');
+        $isExecutive = $user->hasRole('executive_director');
 
         if (!$isDeputy && !$isExecutive) {
             abort(403, 'Unauthorized action.');

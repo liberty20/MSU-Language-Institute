@@ -214,7 +214,7 @@
                 </div>
 
                 <!-- Executive Director Final Approval -->
-                <div v-if="(quotation.status === 'pending_approval' || quotation.status === 'submitted') && ($page.props.auth.roles.includes('executive_director') || $page.props.auth.roles.includes('ict_administrator'))" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div v-if="(quotation.status === 'pending_approval' || quotation.status === 'submitted') && $page.props.auth.roles.includes('executive_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Executive Director Final Approval</h3>
                     <div class="space-y-3">
                         <div>
