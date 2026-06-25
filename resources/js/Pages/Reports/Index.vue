@@ -1092,7 +1092,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
 
 const props = defineProps({
     byCategory: Object,
@@ -1312,6 +1312,33 @@ const resetAllFilters = () => {
 
 // Modal
 const openGenerateModal = ref(false);
+
+watch(openGenerateModal, (val) => {
+    const mainEl = document.querySelector('main');
+    if (val) {
+        document.body.classList.add('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.add('overflow-hidden');
+            mainEl.style.overflow = 'hidden';
+        }
+    } else {
+        document.body.classList.remove('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.remove('overflow-hidden');
+            mainEl.style.overflow = '';
+        }
+    }
+});
+
+onUnmounted(() => {
+    document.body.classList.remove('overflow-hidden');
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.classList.remove('overflow-hidden');
+        mainEl.style.overflow = '';
+    }
+});
+
 const form = reactive({
     title: '',
     report_type: activeScope.value,

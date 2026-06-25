@@ -178,7 +178,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
-import { ref } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 
 defineProps({
     serviceRequests: Array
@@ -194,18 +194,46 @@ const rateForm = useForm({
     review_comments: '',
 });
 
+const updateBodyScroll = () => {
+    const mainEl = document.querySelector('main');
+    if (showModal.value) {
+        document.body.classList.add('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.add('overflow-hidden');
+            mainEl.style.overflow = 'hidden';
+        }
+    } else {
+        document.body.classList.remove('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.remove('overflow-hidden');
+            mainEl.style.overflow = '';
+        }
+    }
+};
+
 const openReviewModal = (req) => {
     selectedRequest.value = req;
     rating.value = 0;
     rateForm.rating = 0;
     rateForm.review_comments = '';
     showModal.value = true;
+    updateBodyScroll();
 };
 
 const closeModal = () => {
     showModal.value = false;
     selectedRequest.value = null;
+    updateBodyScroll();
 };
+
+onUnmounted(() => {
+    document.body.classList.remove('overflow-hidden');
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.classList.remove('overflow-hidden');
+        mainEl.style.overflow = '';
+    }
+});
 
 const setRating = (val) => {
     rating.value = val;

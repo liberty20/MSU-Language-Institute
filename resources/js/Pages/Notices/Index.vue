@@ -230,7 +230,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
@@ -273,6 +273,32 @@ const filteredNotices = computed(() => {
 // Modal and Form management
 const modalOpen = ref(false);
 const isEditing = ref(false);
+
+watch(modalOpen, (val) => {
+    const mainEl = document.querySelector('main');
+    if (val) {
+        document.body.classList.add('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.add('overflow-hidden');
+            mainEl.style.overflow = 'hidden';
+        }
+    } else {
+        document.body.classList.remove('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.remove('overflow-hidden');
+            mainEl.style.overflow = '';
+        }
+    }
+});
+
+onUnmounted(() => {
+    document.body.classList.remove('overflow-hidden');
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.classList.remove('overflow-hidden');
+        mainEl.style.overflow = '';
+    }
+});
 const editingNoticeId = ref(null);
 const existingDocuments = ref([]);
 const editingNoticePublished = ref(false);

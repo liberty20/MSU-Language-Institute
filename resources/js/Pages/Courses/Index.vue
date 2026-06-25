@@ -27,9 +27,10 @@
 
             <!-- Tab 1: Course Templates -->
             <div v-show="activeTab === 'courses'" class="space-y-6">
+                <!-- Courses List Header -->
                 <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div>
-                        <h3 class="text-lg font-bold text-brand-blue">All Course Offerings</h3>
+                        <h3 class="text-lg font-bold text-[#0a1f44]">All Course Offerings</h3>
                         <p class="text-sm text-gray-500">Create, edit, and publish course curricula templates across units.</p>
                     </div>
                     <button @click="openCreateCourseModal" class="bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-6 py-2.5 rounded-full transition shadow flex items-center gap-2 text-sm">
@@ -54,7 +55,7 @@
                                 </span>
                             </div>
                             <div>
-                                <h4 class="text-lg font-bold text-brand-blue line-clamp-1" :title="course.title">{{ course.title }}</h4>
+                                <h4 class="text-lg font-bold text-[#0a1f44] line-clamp-1" :title="course.title">{{ course.title }}</h4>
                                 <p class="text-xs text-gray-400 font-medium mt-1">Code: {{ course.code }} | {{ course.duration_weeks }} Weeks</p>
                             </div>
                             <p class="text-sm text-gray-600 line-clamp-3 leading-relaxed">{{ course.description || 'No description provided.' }}</p>
@@ -62,11 +63,11 @@
                             <div class="pt-4 border-t border-gray-100 flex justify-between items-center">
                                 <div>
                                     <p class="text-xs text-gray-400 font-semibold uppercase">Pricing Fee</p>
-                                    <p class="text-lg font-black text-brand-blue mt-0.5">{{ course.currency }} {{ Number(course.price).toLocaleString(undefined, {minimumFractionDigits: 2}) }}</p>
+                                    <p class="text-lg font-black text-[#0a1f44] mt-0.5">{{ course.currency }} {{ Number(course.price).toLocaleString(undefined, {minimumFractionDigits: 2}) }}</p>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-xs text-gray-400 font-semibold uppercase">Functional Unit</p>
-                                    <p class="text-xs font-bold text-brand-gold-dark mt-0.5">{{ course.department ? course.department.code : 'General MSULI' }}</p>
+                                    <p class="text-xs font-bold text-[#f5c242] mt-0.5">{{ course.department ? course.department.code : 'General MSULI' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -74,9 +75,9 @@
                             <button v-if="['executive_director', 'deputy_director', 'ict_administrator'].some(r => $page.props.auth.roles.includes(r))" 
                                     @click="deleteCourse(course)" 
                                     class="text-sm font-semibold text-red-650 hover:text-red-500 transition mr-auto">
-                                Delete Course
+                                Delete
                             </button>
-                            <button @click="openEditCourseModal(course)" class="text-sm font-semibold text-brand-blue hover:text-brand-gold transition">
+                            <button @click="openEditCourseModal(course)" class="text-sm font-semibold text-[#0a1f44] hover:text-[#f5c242] transition">
                                 Edit Details
                             </button>
                         </div>
@@ -86,9 +87,10 @@
 
             <!-- Tab 2: Scheduled Intakes -->
             <div v-show="activeTab === 'intakes'" class="space-y-6">
+                <!-- Intakes Header -->
                 <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div>
-                        <h3 class="text-lg font-bold text-brand-blue">Scheduled Course Batches</h3>
+                        <h3 class="text-lg font-bold text-[#0a1f44]">Scheduled Course Batches</h3>
                         <p class="text-sm text-gray-500">Manage calendar schedules, assign instructors, and set student intake limits.</p>
                     </div>
                     <button @click="openCreateIntakeModal" class="bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-6 py-2.5 rounded-full transition shadow flex items-center gap-2 text-sm">
@@ -115,7 +117,7 @@
                             <tbody class="divide-y divide-gray-100 text-sm">
                                 <tr v-for="intake in intakes" :key="intake.id" class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-4">
-                                        <div class="font-bold text-brand-blue">{{ intake.course.title }}</div>
+                                        <div class="font-bold text-[#0a1f44]">{{ intake.course.title }}</div>
                                         <div class="text-xs text-gray-400 mt-0.5">Code: {{ intake.course.code }}</div>
                                     </td>
                                     <td class="px-6 py-4 font-semibold text-gray-700">{{ intake.name }}</td>
@@ -139,7 +141,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <button @click="openEditIntakeModal(intake)" class="text-brand-gold-dark hover:text-brand-blue font-bold text-xs uppercase transition">
+                                        <button @click="openEditIntakeModal(intake)" class="text-[#f5c242] hover:text-[#0a1f44] font-bold text-xs uppercase transition">
                                             Edit Schedule
                                         </button>
                                     </td>
@@ -156,184 +158,197 @@
             </div>
         </div>
 
-        <!-- Course Modal -->
-        <div v-if="courseModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="courseModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl">
-                    <h3 class="text-lg font-bold">{{ isEditingCourse ? 'Edit Course Details' : 'Create New Course Offering' }}</h3>
-                    <button @click="courseModalOpen = false" class="text-gray-300 hover:text-white transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <form @submit.prevent="saveCourse" class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Title</label>
-                            <input v-model="courseForm.title" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Zimbabwean Sign Language Beginners" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Code</label>
-                            <input v-model="courseForm.code" type="text" :disabled="isEditingCourse" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm disabled:bg-gray-100" required placeholder="e.g. ZSL-101" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Category</label>
-                            <select v-model="selectedCategoryVal" @change="updateCategoryVal" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
-                                <option value="" disabled>Select Category</option>
-                                <option v-for="cat in courseCategories" :key="cat" :value="cat">{{ cat }}</option>
-                            </select>
-                            <div v-if="selectedCategoryVal === 'Other'" class="mt-2 transition-all duration-300">
-                                <input v-model="customCategoryVal" type="text" @input="updateCategoryVal" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="Specify custom category" />
+        <!-- Course Modal (Teleported) -->
+        <Teleport to="body">
+            <div v-if="courseModalOpen" @click="closeCourseModal" class="fixed inset-0 bg-[#0a1f44]/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+                <div class="bg-white rounded-2xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" @click.stop>
+                    <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+                        <h3 class="text-sm font-black tracking-wide uppercase">{{ isEditingCourse ? 'Edit Course Details' : 'Create New Course' }}</h3>
+                        <button type="button" @click="closeCourseModal" class="text-white hover:text-brand-gold transition focus:outline-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <form @submit.prevent="saveCourse">
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Title</label>
+                                <input id="course-title-input" v-model="courseForm.title" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Zimbabwean Sign Language Beginners" />
                             </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Functional Unit</label>
-                            <select v-model="courseForm.department_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm">
-                                <option :value="null">General MSULI</option>
-                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.code }} - {{ dept.name }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Duration (Weeks)</label>
-                            <input v-model="courseForm.duration_weeks" type="number" min="1" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Tuition Fee</label>
-                            <input v-model="courseForm.price" type="number" step="0.01" min="0" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Currency</label>
-                            <input v-model="courseForm.currency" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="USD, ZiG" />
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Description</label>
-                            <textarea v-model="courseForm.description" rows="3" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" placeholder="Provide syllabus outline or summary..."></textarea>
-                        </div>
-                        <div class="col-span-2 flex items-center gap-2 py-2">
-                            <input v-model="courseForm.is_published" type="checkbox" id="is_published" class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
-                            <label for="is_published" class="text-sm font-bold text-gray-700 select-none">Publish Course to Public Catalog immediately</label>
-                        </div>
-                    </div>
-                    <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
-                        <button type="button" @click="courseModalOpen = false" class="px-5 py-2.5 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition text-sm">Cancel</button>
-                        <button type="submit" class="px-5 py-2.5 rounded-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold transition shadow text-sm">Save Course</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Intake Modal -->
-        <div v-if="intakeModalOpen" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="intakeModalOpen = false">
-            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
-                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center rounded-t-2xl flex-shrink-0">
-                    <h3 class="text-lg font-bold">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h3>
-                    <button @click="intakeModalOpen = false" class="text-gray-300 hover:text-white transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="overflow-y-auto flex-1">
-                <form @submit.prevent="saveIntake" class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2" v-if="!isEditingIntake">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Select Course</label>
-                            <select v-model="intakeForm.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
-                                <option :value="null" disabled>Choose a course to schedule...</option>
-                                <option v-for="course in courses" :key="course.id" :value="course.id">{{ course.code }} - {{ course.title }}</option>
-                            </select>
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Session / Intake Name</label>
-                            <input v-model="intakeForm.name" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Winter 2026 Intake, Batch A" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Start Date</label>
-                            <input v-model="intakeForm.start_date" type="date" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">End Date</label>
-                            <input v-model="intakeForm.end_date" type="date" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Class Capacity</label>
-                            <input v-model="intakeForm.capacity" type="number" min="1" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Status</label>
-                            <select v-model="intakeForm.status" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
-                                <option value="draft">Draft</option>
-                                <option value="open">Open (Enrolling)</option>
-                                <option value="closed">Closed</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                        <!-- Instructor Combobox — uses Teleport to escape modal overflow clipping -->
-                        <div class="col-span-2" ref="dropdownContainer">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Assign Instructor</label>
-                            <div class="relative">
-                                <input 
-                                    id="instructor-search-input"
-                                    v-model="instructorSearch" 
-                                    type="text" 
-                                    placeholder="Search instructor by name, role, or unit..." 
-                                    class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-16 py-2.5"
-                                    @focus="handleFocus"
-                                    @input="handleInput"
-                                    @keydown="handleKeyDown"
-                                    autocomplete="off"
-                                />
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 gap-1.5">
-                                    <button 
-                                        v-if="instructorSearch" 
-                                        type="button" 
-                                        @click="selectInstructor(null)" 
-                                        class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition"
-                                        title="Clear selection"
-                                    >
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                    <svg class="h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Code</label>
+                                <input v-model="courseForm.code" type="text" :disabled="isEditingCourse" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm disabled:bg-gray-100" required placeholder="e.g. ZSL-101" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Category</label>
+                                <select v-model="selectedCategoryVal" @change="updateCategoryVal" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                    <option value="" disabled>Select Category</option>
+                                    <option v-for="cat in courseCategories" :key="cat" :value="cat">{{ cat }}</option>
+                                </select>
+                                <div v-if="selectedCategoryVal === 'Other'" class="mt-2">
+                                    <input v-model="customCategoryVal" type="text" @input="updateCategoryVal" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="Specify custom category" />
                                 </div>
                             </div>
-                            <!-- Teleported dropdown — renders at body level to avoid any overflow/z-index clipping -->
-                            <Teleport to="body">
-                                <div 
-                                    ref="dropdownEl"
-                                    v-show="showInstructorDropdown && intakeModalOpen"
-                                    :style="dropdownStyle"
-                                    class="fixed bg-white border border-gray-200 rounded-xl shadow-2xl overflow-y-auto divide-y divide-gray-100 text-sm"
-                                    style="z-index: 9999;"
-                                >
-                                    <div 
-                                        class="px-4 py-2.5 text-gray-500 cursor-pointer font-bold sticky top-0 bg-white border-b border-gray-100 transition-colors"
-                                        :class="highlightedIndex === 0 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-gray-50'"
-                                        @mousedown.prevent="selectInstructor(null)"
-                                    >
-                                        — Unassigned
-                                    </div>
-                                    <div 
-                                        v-for="(ins, idx) in filteredInstructors" 
-                                        :key="ins.id"
-                                        class="px-4 py-2.5 cursor-pointer transition flex flex-col text-left"
-                                        :class="highlightedIndex === idx + 1 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-brand-gold/5'"
-                                        @mousedown.prevent="selectInstructor(ins)"
-                                    >
-                                        <span class="font-bold text-gray-800">{{ ins.name }}</span>
-                                        <span class="text-xs text-gray-400 mt-0.5">{{ ins.role_name }} — {{ ins.unit_code }}</span>
-                                    </div>
-                                    <div v-if="filteredInstructors.length === 0" class="px-4 py-4 text-xs text-gray-400 italic text-center">
-                                        No matching instructors found.
-                                    </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Functional Unit</label>
+                                <select v-model="courseForm.department_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm">
+                                    <option :value="null">General MSULI</option>
+                                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.code }} - {{ dept.name }}</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Duration (Wks)</label>
+                                    <input v-model="courseForm.duration_weeks" type="number" min="1" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
                                 </div>
-                            </Teleport>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Tuition Fee</label>
+                                    <input v-model="courseForm.price" type="number" step="0.01" min="0" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Currency</label>
+                                <input v-model="courseForm.currency" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="USD, ZiG" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Course Description</label>
+                                <textarea v-model="courseForm.description" rows="3" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" placeholder="Provide syllabus outline or summary..."></textarea>
+                            </div>
+                            <div class="flex items-center gap-2 py-1">
+                                <input v-model="courseForm.is_published" type="checkbox" id="is_published" class="rounded border-gray-300 text-[#0a1f44] focus:ring-[#0a1f44]" />
+                                <label for="is_published" class="text-sm font-bold text-gray-700 select-none">Publish Course to catalog</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="pt-4 border-t border-gray-150 flex justify-end gap-3">
-                        <button type="button" @click="intakeModalOpen = false" class="px-5 py-2.5 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition text-sm">Cancel</button>
-                        <button type="submit" class="px-5 py-2.5 rounded-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold transition shadow text-sm">Save Intake</button>
-                    </div>
-                </form>
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-150 flex justify-end gap-3 sticky bottom-0 z-10">
+                            <button type="button" @click="closeCourseModal" class="px-4 py-2 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition text-xs">Cancel</button>
+                            <button type="submit" class="px-4 py-2 rounded-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold transition shadow text-xs">
+                                {{ isEditingCourse ? 'Update Course' : 'Create Course' }}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
+        </Teleport>
+ 
+        <!-- Intake Modal (Teleported) -->
+        <Teleport to="body">
+            <div v-if="intakeModalOpen" @click="closeIntakeModal" class="fixed inset-0 bg-[#0a1f44]/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+                <div class="bg-white rounded-2xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" @click.stop>
+                    <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+                        <h3 class="text-sm font-black tracking-wide uppercase">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake' }}</h3>
+                        <button type="button" @click="closeIntakeModal" class="text-white hover:text-brand-gold transition focus:outline-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <form @submit.prevent="saveIntake">
+                        <div class="p-6 space-y-4">
+                            <div v-if="!isEditingIntake">
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Select Course</label>
+                                <select v-model="intakeForm.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                    <option :value="null" disabled>Choose a course to schedule...</option>
+                                    <option v-for="course in courses" :key="course.id" :value="course.id">{{ course.code }} - {{ course.title }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Session / Intake Name</label>
+                                <input id="intake-name-input" v-model="intakeForm.name" type="text" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required placeholder="e.g. Winter 2026 Intake, Batch A" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Start Date</label>
+                                    <input v-model="intakeForm.start_date" type="date" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">End Date</label>
+                                    <input v-model="intakeForm.end_date" type="date" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Capacity</label>
+                                    <input v-model="intakeForm.capacity" type="number" min="1" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Status</label>
+                                    <select v-model="intakeForm.status" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                        <option value="draft">Draft</option>
+                                        <option value="open">Open (Enrolling)</option>
+                                        <option value="closed">Closed</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Instructor Combobox -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Assign Instructor</label>
+                                <div class="relative" ref="dropdownContainer">
+                                    <input 
+                                        id="instructor-search-input"
+                                        v-model="instructorSearch" 
+                                        type="text" 
+                                        placeholder="Search instructor..." 
+                                        class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm pl-3 pr-16 py-2.5"
+                                        @focus="handleFocus"
+                                        @input="handleInput"
+                                        @keydown="handleKeyDown"
+                                        autocomplete="off"
+                                    />
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 gap-1.5">
+                                        <button 
+                                            v-if="instructorSearch" 
+                                            type="button" 
+                                            @click="selectInstructor(null)" 
+                                            class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition"
+                                            title="Clear selection"
+                                        >
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                        <svg class="h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </div>
+                                </div>
+                                <!-- Teleported dropdown -->
+                                <Teleport to="body">
+                                    <div 
+                                        ref="dropdownEl"
+                                        v-show="showInstructorDropdown && intakeModalOpen"
+                                        :style="dropdownStyle"
+                                        class="fixed bg-white border border-gray-200 rounded-xl shadow-2xl overflow-y-auto divide-y divide-gray-100 text-sm"
+                                        style="z-index: 10000;"
+                                        @click.stop
+                                    >
+                                        <div 
+                                            class="px-4 py-2.5 text-gray-500 cursor-pointer font-bold sticky top-0 bg-white border-b border-gray-100 transition-colors"
+                                            :class="highlightedIndex === 0 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-gray-50'"
+                                            @mousedown.prevent="selectInstructor(null)"
+                                        >
+                                            — Unassigned
+                                        </div>
+                                        <div 
+                                            v-for="(ins, idx) in filteredInstructors" 
+                                            :key="ins.id"
+                                            class="px-4 py-2.5 cursor-pointer transition flex flex-col text-left"
+                                            :class="highlightedIndex === idx + 1 ? 'bg-brand-gold/10 text-[#0a1f44]' : 'hover:bg-brand-gold/5'"
+                                            @mousedown.prevent="selectInstructor(ins)"
+                                        >
+                                            <span class="font-bold text-gray-800">{{ ins.name }}</span>
+                                            <span class="text-xs text-gray-400 mt-0.5">{{ ins.role_name }} — {{ ins.unit_code }}</span>
+                                        </div>
+                                        <div v-if="filteredInstructors.length === 0" class="px-4 py-4 text-xs text-gray-400 italic text-center">
+                                            No matching instructors found.
+                                        </div>
+                                    </div>
+                                </Teleport>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-150 flex justify-end gap-3 sticky bottom-0 z-10">
+                            <button type="button" @click="closeIntakeModal" class="px-4 py-2 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition text-xs">Cancel</button>
+                            <button type="submit" class="px-4 py-2 rounded-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold transition shadow text-xs">
+                                {{ isEditingIntake ? 'Update Intake' : 'Schedule Intake' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
 
@@ -401,7 +416,7 @@ const updateCategoryVal = () => {
     }
 };
 
-const openCreateCourseModal = () => {
+const resetCourseForm = () => {
     isEditingCourse.value = false;
     editingCourseId.value = null;
     courseForm.title = '';
@@ -415,7 +430,41 @@ const openCreateCourseModal = () => {
     courseForm.is_published = false;
     selectedCategoryVal.value = '';
     customCategoryVal.value = '';
+};
+
+const updateBodyScroll = () => {
+    const mainEl = document.querySelector('main');
+    if (courseModalOpen.value || intakeModalOpen.value) {
+        document.body.classList.add('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.add('overflow-hidden');
+            mainEl.style.overflow = 'hidden';
+        }
+    } else {
+        document.body.classList.remove('overflow-hidden');
+        if (mainEl) {
+            mainEl.classList.remove('overflow-hidden');
+            mainEl.style.overflow = '';
+        }
+    }
+};
+
+const closeCourseModal = () => {
+    courseModalOpen.value = false;
+    resetCourseForm();
+    updateBodyScroll();
+};
+
+const openCreateCourseModal = () => {
+    resetCourseForm();
     courseModalOpen.value = true;
+    updateBodyScroll();
+    nextTick(() => {
+        const el = document.getElementById('course-title-input');
+        if (el) {
+            el.focus();
+        }
+    });
 };
 
 const openEditCourseModal = (course) => {
@@ -443,19 +492,26 @@ const openEditCourseModal = (course) => {
     }
     
     courseModalOpen.value = true;
+    updateBodyScroll();
+    nextTick(() => {
+        const el = document.getElementById('course-title-input');
+        if (el) {
+            el.focus();
+        }
+    });
 };
 
 const saveCourse = () => {
     if (isEditingCourse.value) {
         Inertia.put(route('courses.update', editingCourseId.value), courseForm, {
             onSuccess: () => {
-                courseModalOpen.value = false;
+                closeCourseModal();
             }
         });
     } else {
         Inertia.post(route('courses.store'), courseForm, {
             onSuccess: () => {
-                courseModalOpen.value = false;
+                closeCourseModal();
             }
         });
     }
@@ -630,19 +686,41 @@ const handleClickOutside = (event) => {
     }
 };
 
+const handleGlobalKeyDown = (e) => {
+    if (e.key === 'Escape') {
+        if (showInstructorDropdown.value) {
+            return;
+        }
+        if (courseModalOpen.value) {
+            closeCourseModal();
+        }
+        if (intakeModalOpen.value) {
+            closeIntakeModal();
+        }
+    }
+};
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleGlobalKeyDown);
     window.addEventListener('scroll', updateDropdownPosition, true);
     window.addEventListener('resize', updateDropdownPosition);
 });
 
 onUnmounted(() => {
+    document.body.classList.remove('overflow-hidden');
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.classList.remove('overflow-hidden');
+        mainEl.style.overflow = '';
+    }
     document.removeEventListener('click', handleClickOutside);
+    document.removeEventListener('keydown', handleGlobalKeyDown);
     window.removeEventListener('scroll', updateDropdownPosition, true);
     window.removeEventListener('resize', updateDropdownPosition);
 });
 
-const openCreateIntakeModal = () => {
+const resetIntakeForm = () => {
     isEditingIntake.value = false;
     editingIntakeId.value = null;
     intakeForm.course_id = props.courses.length > 0 ? props.courses[0].id : null;
@@ -655,7 +733,24 @@ const openCreateIntakeModal = () => {
     instructorSearch.value = '';
     showInstructorDropdown.value = false;
     highlightedIndex.value = -1;
+};
+
+const closeIntakeModal = () => {
+    intakeModalOpen.value = false;
+    resetIntakeForm();
+    updateBodyScroll();
+};
+
+const openCreateIntakeModal = () => {
+    resetIntakeForm();
     intakeModalOpen.value = true;
+    updateBodyScroll();
+    nextTick(() => {
+        const el = document.getElementById('intake-name-input');
+        if (el) {
+            el.focus();
+        }
+    });
 };
 
 const openEditIntakeModal = (intake) => {
@@ -681,20 +776,28 @@ const openEditIntakeModal = (intake) => {
     } else {
         instructorSearch.value = '';
     }
+    
     intakeModalOpen.value = true;
+    updateBodyScroll();
+    nextTick(() => {
+        const el = document.getElementById('intake-name-input');
+        if (el) {
+            el.focus();
+        }
+    });
 };
 
 const saveIntake = () => {
     if (isEditingIntake.value) {
         Inertia.put(route('course-intakes.update', editingIntakeId.value), intakeForm, {
             onSuccess: () => {
-                intakeModalOpen.value = false;
+                closeIntakeModal();
             }
         });
     } else {
         Inertia.post(route('course-intakes.store'), intakeForm, {
             onSuccess: () => {
-                intakeModalOpen.value = false;
+                closeIntakeModal();
             }
         });
     }
