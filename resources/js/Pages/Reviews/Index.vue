@@ -101,7 +101,7 @@
                                 <h4 class="modal-title">Submit Service Review</h4>
                                 <p class="text-xs text-gray-500 mt-0.5">Reference: {{ selectedRequest?.reference_number }}</p>
                             </div>
-                            <button @click="closeModal" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                            <button @click="closeModal" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>

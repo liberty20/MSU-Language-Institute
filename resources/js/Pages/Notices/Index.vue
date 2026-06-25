@@ -122,7 +122,7 @@
                 <form @submit.prevent="saveNotice" class="modal-dialog modal-content bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 relative text-slate-800" @click.stop>
                     <div class="modal-header">
                         <h4 class="modal-title">{{ isEditing ? 'Edit Notice Announcement' : 'Create New Notice' }}</h4>
-                        <button type="button" @click="modalOpen = false" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                        <button type="button" @click="modalOpen = false" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>

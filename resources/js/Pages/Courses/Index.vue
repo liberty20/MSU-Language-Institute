@@ -164,7 +164,7 @@
                 <form @submit.prevent="saveCourse" class="modal-dialog modal-content bg-white rounded-2xl border border-gray-150 shadow-2xl relative" @click.stop>
                     <div class="modal-header">
                         <h4 class="modal-title">{{ isEditingCourse ? 'Edit Course Details' : 'Create New Course' }}</h4>
-                        <button type="button" @click="closeCourseModal" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                        <button type="button" @click="closeCourseModal" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
@@ -233,7 +233,7 @@
                 <form @submit.prevent="saveIntake" class="modal-dialog modal-content bg-white rounded-2xl border border-gray-150 shadow-2xl relative" @click.stop>
                     <div class="modal-header">
                         <h4 class="modal-title">{{ isEditingIntake ? 'Edit Intake Schedule' : 'Schedule New Intake Session' }}</h4>
-                        <button type="button" @click="closeIntakeModal" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                        <button type="button" @click="closeIntakeModal" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>

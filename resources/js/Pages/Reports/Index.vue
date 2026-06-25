@@ -1024,7 +1024,7 @@
                             </h4>
                             <p class="text-xs text-slate-500 mt-0.5 font-medium">Capture dynamic performance coordinates into a saved document</p>
                         </div>
-                        <button type="button" @click="openGenerateModal = false" class="btn-close text-gray-400 hover:text-gray-600 transition focus:outline-none" data-bs-dismiss="modal">
+                        <button type="button" @click="openGenerateModal = false" class="btn-close text-white/80 hover:text-white transition focus:outline-none" data-bs-dismiss="modal">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>

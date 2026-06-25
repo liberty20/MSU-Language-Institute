@@ -88,8 +88,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
-    background: #ffffff;
+    background-color: #0A2A66; /* MSUNLI Dark Blue */
+    color: #FFFFFF;
+    border-bottom: none;
     position: sticky;
     top: 0;
     z-index: 1055;
@@ -98,8 +99,14 @@
 .modal-title {
     margin: 0;
     font-size: 1.25rem;
-    font-weight: 600;
-    color: #0a2a66;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 1;
 }
 
 .modal-body {
