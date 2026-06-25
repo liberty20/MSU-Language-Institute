@@ -4,7 +4,7 @@
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center w-full">
-                <span class="text-black font-extrabold">Notices & Announcements</span>
+                <span class="text-white md:text-black font-extrabold">Notices & Announcements</span>
                 <button v-if="isAdmin" @click="openCreateModal" class="bg-[#f5c242] hover:bg-yellow-500 text-[#0a1f44] font-bold px-5 py-2 rounded-xl transition duration-200 shadow flex items-center gap-2 text-xs">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Create Notice

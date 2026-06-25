@@ -52,6 +52,8 @@ class UserBackupService
         'learning_contents',
         'messages',
         'notices',
+        'announcements',
+        'announcement_reads',
     ];
 
     /**

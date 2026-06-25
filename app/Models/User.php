@@ -85,6 +85,16 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'receiver_id');
     }
 
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class, 'instructor_id');
+    }
+
+    public function announcementReads()
+    {
+        return $this->hasMany(AnnouncementRead::class, 'student_id');
+    }
+
     public function getRoleNameAttribute()
     {
         return $this->getRoleNames()->first() ?? 'N/A';

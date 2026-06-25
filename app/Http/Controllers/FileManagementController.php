@@ -136,6 +136,27 @@ class FileManagementController extends Controller
                 $mimeType = $document->mime_type;
                 break;
 
+            case 'announcement':
+                $announcement = \App\Models\Announcement::findOrFail($id);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isInstructor = ($user->id === $announcement->instructor_id);
+                $isStudent = \App\Models\CourseEnrollment::where('user_id', $user->id)
+                    ->where('enrollment_status', 'active')
+                    ->whereIn('course_intake_id', function($q) use ($announcement) {
+                        $q->select('id')
+                            ->from('course_intakes')
+                            ->where('course_id', $announcement->course_id);
+                    })
+                    ->exists();
+
+                if (!$isAdmin && !$isInstructor && !$isStudent) {
+                    abort(403, 'Unauthorized access to this announcement attachment.');
+                }
+
+                $path = $announcement->attachment_path;
+                $originalName = basename($path);
+                break;
+
             case 'payment':
                 $payment = Payment::findOrFail($id);
                 $isClientOwner = ($user->id === $payment->client_id);

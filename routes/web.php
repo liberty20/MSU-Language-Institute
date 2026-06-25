@@ -169,6 +169,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('student/assignments/{assignment}/submit', [\App\Http\Controllers\StudentPortalController::class, 'submitAssignment'])->name('student.assignments.submit');
         Route::post('student/testimonials', [\App\Http\Controllers\StudentPortalController::class, 'submitTestimonial'])->name('student.testimonials.store');
         Route::get('student/learning-content', [\App\Http\Controllers\StudentPortalController::class, 'learningContent'])->name('student.learning-content');
+        
+        // Course Announcements Routes
+        Route::get('student/announcements', [\App\Http\Controllers\AnnouncementController::class, 'studentIndex'])->name('student.announcements.index');
+        Route::post('student/announcements/{announcement}/read', [\App\Http\Controllers\AnnouncementController::class, 'markAsRead'])->name('student.announcements.read');
     });
 
     // Instructor Short Course Portal Routes
@@ -199,6 +203,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('instructor/learning-content', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentStore'])->name('instructor.learning-content.store');
         Route::put('instructor/learning-content/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentUpdate'])->name('instructor.learning-content.update');
         Route::delete('instructor/learning-content/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'learningContentDestroy'])->name('instructor.learning-content.destroy');
+
+        // Announcements Management Routes
+        Route::get('instructor/announcements', [\App\Http\Controllers\AnnouncementController::class, 'instructorIndex'])->name('instructor.announcements.index');
+        Route::post('instructor/announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('instructor.announcements.store');
+        Route::put('instructor/announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'update'])->name('instructor.announcements.update');
+        Route::delete('instructor/announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('instructor.announcements.destroy');
+        Route::post('instructor/announcements/{announcement}/publish', [\App\Http\Controllers\AnnouncementController::class, 'publish'])->name('instructor.announcements.publish');
     });
 
     Route::resource('clients', ClientController::class);

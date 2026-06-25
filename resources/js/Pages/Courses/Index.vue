@@ -811,3 +811,63 @@ const formatDateForInput = (dateString) => {
     return date.toISOString().split('T')[0];
 };
 </script>
+
+<style scoped>
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    width: 100%;
+    max-width: 32rem;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background-color: #0A2A66; /* MSUNLI Dark Blue */
+    color: #FFFFFF;
+    border-bottom: none;
+    position: sticky;
+    top: 0;
+    z-index: 1055;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.3px;
+}
+
+.modal-body {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.modal-footer {
+    flex-shrink: 0;
+}
+
+.modal-header .btn-close {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
+}
+</style>

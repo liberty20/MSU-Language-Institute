@@ -55,6 +55,24 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
             ],
+            'unreadAnnouncementsCount' => $request->user() && $request->user()->primary_category === 'Student' ? (
+                \App\Models\Announcement::whereIn('course_id', function ($query) use ($request) {
+                    $query->select('course_intakes.course_id')
+                        ->from('course_enrollments')
+                        ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                        ->where('course_enrollments.user_id', $request->user()->id)
+                        ->where('course_enrollments.enrollment_status', 'active');
+                })
+                ->where('status', 'published')
+                ->whereNotNull('published_at')
+                ->whereNotExists(function ($query) use ($request) {
+                    $query->select(\DB::raw(1))
+                        ->from('announcement_reads')
+                        ->whereRaw('announcement_reads.announcement_id = announcements.id')
+                        ->where('announcement_reads.student_id', $request->user()->id);
+                })
+                ->count()
+            ) : 0,
             'ziggy' => function () {
                 return (new Ziggy)->toArray();
             },
