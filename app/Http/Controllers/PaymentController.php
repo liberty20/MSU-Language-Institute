@@ -92,7 +92,7 @@ class PaymentController extends Controller
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $filePath = $file->store('proofs', 'public');
+            $filePath = $file->storeAs('proofs/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
 
             Payment::create([
                 'service_request_id' => $serviceRequest->id,

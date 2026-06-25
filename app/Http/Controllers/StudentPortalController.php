@@ -307,8 +307,8 @@ class StudentPortalController extends Controller
         $user = Auth::user();
         $assignment = CourseAssignment::with('intake.instructor')->findOrFail($assignmentId);
 
-        // Store file
-        $filePath = $request->file('attachment')->store('course_assignments/submissions', 'public');
+        $file = $request->file('attachment');
+        $filePath = $file->storeAs('course_assignments/submissions/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
 
         // Check if overdue
         $status = now()->gt($assignment->due_date) ? 'overdue' : 'submitted';

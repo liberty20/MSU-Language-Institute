@@ -132,7 +132,7 @@ class AssignmentController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = $file->getClientOriginalName();
-            $filePath = $file->store('documents', 'public');
+            $filePath = $file->storeAs('documents/' . time() . '_' . uniqid(), $filename, 'public');
             $fileSize = $file->getSize();
             $mimeType = $file->getMimeType();
 

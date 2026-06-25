@@ -154,7 +154,7 @@ class ServiceRequestController extends Controller
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 $filename = $file->getClientOriginalName();
-                $filePath = $file->store('documents', 'public');
+                $filePath = $file->storeAs('documents/' . time() . '_' . uniqid(), $filename, 'public');
                 $fileSize = $file->getSize();
                 $mimeType = $file->getMimeType();
 
@@ -313,7 +313,7 @@ class ServiceRequestController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = $file->getClientOriginalName();
-            $filePath = $file->store('documents', 'public');
+            $filePath = $file->storeAs('documents/' . time() . '_' . uniqid(), $filename, 'public');
             $fileSize = $file->getSize();
             $mimeType = $file->getMimeType();
 

@@ -61,10 +61,10 @@ class FileManagementController extends Controller
 
                 if ($field === 'national_id') {
                     $path = $application->national_id_copy_path;
-                    $originalName = 'national_id_' . $application->national_id_number;
+                    $originalName = basename($path);
                 } elseif ($field === 'payment_proof') {
                     $path = $application->payment_proof_path;
-                    $originalName = 'payment_proof_' . $id;
+                    $originalName = basename($path);
                 } else {
                     abort(400, 'Invalid field requested.');
                 }
@@ -81,7 +81,7 @@ class FileManagementController extends Controller
                 }
 
                 $path = $enrollment->payment_proof_path;
-                $originalName = 'enrollment_proof_' . $id;
+                $originalName = basename($path);
                 break;
 
             case 'uploaded_document':

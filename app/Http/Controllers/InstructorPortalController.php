@@ -726,10 +726,12 @@ class InstructorPortalController extends Controller
         // Keep backward-compatible single attachment path on the model
         $filePath = null;
         if ($request->hasFile('attachment')) {
-            $filePath = $request->file('attachment')->store('course_assignments/materials', 'public');
+            $file = $request->file('attachment');
+            $filePath = $file->storeAs('course_assignments/materials/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
         } elseif ($request->hasFile('attachments')) {
             // Use first file for the legacy attachment_path field
-            $filePath = $request->file('attachments')[0]->store('course_assignments/materials', 'public');
+            $file = $request->file('attachments')[0];
+            $filePath = $file->storeAs('course_assignments/materials/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
         }
 
         $assignment = CourseAssignment::create(array_merge($request->except(['attachment', 'attachments']), [
@@ -742,7 +744,7 @@ class InstructorPortalController extends Controller
         $startIdx = ($filePath && $request->hasFile('attachments')) ? 1 : 0; // skip first if already stored above
 
         foreach (array_slice($files, $startIdx) as $file) {
-            $path  = $file->store('course_assignments/materials', 'public');
+            $path  = $file->storeAs('course_assignments/materials/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
             $assignment->documents()->create([
                 'uploaded_by' => $user->id,
                 'filename'    => $file->getClientOriginalName(),
@@ -968,7 +970,7 @@ class InstructorPortalController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = $file->getClientOriginalName();
-            $filePath = $file->store('learning_materials', 'public');
+            $filePath = $file->storeAs('learning_materials/' . time() . '_' . uniqid(), $filename, 'public');
             $fileSize = $file->getSize();
             $mimeType = $file->getMimeType();
 
@@ -1020,7 +1022,7 @@ class InstructorPortalController extends Controller
 
             $file = $request->file('file');
             $updateData['file_name'] = $file->getClientOriginalName();
-            $updateData['file_path'] = $file->store('learning_materials', 'public');
+            $updateData['file_path'] = $file->storeAs('learning_materials/' . time() . '_' . uniqid(), $updateData['file_name'], 'public');
             $updateData['file_size'] = $file->getSize();
             $updateData['mime_type'] = $file->getMimeType();
         }

@@ -1057,7 +1057,8 @@ class CourseController extends Controller
         // Store proof of payment
         $filePath = null;
         if ($request->hasFile('payment_proof')) {
-            $filePath = $request->file('payment_proof')->store('payments/proofs', 'public');
+            $file = $request->file('payment_proof');
+            $filePath = $file->storeAs('payments/proofs/' . time() . '_' . uniqid(), $file->getClientOriginalName(), 'public');
         }
 
         CourseEnrollment::create([
@@ -1145,9 +1146,10 @@ class CourseController extends Controller
             return redirect()->back()->with('error', 'Sorry, this intake has reached its maximum enrollment capacity.');
         }
 
-        // Store secure files
-        $idCopyPath = $request->file('national_id_copy')->store('course_applications/id_copies', 'public');
-        $paymentProofPath = $request->file('payment_proof')->store('course_applications/payment_proofs', 'public');
+        $idCopyFile = $request->file('national_id_copy');
+        $idCopyPath = $idCopyFile->storeAs('course_applications/id_copies/' . time() . '_' . uniqid(), $idCopyFile->getClientOriginalName(), 'public');
+        $paymentProofFile = $request->file('payment_proof');
+        $paymentProofPath = $paymentProofFile->storeAs('course_applications/payment_proofs/' . time() . '_' . uniqid(), $paymentProofFile->getClientOriginalName(), 'public');
 
         $application = CourseApplication::create([
             'course_intake_id'      => $validated['course_intake_id'],
@@ -1596,6 +1598,9 @@ class CourseController extends Controller
 
         $absolutePath = Storage::disk('public')->path($path);
         
-        return response()->file($absolutePath);
+        $originalName = basename($path);
+        return response()->file($absolutePath, [
+            'Content-Disposition' => 'inline; filename="' . $originalName . '"',
+        ]);
     }
 }

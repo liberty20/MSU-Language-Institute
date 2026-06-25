@@ -96,7 +96,7 @@ class NoticeController extends Controller
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 $filename = $file->getClientOriginalName();
-                $filePath = $file->store('documents', 'public');
+                $filePath = $file->storeAs('documents/' . time() . '_' . uniqid(), $filename, 'public');
                 $fileSize = $file->getSize();
                 $mimeType = $file->getMimeType();
 
@@ -162,7 +162,7 @@ class NoticeController extends Controller
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 $filename = $file->getClientOriginalName();
-                $filePath = $file->store('documents', 'public');
+                $filePath = $file->storeAs('documents/' . time() . '_' . uniqid(), $filename, 'public');
                 $fileSize = $file->getSize();
                 $mimeType = $file->getMimeType();
 
