@@ -430,7 +430,11 @@ class DashboardController extends Controller
             }
         }
 
-        $notifications = $user ? $user->notifications()->orderBy('created_at', 'desc')->take(20)->get() : collect();
+        $notifications = $user ? $user->notifications()
+            ->orderByRaw('CASE WHEN read_at IS NULL THEN 0 ELSE 1 END ASC')
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get() : collect();
         return response()->json([
             'notifications' => $notifications,
             'unread_count' => $user ? $user->unreadNotifications()->count() : 0,
@@ -462,7 +466,11 @@ class DashboardController extends Controller
 
         foreach ($directIds as $key => $modelClass) {
             if (isset($data[$key]) && !empty($data[$key])) {
-                if (!$modelClass::where('id', $data[$key])->exists()) {
+                $instance = $modelClass::find($data[$key]);
+                if (!$instance) {
+                    return false;
+                }
+                if (!$this->userHasAccessToRecord($instance, $user)) {
                     return false;
                 }
             }
@@ -522,8 +530,14 @@ class DashboardController extends Controller
                             $modelClass = \App\Models\Report::class;
                             break;
                     }
-                    if ($modelClass && !$modelClass::where('id', $val)->exists()) {
-                        return false;
+                    if ($modelClass) {
+                        $instance = $modelClass::find($val);
+                        if (!$instance) {
+                            return false;
+                        }
+                        if (!$this->userHasAccessToRecord($instance, $user)) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -588,6 +602,172 @@ class DashboardController extends Controller
         }
 
         return true;
+    }
+
+    private function userHasAccessToRecord($record, $user)
+    {
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        if ($isManagement) {
+            return true;
+        }
+
+        $class = get_class($record);
+
+        // 1. Task
+        if ($class === \App\Models\Task::class) {
+            $assignment = $record->assignment;
+            return $assignment && $assignment->assigned_to == $user->id;
+        }
+
+        // 2. Quotation
+        if ($class === \App\Models\Quotation::class) {
+            if ($record->prepared_by == $user->id) {
+                return true;
+            }
+            $serviceRequest = $record->serviceRequest;
+            if ($serviceRequest) {
+                if ($user->primary_category === 'Client') {
+                    return $serviceRequest->submitted_by == $user->id;
+                }
+                if ($serviceRequest->assigned_to == $user->id) {
+                    return true;
+                }
+                return $serviceRequest->assignments()->where('assigned_to', $user->id)->exists();
+            }
+            return false;
+        }
+
+        // 3. ServiceRequest
+        if ($class === \App\Models\ServiceRequest::class) {
+            if ($user->primary_category === 'Client') {
+                return $record->submitted_by == $user->id;
+            }
+            if ($record->assigned_to == $user->id) {
+                return true;
+            }
+            return $record->assignments()->where('assigned_to', $user->id)->exists();
+        }
+
+        // 4. CourseEnrollment
+        if ($class === \App\Models\CourseEnrollment::class) {
+            if ($user->primary_category === 'Student') {
+                return $record->user_id == $user->id;
+            }
+            $intake = $record->intake;
+            return $intake && $intake->instructor_id == $user->id;
+        }
+
+        // 5. CourseApplication
+        if ($class === \App\Models\CourseApplication::class) {
+            if ($user->primary_category === 'Student') {
+                return $record->user_id == $user->id;
+            }
+            return $record->email === $user->email;
+        }
+
+        // 6. CourseIntake
+        if ($class === \App\Models\CourseIntake::class) {
+            if ($record->instructor_id == $user->id) {
+                return true;
+            }
+            if ($user->primary_category === 'Student') {
+                return \App\Models\CourseEnrollment::where('course_intake_id', $record->id)
+                    ->where('user_id', $user->id)
+                    ->where('payment_status', 'verified')
+                    ->exists();
+            }
+            return false;
+        }
+
+        // 7. CourseAssignment
+        if ($class === \App\Models\CourseAssignment::class) {
+            $intake = $record->intake;
+            if ($intake) {
+                if ($intake->instructor_id == $user->id) {
+                    return true;
+                }
+                if ($user->primary_category === 'Student') {
+                    return \App\Models\CourseEnrollment::where('course_intake_id', $intake->id)
+                        ->where('user_id', $user->id)
+                        ->where('payment_status', 'verified')
+                        ->exists();
+                }
+            }
+            return false;
+        }
+
+        // 8. Payment
+        if ($class === \App\Models\Payment::class) {
+            if ($user->primary_category === 'Client') {
+                return $record->client_id == $user->id;
+            }
+            $quotation = $record->quotation;
+            return $quotation && $quotation->prepared_by == $user->id;
+        }
+
+        // 9. Course
+        if ($class === \App\Models\Course::class) {
+            if ($user->primary_category === 'Student') {
+                if ($record->is_published) {
+                    return true;
+                }
+                return \App\Models\CourseEnrollment::whereHas('intake', function($q) use ($record) {
+                    $q->where('course_id', $record->id);
+                })->where('user_id', $user->id)->exists();
+            }
+            return $record->intakes()->where('instructor_id', $user->id)->exists();
+        }
+
+        // 10. UploadedDocument
+        if ($class === \App\Models\UploadedDocument::class) {
+            if ($record->uploaded_by == $user->id) {
+                return true;
+            }
+            $serviceRequest = $record->serviceRequest;
+            if ($serviceRequest) {
+                if ($user->primary_category === 'Client') {
+                    return $serviceRequest->submitted_by == $user->id;
+                }
+                if ($serviceRequest->assigned_to == $user->id) {
+                    return true;
+                }
+                return $serviceRequest->assignments()->where('assigned_to', $user->id)->exists();
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    public function clickNotification(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401, 'Unauthorized');
+        }
+
+        $notification = $user->notifications()->findOrFail($id);
+        
+        $notification->markAsRead();
+
+        if (!$this->isNotificationValid($notification, $user)) {
+            $notification->delete();
+
+            $referrer = request()->headers->get('referer');
+            if ($referrer) {
+                return redirect()->back()->with('error', 'This resource is no longer available or you are not authorized to view it.');
+            }
+            return redirect()->route('dashboard')->with('error', 'This resource is no longer available or you are not authorized to view it.');
+        }
+
+        $data = $notification->data;
+        $actionUrl = $data['action_url'] ?? null;
+
+        if (!$actionUrl || $actionUrl === '#') {
+            return redirect()->route('dashboard');
+        }
+
+        return redirect($actionUrl);
     }
 
     private function checkDeadlines($user)
@@ -751,7 +931,18 @@ class DashboardController extends Controller
     public function notificationsHistory()
     {
         $user = Auth::user();
-        $notifications = $user ? $user->notifications()->orderBy('created_at', 'desc')->paginate(15) : collect();
+        if ($user) {
+            $allNotifications = $user->notifications()->get();
+            foreach ($allNotifications as $notification) {
+                if (!$this->isNotificationValid($notification, $user)) {
+                    $notification->delete();
+                }
+            }
+        }
+        $notifications = $user ? $user->notifications()
+            ->orderByRaw('CASE WHEN read_at IS NULL THEN 0 ELSE 1 END ASC')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15) : collect();
 
         return \Inertia\Inertia::render('Notifications/History', [
             'notifications' => $notifications,

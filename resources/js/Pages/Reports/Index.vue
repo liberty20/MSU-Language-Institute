@@ -195,13 +195,13 @@
                     </div>
                 </div>
 
-                <!-- Card 7: Total Revenue Generated -->
+                <!-- Card 7: Language Services Revenue -->
                 <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue Generated</span>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Language Services Revenue</span>
                             <div class="flex flex-col gap-0.5 mt-1">
                                 <span v-for="(amount, curr) in animatedRevenue" :key="curr" class="block text-sm font-black font-mono leading-none"
                                       :class="{

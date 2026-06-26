@@ -277,7 +277,7 @@
                                 <div class="max-h-64 overflow-y-auto divide-y divide-gray-50">
                                     <div v-for="notif in notifications" :key="notif.id" class="px-4 py-3 hover:bg-gray-50/70 transition flex gap-3 relative" :class="{'bg-rose-50/10': !notif.read_at}">
                                         <!-- Clickable container if there is an action URL -->
-                                        <Link v-if="notif.data.action_url" :href="notif.data.action_url" @click="markRead(notif.id); showNotifications = false" class="flex-1 min-w-0 text-left block">
+                                        <Link v-if="notif.data.action_url" :href="route('notifications.click', notif.id)" @click="showNotifications = false" class="flex-1 min-w-0 text-left block">
                                             <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                                                 <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" 
                                                       :class="notif.read_at ? 'bg-gray-100 text-gray-500' : 'bg-rose-100 text-rose-700'">

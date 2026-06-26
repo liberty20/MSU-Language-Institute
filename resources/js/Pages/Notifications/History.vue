@@ -62,7 +62,7 @@
                             <button v-if="!notif.read_at" @click="markRead(notif.id)" class="text-xs text-[#0a1f44] hover:text-brand-gold-dark font-extrabold uppercase tracking-wider border border-gray-200 hover:border-brand-gold-dark px-3 py-1.5 rounded-lg transition" title="Mark as read">
                                 Mark Read
                             </button>
-                            <Link v-if="notif.data.action_url" :href="notif.data.action_url" @click="markRead(notif.id)" class="text-xs text-center bg-[#0a1f44] text-white hover:bg-brand-blue font-bold px-3 py-1.5 rounded-lg transition uppercase tracking-wider shadow-sm">
+                            <Link v-if="notif.data.action_url" :href="route('notifications.click', notif.id)" class="text-xs text-center bg-[#0a1f44] text-white hover:bg-brand-blue font-bold px-3 py-1.5 rounded-lg transition uppercase tracking-wider shadow-sm">
                                 View Action
                             </Link>
                         </div>

@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/{id}/read', [DashboardController::class, 'markNotificationAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [DashboardController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
     Route::get('notifications-history', [DashboardController::class, 'notificationsHistory'])->name('notifications.history');
+    Route::get('notifications/{id}/click', [DashboardController::class, 'clickNotification'])->name('notifications.click');
 
     // Notices Management Routes (Admin + Students)
     Route::get('notices', [NoticeController::class, 'index'])->name('notices.index');

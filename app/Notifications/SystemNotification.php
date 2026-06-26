@@ -41,6 +41,17 @@ class SystemNotification extends Notification
      */
     public function via($notifiable)
     {
+        $exists = $notifiable->unreadNotifications()
+            ->where('data->type', $this->type)
+            ->where('data->title', $this->title)
+            ->where('data->message', $this->message)
+            ->where('data->action_url', $this->actionUrl)
+            ->exists();
+
+        if ($exists) {
+            return [];
+        }
+
         return ['database'];
     }
 
@@ -59,5 +70,25 @@ class SystemNotification extends Notification
             'action_url' => $this->actionUrl,
             'trigger_source' => $this->triggerSource,
         ], $this->extraData);
+    }
+
+    /**
+     * Send a notification only if an identical unread one does not already exist.
+     */
+    public static function sendUnique($user, $type, $title, $message, $actionUrl = null, $extraData = [], $triggerSource = null)
+    {
+        if (!$user) {
+            return;
+        }
+
+        $exists = $user->unreadNotifications()
+            ->where('data->type', $type)
+            ->where('data->title', $title)
+            ->where('data->message', $message)
+            ->exists();
+
+        if (!$exists) {
+            $user->notify(new self($type, $title, $message, $actionUrl, $extraData, $triggerSource));
+        }
     }
 }
