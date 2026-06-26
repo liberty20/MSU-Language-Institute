@@ -67,7 +67,8 @@
                     Line Items
                 </h2>
 
-                <div class="overflow-x-auto">
+                <!-- Desktop Table View (Hidden on mobile) -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100">
@@ -122,6 +123,54 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Mobile Card-based View (Hidden on desktop) -->
+                <div class="block md:hidden space-y-4">
+                    <div v-for="(item, index) in lineItems" :key="index" class="p-4 bg-gray-50 border border-gray-150 rounded-xl space-y-3 relative">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <span class="text-xs font-bold text-gray-500">Item #{{ index + 1 }}</span>
+                            <button type="button" @click="removeItem(index)" v-if="lineItems.length > 1"
+                                    class="text-red-400 hover:text-red-650 transition flex items-center gap-1 text-xs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Delete
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                                <input v-model="item.description" type="text" placeholder="e.g. Translation (A4 pages)" required
+                                       class="w-full border-gray-200 rounded-lg text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Quantity</label>
+                                    <input v-model.number="item.qty" type="number" min="1" step="0.5" required
+                                           class="w-full border-gray-200 rounded-lg text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 mb-1">Unit Price</label>
+                                    <input v-model.number="item.unit_price" type="number" min="0" step="0.01" required
+                                           class="w-full border-gray-200 rounded-lg text-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" />
+                                </div>
+                            </div>
+                            <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-gray-700">
+                                <span>Total Price:</span>
+                                <span class="text-sm font-extrabold text-gray-900">{{ form.currency }} {{ (item.qty * item.unit_price).toFixed(2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-2 flex justify-between items-center border-t border-gray-200">
+                        <button type="button" @click="addItem"
+                                class="text-xs text-[#0a1f44] hover:text-[#f5c242] font-black transition flex items-center gap-1 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Add Line Item
+                        </button>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 font-bold block">TOTAL ESTIMATE</span>
+                            <span class="text-lg font-black text-[#0a1f44]">{{ form.currency }} {{ grandTotal.toFixed(2) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

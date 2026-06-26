@@ -257,11 +257,6 @@
                             <slot name="header" />
                         </h2>
                     </div>
-                    
-                    <!-- Mobile Page Title -->
-                    <div class="md:hidden text-white font-semibold text-base px-2">
-                        <slot name="header" />
-                    </div>
 
                      <div class="flex items-center gap-4">
                         <!-- Centralized Notifications Dropdown -->
@@ -363,6 +358,10 @@
             <!-- Page Content -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 relative min-w-0">
                 <div class="max-w-full">
+                    <!-- Mobile Page Header Card -->
+                    <div v-if="$slots.header" class="md:hidden mb-6 bg-white p-4 rounded-xl border border-gray-150 shadow-sm text-gray-900 font-semibold text-lg">
+                        <slot name="header" />
+                    </div>
                     <slot />
                 </div>
             </main>

@@ -28,6 +28,32 @@
                         Portal Login
                     </Link>
                 </div>
+                
+                <!-- Hamburger Button for Mobile -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-gray-200 hover:text-[#f5c242] focus:outline-none p-1.5 rounded-lg transition-colors" aria-label="Toggle Navigation">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path v-if="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation Menu -->
+            <div v-show="mobileMenuOpen" class="md:hidden bg-[#0a1f44] border-t border-white/10 shadow-xl px-6 py-4 space-y-4">
+                <a href="#services" @click="mobileMenuOpen = false; toggleServices()" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Services</a>
+                <Link :href="route('courses.public')" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
+                <a href="#announcements" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
+                <button @click="mobileMenuOpen = false; showAbout = true" class="block w-full text-left text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
+                <div class="border-t border-white/10 pt-4">
+                    <Link v-if="$page.props.auth.user" :href="route('dashboard')" @click="mobileMenuOpen = false"
+                          class="block w-full text-center bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow-lg text-sm">
+                        Go to Dashboard
+                    </Link>
+                    <Link v-else :href="route('login')" @click="mobileMenuOpen = false"
+                          class="block w-full text-center bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-bold px-6 py-2.5 rounded-full transition shadow-lg text-sm">
+                        Portal Login
+                    </Link>
+                </div>
             </div>
         </nav>
 
@@ -351,6 +377,7 @@ import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const scrolled = ref(false);
+const mobileMenuOpen = ref(false);
 const showServices = ref(false);
 const showAbout = ref(false);
 const showTerms = ref(false);

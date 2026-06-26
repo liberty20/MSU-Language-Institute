@@ -13,14 +13,15 @@
                     </div>
                 </Link>
 
-                <div class="flex items-center gap-6">
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-6">
                     <Link href="/" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
                         Home
                     </Link>
-                    <a href="#catalog" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition hidden sm:inline-block">
+                    <a href="#catalog" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
                         Course Catalog
                     </a>
-                    <a href="#faq" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition hidden sm:inline-block">
+                    <a href="#faq" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
                         FAQ
                     </a>
                     <Link v-if="!$page.props.auth.user" :href="canLogin ? route('login') : '/login'" 
@@ -29,6 +30,37 @@
                     </Link>
                     <Link v-else :href="route('dashboard')" 
                           class="bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-5 py-2 rounded-full transition shadow-md text-xs uppercase tracking-wider">
+                        Go to Dashboard
+                    </Link>
+                </div>
+
+                <!-- Hamburger Button for Mobile -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-gray-200 hover:text-brand-gold focus:outline-none p-1.5 rounded-lg transition-colors" aria-label="Toggle Navigation">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path v-if="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation Menu -->
+            <div v-show="mobileMenuOpen" class="md:hidden bg-[#0a1f44] border-t border-brand-gold/15 shadow-xl px-6 py-4 space-y-4">
+                <Link href="/" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
+                    Home
+                </Link>
+                <a href="#catalog" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
+                    Course Catalog
+                </a>
+                <a href="#faq" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
+                    FAQ
+                </a>
+                <div class="border-t border-brand-gold/15 pt-4">
+                    <Link v-if="!$page.props.auth.user" :href="canLogin ? route('login') : '/login'" @click="mobileMenuOpen = false"
+                          class="block w-full text-center bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-5 py-2.5 rounded-full transition shadow-md text-xs uppercase tracking-wider">
+                        Portal Login
+                    </Link>
+                    <Link v-else :href="route('dashboard')" @click="mobileMenuOpen = false"
+                          class="block w-full text-center bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-5 py-2.5 rounded-full transition shadow-md text-xs uppercase tracking-wider">
                         Go to Dashboard
                     </Link>
                 </div>
@@ -751,6 +783,7 @@ const selectedStatus = ref('');
 const showAbout = ref(false);
 const showTerms = ref(false);
 const showPrivacy = ref(false);
+const mobileMenuOpen = ref(false);
 
 const zimbabweanLanguages = [
     'Chewa', 'ChiBarwe', 'English', 'Kalanga', 'Koisan', 'Nambya', 'Ndau', 'Ndebele',
