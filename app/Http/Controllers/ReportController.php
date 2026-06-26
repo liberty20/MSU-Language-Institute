@@ -375,6 +375,13 @@ class ReportController extends Controller
                     ->groupBy('quotations.currency')
                     ->pluck('total', 'currency')
                     ->toArray(),
+                'short_courses_revenue' => \App\Models\CourseEnrollment::where('course_enrollments.payment_status', 'verified')
+                    ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                    ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
+                    ->selectRaw('courses.currency, SUM(courses.price) as total')
+                    ->groupBy('courses.currency')
+                    ->pluck('total', 'currency')
+                    ->toArray(),
             ],
             'studentEnrollmentStats' => $studentEnrollmentStats,
             'enrolledStudents' => $enrolledStudents,

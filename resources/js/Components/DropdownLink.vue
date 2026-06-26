@@ -18,7 +18,7 @@ defineProps({
 </script>
 
 <template>
-    <Link :href="href" :as="as" :method="method" class="block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">
+    <Link :href="href" :as="as" :method="method" class="block w-full px-4 py-2.5 text-left text-sm leading-5 text-gray-700 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors duration-150 rounded-xl">
         <slot />
     </Link>
 </template>

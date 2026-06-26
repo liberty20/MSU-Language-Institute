@@ -73,8 +73,8 @@
 
             <!-- Language Services Scope Dashboard Content -->
             <div v-if="activeScope === 'client_services' || !activeScope" class="space-y-6">
-                <!-- Executive KPI Deck (7 Cards) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-5">
+                <!-- Executive KPI Deck (8 Cards) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8 gap-5">
                 <!-- Card 1: Total Intake Requests -->
                 <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -226,6 +226,40 @@
                     <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold relative z-10">
                         <span>Verified Inflow</span>
                         <span class="text-emerald-650 font-black">Live Stats</span>
+                    </div>
+                </div>
+
+                <!-- Card 8: Short Courses Revenue -->
+                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all duration-500"></div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Short Courses Revenue</span>
+                            <div class="flex flex-col gap-0.5 mt-1">
+                                <span v-for="(amount, curr) in animatedShortCoursesRevenue" :key="curr" class="block text-sm font-black font-mono leading-none"
+                                      :class="{
+                                          'text-emerald-600': curr === 'USD',
+                                          'text-blue-600': curr === 'ZAR',
+                                          'text-[#d4af37]': curr === 'ZWG',
+                                          'text-slate-800': !['USD', 'ZAR', 'ZWG'].includes(curr)
+                                      }">
+                                    {{ curr }} {{ Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                </span>
+                                <span v-if="Object.keys(animatedShortCoursesRevenue).length === 0" class="block text-sm font-black text-emerald-600 font-mono leading-none">
+                                    USD 0.00
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 font-bold relative z-10">
+                        <span>Verified Students</span>
+                        <span class="text-amber-650 font-black">Live Stats</span>
                     </div>
                 </div>
             </div>
@@ -1218,6 +1252,7 @@ const animatedTotals = reactive({
 });
 
 const animatedRevenue = reactive({});
+const animatedShortCoursesRevenue = reactive({});
 
 const animateValue = (key, target, duration = 800) => {
     const startValue = animatedTotals[key] || 0;
@@ -1269,6 +1304,28 @@ const animateRevenueValue = (curr, target, duration = 800) => {
     requestAnimationFrame(step);
 };
 
+const animateShortCoursesRevenueValue = (curr, target, duration = 800) => {
+    const startValue = animatedShortCoursesRevenue[curr] || 0;
+    const startTime = performance.now();
+    
+    const step = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = progress * (2 - progress); // easeOutQuad
+        
+        let currentVal = startValue + (target - startValue) * ease;
+        animatedShortCoursesRevenue[curr] = parseFloat(currentVal.toFixed(2));
+        
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            animatedShortCoursesRevenue[curr] = target;
+        }
+    };
+    
+    requestAnimationFrame(step);
+};
+
 const triggerAnimations = () => {
     animateValue('total_requests', props.totals.total_requests || 0);
     animateValue('active_assignments', props.totals.active_assignments || 0);
@@ -1287,6 +1344,18 @@ const triggerAnimations = () => {
     // Animate each active currency key
     Object.entries(revGen).forEach(([curr, amount]) => {
         animateRevenueValue(curr, parseFloat(amount) || 0);
+    });
+
+    const scRevGen = props.totals.short_courses_revenue || {};
+    // Remove any currency keys that are no longer in scRevGen
+    Object.keys(animatedShortCoursesRevenue).forEach(key => {
+        if (!(key in scRevGen)) {
+            delete animatedShortCoursesRevenue[key];
+        }
+    });
+    // Animate each active currency key
+    Object.entries(scRevGen).forEach(([curr, amount]) => {
+        animateShortCoursesRevenueValue(curr, parseFloat(amount) || 0);
     });
 };
 
