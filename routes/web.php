@@ -127,6 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('course-enrollments/manual', [CourseController::class, 'manualEnroll'])->name('course-enrollments.manual');
     Route::post('course-enrollments/{enrollment}/verify', [CourseController::class, 'verifyPayment'])->name('course-enrollments.verify');
     Route::post('course-enrollments/{enrollment}/certificate', [CourseController::class, 'issueCertificate'])->name('course-enrollments.certificate');
+    Route::post('course-enrollments/bulk-certificate', [CourseController::class, 'bulkIssueCertificate'])->name('course-enrollments.bulk-certificate');
 
     // Course Applications Review Workflow (Admin/Staff)
     Route::get('course-applications', [CourseController::class, 'applicationsList'])->name('course-applications.index');
@@ -282,6 +283,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('admin.testimonials.approve');
         Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('admin.testimonials.reject');
         Route::delete('testimonials/{idx}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('admin.testimonials.destroy');
+        Route::post('testimonials/update-active', [\App\Http\Controllers\Admin\SettingsController::class, 'updateActiveTestimonial'])->name('admin.testimonials.update-active');
     });
 
     Route::middleware('role:deputy_director')->group(function () {

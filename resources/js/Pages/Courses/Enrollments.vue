@@ -359,7 +359,14 @@
                                     <svg class="w-4 h-4 text-[#f5c242]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                                     Enrolled Student Registry ({{ intake.students.length }} Students)
                                 </h4>
-                                <div class="flex items-center gap-2" v-if="intake.students.length > 0">
+                                <div class="flex items-center gap-2 flex-wrap" v-if="intake.students.length > 0">
+                                    <button v-if="hasSelectedForIntake(intake)" 
+                                            @click="bulkMarkCollected(intake)"
+                                            class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-lg transition shadow-md border border-emerald-500/20 flex items-center gap-1.5 transform active:scale-95">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Mark Selected Collected ({{ getSelectedCountForIntake(intake) }})
+                                    </button>
+                                    <div class="h-4 w-[1px] bg-gray-200" v-if="hasSelectedForIntake(intake)"></div>
                                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Export Class List:</span>
                                     <button @mousedown="exportClassList(intake.id, 'csv')" class="px-3 py-1 bg-white hover:bg-gray-150 text-[#0a1f44] border border-gray-200 rounded-lg text-[10px] font-bold uppercase transition">CSV</button>
                                     <button @mousedown="exportClassList(intake.id, 'excel')" class="px-3 py-1 bg-white hover:bg-gray-150 text-[#0a1f44] border border-gray-200 rounded-lg text-[10px] font-bold uppercase transition">Excel</button>
@@ -372,6 +379,12 @@
                                     <table class="w-full text-left border-collapse text-xs">
                                         <thead>
                                             <tr class="bg-[#0a1f44] text-white font-extrabold uppercase tracking-wider text-[10px] border-b border-[#0a1f44]">
+                                                <th class="px-4 py-4 w-10 text-center">
+                                                    <input type="checkbox" 
+                                                           @change="toggleSelectAll(intake, $event)" 
+                                                           :checked="isAllSelected(intake)"
+                                                           class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
+                                                </th>
                                                 <th class="px-6 py-4">Student Details</th>
                                                 <th class="px-6 py-4">Registration Number</th>
                                                 <th class="px-6 py-4">Enrollment Date</th>
@@ -379,11 +392,18 @@
                                                 <th class="px-6 py-4 text-center">Academic Status</th>
                                                 <th class="px-6 py-4">Enrollment Status</th>
                                                 <th class="px-6 py-4">Payment Verification</th>
-                                                <th class="px-6 py-4 text-right">Actions</th>
+                                                <th class="px-6 py-4 text-right">Certificate Collection Status</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100">
                                             <tr v-for="student in intake.students" :key="student.id" class="hover:bg-gray-50/80 transition">
+                                                <td class="px-4 py-4 text-center">
+                                                    <input type="checkbox" 
+                                                           v-if="student.status === 'active'"
+                                                           v-model="selectedEnrollmentIds" 
+                                                           :value="student.enrollment_id"
+                                                           class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
+                                                </td>
                                                 <!-- Student details -->
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center gap-3">
@@ -482,13 +502,18 @@
                                                         <button v-if="student.payment_status === 'pending'" @click="openVerifyModal(student, intake)" class="bg-[#0a1f44] hover:bg-[#143264] text-white text-[10px] font-black tracking-wider uppercase px-3.5 py-1.5 rounded-lg transition shadow-sm border border-[#0a1f44]/20 hover:scale-[1.03]">
                                                             Verify Payment
                                                         </button>
-                                                        <button v-if="student.status === 'active'" @click="issueCertificate(student)" class="bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] text-[10px] font-black tracking-wider uppercase px-3.5 py-1.5 rounded-lg transition shadow-sm border border-yellow-500/20 hover:scale-[1.03]">
-                                                            Issue Cert
+                                                        <button v-if="student.status === 'active'" @click="issueCertificate(student)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black tracking-wider uppercase px-3.5 py-1.5 rounded-lg transition shadow-sm border border-emerald-500/20 hover:scale-[1.03] flex items-center gap-1">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                            Mark Collected
                                                         </button>
-                                                        <span v-if="student.status === 'completed'" class="text-xs text-brand-gold-dark font-extrabold flex items-center justify-end gap-1.5">
-                                                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                            Certified
-                                                        </span>
+                                                        <div v-if="student.status === 'completed'" class="flex flex-col items-end gap-0.5">
+                                                            <span class="text-xs text-emerald-600 font-extrabold flex items-center justify-end gap-1">
+                                                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                                Collected
+                                                            </span>
+                                                            <span v-if="student.collected_by_name" class="text-[9px] text-gray-400 font-medium">By: {{ student.collected_by_name }}</span>
+                                                            <span v-if="student.certificate_collected_at" class="text-[9px] text-gray-400 font-semibold">{{ student.certificate_collected_at }}</span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -714,9 +739,55 @@ const submitVerify = () => {
 };
 
 const issueCertificate = (student) => {
-    if (confirm('Are you sure you want to issue a course completion certificate for ' + student.name + '? This will mark their enrollment status as completed.')) {
+    if (confirm('Are you sure you want to mark ' + student.name + ' as having physically collected their certificate? This will mark their enrollment status as completed.')) {
         Inertia.post(route('course-enrollments.certificate', student.enrollment_id), {}, {
             onSuccess: () => {
+                Inertia.reload({ only: ['intakes', 'summaryCards'] });
+            }
+        });
+    }
+};
+
+const selectedEnrollmentIds = ref([]);
+
+const isAllSelected = (intake) => {
+    const activeStudents = intake.students.filter(s => s.status === 'active');
+    if (activeStudents.length === 0) return false;
+    return activeStudents.every(s => selectedEnrollmentIds.value.includes(s.enrollment_id));
+};
+
+const toggleSelectAll = (intake, event) => {
+    const activeIds = intake.students.filter(s => s.status === 'active').map(s => s.enrollment_id);
+    if (event.target.checked) {
+        activeIds.forEach(id => {
+            if (!selectedEnrollmentIds.value.includes(id)) {
+                selectedEnrollmentIds.value.push(id);
+            }
+        });
+    } else {
+        selectedEnrollmentIds.value = selectedEnrollmentIds.value.filter(id => !activeIds.includes(id));
+    }
+};
+
+const hasSelectedForIntake = (intake) => {
+    return getSelectedCountForIntake(intake) > 0;
+};
+
+const getSelectedCountForIntake = (intake) => {
+    const activeIds = intake.students.filter(s => s.status === 'active').map(s => s.enrollment_id);
+    return selectedEnrollmentIds.value.filter(id => activeIds.includes(id)).length;
+};
+
+const bulkMarkCollected = (intake) => {
+    const activeIds = intake.students.filter(s => s.status === 'active').map(s => s.enrollment_id);
+    const selectedForThisIntake = selectedEnrollmentIds.value.filter(id => activeIds.includes(id));
+    
+    if (confirm('Are you sure you want to mark ' + selectedForThisIntake.length + ' selected student(s) as Certificate Collected? This will mark their enrollment status as completed.')) {
+        Inertia.post(route('course-enrollments.bulk-certificate'), {
+            enrollment_ids: selectedForThisIntake
+        }, {
+            onSuccess: () => {
+                selectedEnrollmentIds.value = selectedEnrollmentIds.value.filter(id => !selectedForThisIntake.includes(id));
                 Inertia.reload({ only: ['intakes', 'summaryCards'] });
             }
         });

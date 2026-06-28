@@ -91,6 +91,7 @@ class SettingsController extends Controller
             'spatieRoles' => $spatieRoles,
             'faqs' => $faqs,
             'testimonials' => $testimonials,
+            'pendingTestimonials' => SystemSetting::get('short_courses_pending_testimonials', []),
             'announcements' => $announcements,
             'contactInfo' => $contactInfo,
             'bankingDetails' => $bankingDetails,
@@ -332,6 +333,7 @@ class SettingsController extends Controller
     {
         $validated = $request->validate([
             'id' => 'required|string',
+            'text' => 'nullable|string|max:1000',
         ]);
 
         $pending = SystemSetting::get('short_courses_pending_testimonials', []);
@@ -348,13 +350,14 @@ class SettingsController extends Controller
         }
 
         $pt = $pending[$foundIndex];
+        $text = !empty($validated['text']) ? $validated['text'] : $pt['text'];
 
         // Move to active testimonials
         $active = SystemSetting::get('short_courses_testimonials', []);
         $active[] = [
             'name' => $pt['name'],
             'course' => $pt['course'],
-            'text' => $pt['text'],
+            'text' => $text,
         ];
 
         // Remove from pending list
@@ -362,6 +365,12 @@ class SettingsController extends Controller
 
         SystemSetting::set('short_courses_testimonials', $active);
         SystemSetting::set('short_courses_pending_testimonials', $pending);
+
+        // Audit Trail
+        ActivityLog::log(
+            'approve_testimonial',
+            'Administrator ' . \Auth::user()->name . ' approved testimonial from student ' . $pt['name'] . ' for course ' . $pt['course'] . ($text !== $pt['text'] ? ' (moderated)' : '')
+        );
 
         return redirect()->back()->with('success', 'Testimonial approved and posted successfully!');
     }
@@ -388,9 +397,17 @@ class SettingsController extends Controller
             return redirect()->back()->with('error', 'Pending testimonial not found.');
         }
 
+        $pt = $pending[$foundIndex];
+
         // Remove from pending list
         array_splice($pending, $foundIndex, 1);
         SystemSetting::set('short_courses_pending_testimonials', $pending);
+
+        // Audit Trail
+        ActivityLog::log(
+            'reject_testimonial',
+            'Administrator ' . \Auth::user()->name . ' rejected testimonial from student ' . $pt['name'] . ' for course ' . $pt['course']
+        );
 
         return redirect()->back()->with('success', 'Testimonial rejected successfully.');
     }
@@ -406,10 +423,53 @@ class SettingsController extends Controller
             return redirect()->back()->with('error', 'Testimonial not found.');
         }
 
+        $pt = $active[$idx];
+
         array_splice($active, $idx, 1);
         SystemSetting::set('short_courses_testimonials', $active);
 
+        // Audit Trail
+        ActivityLog::log(
+            'delete_testimonial',
+            'Administrator ' . \Auth::user()->name . ' deleted active testimonial from student ' . ($pt['name'] ?? 'Unknown')
+        );
+
         return redirect()->back()->with('success', 'Testimonial deleted successfully.');
+    }
+
+    /**
+     * Update/Edit an active testimonial.
+     */
+    public function updateActiveTestimonial(Request $request)
+    {
+        $validated = $request->validate([
+            'index' => 'required|integer',
+            'name' => 'required|string|max:255',
+            'course' => 'required|string|max:255',
+            'text' => 'required|string|max:1000',
+        ]);
+
+        $active = SystemSetting::get('short_courses_testimonials', []);
+
+        if (!isset($active[$validated['index']])) {
+            return redirect()->back()->with('error', 'Testimonial not found.');
+        }
+
+        $active[$validated['index']] = [
+            'name' => $validated['name'],
+            'course' => $validated['course'],
+            'text' => $validated['text'],
+        ];
+
+        SystemSetting::set('short_courses_testimonials', $active);
+
+        // Audit Trail
+        ActivityLog::log(
+            'edit_testimonial',
+            'Administrator ' . \Auth::user()->name . ' edited active testimonial for student ' . $validated['name']
+        );
+
+        return redirect()->back()->with('success', 'Testimonial updated successfully.');
     }
 
     public function updateConfig(Request $request)

@@ -75,13 +75,22 @@
                             <!-- Certificate Section -->
                             <div v-if="enrollment.certificate_code" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between text-xs gap-3">
                                 <div class="flex-grow">
-                                    <p class="font-bold text-emerald-800 uppercase tracking-wide">Certificate Issued!</p>
-                                    <p class="text-gray-600 font-medium mt-0.5">Verified Code: <strong class="text-brand-blue">{{ enrollment.certificate_code }}</strong></p>
+                                    <p class="font-bold text-emerald-800 uppercase tracking-wide">
+                                        {{ enrollment.enrollment_status === 'completed' ? 'Certificate Collected!' : 'Certificate Ready for Collection!' }}
+                                    </p>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button @click="viewCertificate(enrollment)" class="bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-3 py-1.5 rounded-full transition shadow text-[0.7rem] uppercase">
+                                <div class="flex gap-2 items-center">
+                                    <button 
+                                        v-if="enrollment.enrollment_status !== 'completed'"
+                                        @click="viewCertificate(enrollment)" 
+                                        class="bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold px-3 py-1.5 rounded-full transition shadow text-[0.7rem] uppercase"
+                                    >
                                         View Certificate
                                     </button>
+                                    <span v-else class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold uppercase text-[0.65rem] border border-emerald-200/50 flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Certificate Issued Physically
+                                    </span>
                                     <button 
                                         v-if="enrollment.enrollment_status === 'completed'" 
                                         @click="openTestimonialModal(enrollment)" 
@@ -290,6 +299,10 @@ const submitTestimony = () => {
 };
 
 const viewCertificate = (enrollment) => {
+    if (enrollment.enrollment_status === 'completed') {
+        alert("This certificate has been collected physically. Digital access is no longer available.");
+        return;
+    }
     selectedCertEnrollment.value = enrollment;
     certModalOpen.value = true;
 };

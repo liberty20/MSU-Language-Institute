@@ -377,6 +377,21 @@ class StudentPortalController extends Controller
 
         \App\Models\SystemSetting::set('short_courses_pending_testimonials', $pendingTestimonials);
 
+        // Notify Admins
+        $admins = \App\Models\User::whereHas('roles', function($q) {
+            $q->whereIn('name', ['ict_administrator', 'executive_director', 'deputy_director']);
+        })->get();
+
+        foreach ($admins as $admin) {
+            SystemNotification::sendUnique(
+                $admin,
+                'testimony_moderation',
+                'New Testimony Pending Review',
+                'Student ' . $user->name . ' has submitted a testimony for ' . $enrollment->intake->course->title . ' that requires moderation.',
+                route('admin.settings.index') . '?tab=testimonies'
+            );
+        }
+
         // Log activity
         ActivityLog::log(
             'submit_testimonial',
@@ -384,7 +399,7 @@ class StudentPortalController extends Controller
             $enrollment
         );
 
-        return redirect()->back()->with('success', 'Your testimonial has been submitted successfully and is awaiting administrator review!');
+        return redirect()->back()->with('success', 'Your testimony has successfully sent.');
     }
 
     /**

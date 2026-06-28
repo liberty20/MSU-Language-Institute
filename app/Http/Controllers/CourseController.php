@@ -463,6 +463,7 @@ class CourseController extends Controller
             'instructor.department',
             'instructor.msunliRole',
             'enrollments.user',
+            'enrollments.collectedBy',
             'assignments.submissions',
             'caMarks',
         ])->get();
@@ -549,6 +550,8 @@ class CourseController extends Controller
                     'amount_paid' => $enrollment->amount_paid,
                     'certificate_code' => $enrollment->certificate_code,
                     'certificate_issued_at' => $enrollment->certificate_issued_at ? $enrollment->certificate_issued_at->format('Y-m-d') : null,
+                    'certificate_collected_at' => $enrollment->certificate_collected_at ? $enrollment->certificate_collected_at->format('Y-m-d H:i:s') : null,
+                    'collected_by_name' => $enrollment->collectedBy ? $enrollment->collectedBy->name : null,
                     'average_mark' => $averageMark,
                     'pass_fail_status' => $passFailStatus,
                 ];
@@ -939,23 +942,93 @@ class CourseController extends Controller
     }
 
     /**
-     * Issue course completion certificate with custom tracking code.
+     * Mark certificate as collected and complete enrollment.
      */
     public function issueCertificate(Request $request, CourseEnrollment $enrollment)
     {
         if ($enrollment->enrollment_status !== 'active') {
-            return redirect()->back()->with('error', 'Student must have an active enrollment status to receive a certificate.');
+            return redirect()->back()->with('error', 'Student must have an active enrollment status to collect their certificate.');
         }
 
-        $certCode = 'CERT-' . strtoupper(uniqid());
+        $certCode = $enrollment->certificate_code ?: 'CERT-' . strtoupper(uniqid());
 
         $enrollment->update([
             'enrollment_status' => 'completed',
             'certificate_code' => $certCode,
             'certificate_issued_at' => now(),
+            'certificate_collected_at' => now(),
+            'certificate_collected_by' => \Auth::id(),
         ]);
 
-        return redirect()->back()->with('success', 'Certificate issued successfully! Code: ' . $certCode);
+        // Notify student
+        SystemNotification::sendUnique(
+            $enrollment->user,
+            'certificate',
+            'Certificate Collected',
+            'Your certificate for ' . $enrollment->intake->course->title . ' has been collected and your course status has been marked as Completed.',
+            route('student.courses')
+        );
+
+        // Audit Trail
+        ActivityLog::log(
+            'certificate_collected',
+            'Administrator ' . \Auth::user()->name . ' marked certificate as collected for student ' . $enrollment->user->name . ' in ' . $enrollment->intake->course->title,
+            $enrollment
+        );
+
+        return redirect()->back()->with('success', 'Certificate marked as collected successfully! Code: ' . $certCode);
+    }
+
+    /**
+     * Bulk mark certificates as collected.
+     */
+    public function bulkIssueCertificate(Request $request)
+    {
+        $validated = $request->validate([
+            'enrollment_ids' => 'required|array',
+            'enrollment_ids.*' => 'exists:course_enrollments,id',
+        ]);
+
+        $enrollments = CourseEnrollment::whereIn('id', $validated['enrollment_ids'])->get();
+        $updatedCount = 0;
+
+        foreach ($enrollments as $enrollment) {
+            if ($enrollment->enrollment_status === 'active') {
+                $certCode = $enrollment->certificate_code ?: 'CERT-' . strtoupper(uniqid());
+                
+                $enrollment->update([
+                    'enrollment_status' => 'completed',
+                    'certificate_code' => $certCode,
+                    'certificate_issued_at' => now(),
+                    'certificate_collected_at' => now(),
+                    'certificate_collected_by' => \Auth::id(),
+                ]);
+
+                // Notify student
+                SystemNotification::sendUnique(
+                    $enrollment->user,
+                    'certificate',
+                    'Certificate Collected',
+                    'Your certificate for ' . $enrollment->intake->course->title . ' has been collected and your course status has been marked as Completed.',
+                    route('student.courses')
+                );
+
+                // Audit Trail
+                ActivityLog::log(
+                    'certificate_collected',
+                    'Administrator ' . \Auth::user()->name . ' marked certificate as collected for student ' . $enrollment->user->name . ' in ' . $enrollment->intake->course->title,
+                    $enrollment
+                );
+
+                $updatedCount++;
+            }
+        }
+
+        if ($updatedCount > 0) {
+            return redirect()->back()->with('success', $updatedCount . ' certificates marked as collected successfully.');
+        }
+
+        return redirect()->back()->with('error', 'No active enrollments were found among the selected records.');
     }
 
 

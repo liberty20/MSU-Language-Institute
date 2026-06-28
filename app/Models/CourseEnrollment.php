@@ -12,10 +12,12 @@ class CourseEnrollment extends Model
     protected $fillable = [
         'course_intake_id', 'user_id', 'payment_status', 'payment_proof_path',
         'amount_paid', 'enrollment_status', 'certificate_code', 'certificate_issued_at',
+        'certificate_collected_at', 'certificate_collected_by',
     ];
 
     protected $casts = [
         'certificate_issued_at' => 'datetime',
+        'certificate_collected_at' => 'datetime',
         'amount_paid' => 'decimal:2',
     ];
 
@@ -45,5 +47,10 @@ class CourseEnrollment extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function collectedBy()
+    {
+        return $this->belongsTo(User::class, 'certificate_collected_by');
     }
 }

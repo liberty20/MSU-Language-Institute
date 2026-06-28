@@ -462,44 +462,7 @@
                     <p class="text-gray-500 text-sm">Discover experiences and success stories of professionals and community advocates who trained at MSULI.</p>
                 </div>
 
-                <!-- Admin Pending Testimonials Moderation Panel -->
-                <div v-if="$page.props.auth.user && ($page.props.auth.roles.includes('ict_administrator') || $page.props.auth.roles.includes('executive_director')) && pendingTestimonials && pendingTestimonials.length > 0" class="mb-16 bg-yellow-50/50 p-8 rounded-3xl border border-yellow-200 text-left">
-                    <div class="flex items-center gap-3 mb-6">
-                        <span class="flex h-3.5 w-3.5 relative">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-gold opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-gold"></span>
-                        </span>
-                        <h4 class="text-sm font-black text-[#0a1f44] uppercase tracking-wider">Testimonials Pending Admin Moderation</h4>
-                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div v-for="pt in pendingTestimonials" :key="pt.id" class="bg-white p-6 rounded-2xl border border-gray-150 shadow-sm relative flex flex-col justify-between space-y-4">
-                            <div>
-                                <span class="text-[10px] font-semibold text-gray-400 block mb-2">Submitted: {{ pt.submitted_at }}</span>
-                                <p class="text-xs text-gray-650 italic leading-relaxed">“{{ pt.text }}”</p>
-                            </div>
-                            <div class="border-t border-gray-200/60 pt-4 flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-[#0a1f44] text-brand-gold flex items-center justify-center font-bold text-xs">
-                                        {{ pt.name.charAt(0) }}
-                                    </div>
-                                    <div>
-                                        <h5 class="font-bold text-gray-800 text-xs">{{ pt.name }}</h5>
-                                        <p class="text-[0.65rem] text-gray-400 font-semibold uppercase mt-0.5">{{ pt.course }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button @click="approveTestimonial(pt)" class="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
-                                        Post Online
-                                    </button>
-                                    <button @click="rejectTestimonial(pt)" class="px-3.5 py-1.5 rounded-full bg-red-650 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
-                                        Reject
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div v-for="(t, idx) in testimonials" :key="idx" class="bg-gray-50 p-8 rounded-3xl border border-gray-150 shadow-sm hover:shadow-md transition duration-300 relative flex flex-col justify-between">
@@ -1010,27 +973,6 @@ const formatDate = (dateString) => {
 };
 
 // Admin Testimonial Moderation Helpers
-const approveTestimonial = (pt) => {
-    if (!confirm('Are you sure you want to approve and post this testimonial online?')) return;
-    Inertia.post(route('admin.testimonials.approve'), {
-        id: pt.id
-    }, {
-        onSuccess: () => {
-            alert('Testimonial approved and posted successfully!');
-        }
-    });
-};
-
-const rejectTestimonial = (pt) => {
-    if (!confirm('Are you sure you want to reject this testimonial? It will be permanently deleted.')) return;
-    Inertia.post(route('admin.testimonials.reject'), {
-        id: pt.id
-    }, {
-        onSuccess: () => {
-            alert('Testimonial rejected successfully.');
-        }
-    });
-};
 
 const deleteTestimonial = (idx) => {
     if (!confirm('Are you sure you want to delete this testimonial? This action cannot be undone.')) return;

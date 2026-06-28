@@ -555,6 +555,111 @@
                 </form>
             </div>
 
+            <!-- TAB: Testimonies Review -->
+            <div v-show="activeTab === 'testimonies'" class="space-y-6">
+                <!-- Awaiting Approval Panel -->
+                <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-[#0a1f44] mb-2">Testimonies Pending Admin Moderation</h3>
+                    <p class="text-sm text-gray-550 mb-6">Review, moderate, and approve or reject student submitted testimonies before posting them online.</p>
+
+                    <div v-if="pendingTestimonials && pendingTestimonials.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-for="pt in pendingTestimonials" :key="pt.id" class="bg-gray-50 p-6 rounded-2xl border border-gray-200 relative flex flex-col justify-between space-y-4 shadow-xs">
+                            <div class="space-y-3">
+                                <span class="text-[10px] font-semibold text-gray-400 block font-bold">Submitted: {{ pt.submitted_at }}</span>
+                                
+                                <div v-if="editingPendingId === pt.id" class="space-y-2">
+                                    <textarea v-model="editingPendingText" rows="4" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium text-gray-750"></textarea>
+                                    <div class="flex gap-2">
+                                        <button @click="saveAndApprovePending(pt)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save & Approve</button>
+                                        <button @click="cancelEditPending" class="px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider transition">Cancel</button>
+                                    </div>
+                                </div>
+                                <p v-else class="text-xs text-gray-650 italic leading-relaxed font-medium">“{{ pt.text }}”</p>
+                            </div>
+                            <div class="border-t border-gray-200/60 pt-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-[#0a1f44] text-brand-gold flex items-center justify-center font-bold text-xs">
+                                        {{ pt.name.charAt(0) }}
+                                    </div>
+                                    <div>
+                                        <h5 class="font-bold text-gray-800 text-xs">{{ pt.name }}</h5>
+                                        <p class="text-[0.65rem] text-brand-gold-dark font-semibold uppercase mt-0.5">{{ pt.course }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="editingPendingId !== pt.id" class="flex gap-2">
+                                    <button @click="startEditPending(pt)" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm" title="Edit content before approval">
+                                        Moderate
+                                    </button>
+                                    <button @click="approveTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Approve
+                                    </button>
+                                    <button @click="rejectTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-red-650 hover:bg-red-755 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs font-semibold">
+                        No pending student testimonies awaiting review.
+                    </div>
+                </div>
+
+                <!-- Published / Active Testimonials Panel -->
+                <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-[#0a1f44] mb-2">Published Student Testimonials</h3>
+                    <p class="text-sm text-gray-550 mb-6">Manage testimonies currently visible on the short courses public portal.</p>
+
+                    <div v-if="portalForm.testimonials && portalForm.testimonials.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-for="(t, idx) in portalForm.testimonials" :key="idx" class="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 relative flex flex-col justify-between space-y-4 shadow-xs">
+                            <div class="space-y-3">
+                                <div v-if="editingActiveIndex === idx" class="space-y-3">
+                                    <div>
+                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Student Name *</label>
+                                        <input v-model="editingActiveForm.name" type="text" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Assigned Course *</label>
+                                        <input v-model="editingActiveForm.course" type="text" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-semibold" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Testimonial Text *</label>
+                                        <textarea v-model="editingActiveForm.text" rows="3" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium text-gray-750"></textarea>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="saveActiveTestimonial(idx)" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save Changes</button>
+                                        <button @click="cancelEditActive" class="px-3.5 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider transition">Cancel</button>
+                                    </div>
+                                </div>
+                                <p v-else class="text-xs text-gray-650 italic leading-relaxed font-medium">“{{ t.text }}”</p>
+                            </div>
+                            <div class="border-t border-gray-200/60 pt-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-[#0a1f44] text-brand-gold flex items-center justify-center font-bold text-xs">
+                                        {{ t.name ? t.name.charAt(0) : 'S' }}
+                                    </div>
+                                    <div>
+                                        <h5 class="font-bold text-gray-800 text-xs">{{ t.name }}</h5>
+                                        <p class="text-[0.65rem] text-brand-gold-dark font-semibold uppercase mt-0.5">{{ t.course }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="editingActiveIndex !== idx" class="flex gap-2">
+                                    <button @click="startEditActive(t, idx)" class="px-3 py-1.5 rounded-lg bg-blue-650 hover:bg-blue-750 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Edit
+                                    </button>
+                                    <button @click="deleteActiveTestimonial(idx)" class="px-3 py-1.5 rounded-lg bg-red-650 hover:bg-red-750 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs font-semibold">
+                        No active testimonials posted online.
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB 7: Danger Zone (Database Reset) -->
             <div v-if="$page.props.auth.roles.includes('ict_administrator') && activeTab === 'reset'" class="space-y-6">
                 <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -695,7 +800,7 @@
 import { Head, Link, usePage } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 
 const props = defineProps({
     units: Array,
@@ -704,6 +809,7 @@ const props = defineProps({
     spatieRoles: Array,
     faqs: Array,
     testimonials: Array,
+    pendingTestimonials: Array,
     announcements: Array,
     contactInfo: Object,
     bankingDetails: Object,
@@ -715,7 +821,8 @@ const props = defineProps({
     resetHistory: Array,
 });
 
-const activeTab = ref('config');
+const urlParams = new URLSearchParams(window.location.search);
+const activeTab = ref(urlParams.get('tab') || 'config');
 const confirmReset = ref(false);
 
 const tabsList = computed(() => {
@@ -725,7 +832,8 @@ const tabsList = computed(() => {
         { value: 'units', label: 'MSUNLI Units', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>' },
         { value: 'sections', label: 'Departments & Sections', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>' },
         { value: 'roles', label: 'Institutional Roles', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
-        { value: 'short-courses', label: 'Short Courses Portal', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>' }
+        { value: 'short-courses', label: 'Short Courses Portal', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>' },
+        { value: 'testimonies', label: 'Testimonies Review', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' }
     ];
     if (usePage().props.value.auth.roles.includes('ict_administrator')) {
         list.push({ value: 'reset', label: 'Danger Zone', icon: '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' });
@@ -908,4 +1016,90 @@ const submitPortalSettings = () => {
         }
     });
 };
+
+// Pending testimony moderation states
+const editingPendingId = ref(null);
+const editingPendingText = ref('');
+
+const startEditPending = (pt) => {
+    editingPendingId.value = pt.id;
+    editingPendingText.value = pt.text;
+};
+
+const cancelEditPending = () => {
+    editingPendingId.value = null;
+    editingPendingText.value = '';
+};
+
+const saveAndApprovePending = (pt) => {
+    Inertia.post(route('admin.testimonials.approve'), {
+        id: pt.id,
+        text: editingPendingText.value
+    }, {
+        onSuccess: () => {
+            editingPendingId.value = null;
+            editingPendingText.value = '';
+        }
+    });
+};
+
+const approveTestimonialDirect = (id) => {
+    if (confirm('Are you sure you want to approve and publish this testimony?')) {
+        Inertia.post(route('admin.testimonials.approve'), { id });
+    }
+};
+
+const rejectTestimonialDirect = (id) => {
+    if (confirm('Are you sure you want to reject this testimony? This will permanently delete it.')) {
+        Inertia.post(route('admin.testimonials.reject'), { id });
+    }
+};
+
+// Active testimonies edit states
+const editingActiveIndex = ref(null);
+const editingActiveForm = reactive({
+    name: '',
+    course: '',
+    text: ''
+});
+
+const startEditActive = (t, idx) => {
+    editingActiveIndex.value = idx;
+    editingActiveForm.name = t.name;
+    editingActiveForm.course = t.course;
+    editingActiveForm.text = t.text;
+};
+
+const cancelEditActive = () => {
+    editingActiveIndex.value = null;
+};
+
+const saveActiveTestimonial = (idx) => {
+    if (!editingActiveForm.name || !editingActiveForm.course || !editingActiveForm.text) {
+        alert('All fields are required.');
+        return;
+    }
+    
+    Inertia.post(route('admin.testimonials.update-active'), {
+        index: idx,
+        name: editingActiveForm.name,
+        course: editingActiveForm.course,
+        text: editingActiveForm.text
+    }, {
+        onSuccess: () => {
+            editingActiveIndex.value = null;
+        }
+    });
+};
+
+const deleteActiveTestimonial = (idx) => {
+    if (confirm('Are you sure you want to delete this published testimonial?')) {
+        Inertia.delete(route('admin.testimonials.destroy', { idx: idx }));
+    }
+};
+
+// Watch testimonials prop changes to keep portalForm in sync
+watch(() => props.testimonials, (newVal) => {
+    portalForm.testimonials = newVal ? JSON.parse(JSON.stringify(newVal)) : [];
+}, { deep: true });
 </script>
