@@ -1,5 +1,12 @@
 <template>
-    <div class="h-screen bg-gray-50 flex overflow-hidden relative">
+    <!-- Global System Background Layer -->
+    <div class="fixed inset-0 pointer-events-none z-0 bg-[#f8fafc]">
+        <!-- Background Image with adjusted opacity and lowered brightness/exposure -->
+        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+             style="background-image: url('/images/backgrounds/msuli-build.jpg'); opacity: 0.08; filter: brightness(0.85) contrast(1.1);"></div>
+    </div>
+
+    <div class="h-screen bg-transparent flex overflow-hidden relative z-10">
         <!-- Sidebar Backdrop for Mobile -->
         <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden transition-opacity duration-300"></div>
 
@@ -224,8 +231,6 @@
 
         <!-- Main Content -->
         <div class="flex-grow flex flex-col h-full overflow-hidden relative">
-            <!-- Background Image Layer -->
-            <div class="absolute inset-0 pointer-events-none bg-cover bg-center bg-no-repeat" style="background-image: url('/msuli-build.jpg'); opacity: 0.08; z-index: 0;"></div>
             <!-- Header -->
             <header class="bg-brand-blue md:bg-white shadow-sm border-b border-brand-blue-light md:border-gray-200 z-20 sticky top-0 flex-shrink-0">
                 <div class="px-4 md:px-6 py-4 flex items-center justify-between">

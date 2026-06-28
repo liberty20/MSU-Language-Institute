@@ -12,7 +12,7 @@ defineProps({
 <template>
     <div class="min-h-screen flex w-full">
         <!-- Left Side: Branding (Background Image Only) -->
-        <div class="hidden lg:flex flex-col justify-center items-center w-1/2 bg-[url('/msuli-build.jpg')] bg-cover bg-center relative shadow-2xl z-10">
+        <div class="hidden lg:flex flex-col justify-center items-center w-1/2 bg-[url('/images/backgrounds/msuli-build.jpg')] bg-cover bg-center relative shadow-2xl z-10">
             <!-- Deep blue gradient from bottom right up to MSUNLI text -->
             <div class="absolute inset-0 bg-gradient-to-tl from-[#0a1f44] via-[#0a1f44]/60 to-transparent"></div>
 

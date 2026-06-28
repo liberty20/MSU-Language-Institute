@@ -46,7 +46,8 @@
             </div>
         </template>
 
-        <div class="w-full space-y-6 pb-16 animate-fade-in-up">
+        <ReportsBgWrapper class="px-6 py-6">
+            <div class="w-full space-y-6">
             <!-- Premium Navigation Tabs for Analytics Scopes -->
             <div class="flex border-b border-slate-200 gap-4 mb-6">
                 <button @click="selectScope('client_services')"
@@ -196,7 +197,7 @@
                 </div>
 
                 <!-- Card 7: Language Services Revenue -->
-                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                <div @click="Inertia.visit(route('reports.language-services-revenue'))" class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:scale-[1.02]">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
@@ -230,7 +231,7 @@
                 </div>
 
                 <!-- Card 8: Short Courses Revenue -->
-                <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                <div @click="Inertia.visit(route('reports.short-courses-revenue'))" class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:scale-[1.02]">
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
@@ -1039,6 +1040,7 @@
                     </div>
                 </div>
             </div>
+        </ReportsBgWrapper>
 
         <!-- 5. Report Generation Glassmorphic Modal -->
         <!-- 5. Report Generation Glassmorphic Modal -->
@@ -1127,6 +1129,7 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ReportsBgWrapper from '@/Components/ReportsBgWrapper.vue';
 import { Head, Link } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
 import { ref, reactive, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';

@@ -34,6 +34,16 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request)
     {
+        $destDir = public_path('images/backgrounds');
+        if (!file_exists($destDir)) {
+            @mkdir($destDir, 0755, true);
+        }
+        $srcFile = 'l:/Projects/MSULI/Documents/msuli build.jpg';
+        $destFile = $destDir . '/msuli-build.jpg';
+        if (file_exists($srcFile) && !file_exists($destFile)) {
+            @copy($srcFile, $destFile);
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user(),

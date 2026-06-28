@@ -12,15 +12,32 @@ use App\Models\Approval;
 use App\Models\Department;
 use App\Models\User;
 use App\Models\KpiRecord;
+use App\Models\Payment;
+use App\Models\Course;
+use App\Models\CourseEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        $destDir = public_path('images/reports');
+        if (!file_exists($destDir)) {
+            @mkdir($destDir, 0755, true);
+        }
+        $srcFile = 'l:/Projects/MSULI/Documents/msuli build.jpg';
+        $destFile = $destDir . '/msuli-build.jpg';
+        if (file_exists($srcFile) && !file_exists($destFile)) {
+            @copy($srcFile, $destFile);
+        }
+    }
+
     /**
      * Display the reports and performance analytics dashboard.
      */
@@ -696,6 +713,873 @@ class ReportController extends Controller
         }
 
         return Storage::disk('public')->download($path);
+    }
+
+    private function checkReportAccess()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        if (!$isManagement) {
+            abort(403, 'Unauthorized. You do not have report permissions.');
+        }
+    }
+
+    private function resolveDateRange($preset, $dateStartInput, $dateEndInput)
+    {
+        $dateStart = null;
+        $dateEnd = null;
+
+        if ($preset) {
+            if ($preset === 'today') {
+                $dateStart = Carbon::today()->startOfDay();
+                $dateEnd = Carbon::today()->endOfDay();
+            } elseif ($preset === 'this_week') {
+                $dateStart = Carbon::now()->startOfWeek();
+                $dateEnd = Carbon::now()->endOfWeek();
+            } elseif ($preset === 'this_month') {
+                $dateStart = Carbon::now()->startOfMonth();
+                $dateEnd = Carbon::now()->endOfMonth();
+            } elseif ($preset === 'this_quarter') {
+                $dateStart = Carbon::now()->startOfQuarter();
+                $dateEnd = Carbon::now()->endOfQuarter();
+            } elseif ($preset === 'this_year') {
+                $dateStart = Carbon::now()->startOfYear();
+                $dateEnd = Carbon::now()->endOfYear();
+            } elseif (str_starts_with($preset, 'fy_')) {
+                $year = (int) substr($preset, 3);
+                $dateStart = Carbon::create($year, 1, 1)->startOfDay();
+                $dateEnd = Carbon::create($year, 12, 31)->endOfDay();
+            }
+        } else {
+            if ($dateStartInput) {
+                $dateStart = Carbon::parse($dateStartInput)->startOfDay();
+            }
+            if ($dateEndInput) {
+                $dateEnd = Carbon::parse($dateEndInput)->endOfDay();
+            }
+        }
+
+        return [$dateStart, $dateEnd];
+    }
+
+    private function getLanguageServicesRevenueData(Request $request)
+    {
+        $filters = $request->only([
+            'preset', 'date_start', 'date_end', 'service_category', 'client_id', 'payment_status', 'payment_method', 'search', 'currency', 'sort_by', 'sort_desc'
+        ]);
+
+        [$dateStart, $dateEnd] = $this->resolveDateRange(
+            $filters['preset'] ?? null,
+            $filters['date_start'] ?? null,
+            $filters['date_end'] ?? null
+        );
+
+        // Build base query
+        $query = Payment::with(['client', 'serviceRequest.client', 'quotation.serviceRequest', 'verifiedBy'])
+            ->leftJoin('quotations', 'payments.quotation_id', '=', 'quotations.id')
+            ->select('payments.*', 'quotations.currency as quotation_currency');
+
+        if ($dateStart) {
+            $query->where('payments.created_at', '>=', $dateStart);
+        }
+        if ($dateEnd) {
+            $query->where('payments.created_at', '<=', $dateEnd);
+        }
+        if (!empty($filters['service_category'])) {
+            $cat = $filters['service_category'];
+            $query->whereHas('serviceRequest', function($q) use ($cat) {
+                $q->where('service_category', $cat);
+            });
+        }
+        if (!empty($filters['client_id'])) {
+            $query->where('client_id', $filters['client_id']);
+        }
+        if (!empty($filters['payment_status'])) {
+            $query->where('payments.status', $filters['payment_status']);
+        }
+        if (!empty($filters['payment_method'])) {
+            $query->where('bank_used', $filters['payment_method']);
+        }
+        if (!empty($filters['currency']) && $filters['currency'] !== 'all') {
+            $query->where('quotations.currency', $filters['currency']);
+        }
+        if (!empty($filters['search'])) {
+            $search = '%' . $filters['search'] . '%';
+            $query->where(function($q) use ($search) {
+                $q->where('bank_used', 'like', $search)
+                  ->orWhere('payments.id', 'like', $search)
+                  ->orWhereHas('client', function($sq) use ($search) {
+                      $sq->where('name', 'like', $search);
+                  })
+                  ->orWhereHas('serviceRequest.client', function($sq) use ($search) {
+                      $sq->where('organization', 'like', $search)
+                        ->orWhere('contact_person', 'like', $search);
+                  })
+                  ->orWhereHas('quotation', function($sq) use ($search) {
+                      $sq->where('reference_number', 'like', $search);
+                  })
+                  ->orWhereHas('serviceRequest', function($sq) use ($search) {
+                      $sq->where('title', 'like', $search);
+                  });
+            });
+        }
+
+        return [$query, $dateStart, $dateEnd, $filters];
+    }
+
+    private function calculateLanguageServicesRevenueAggregates($query, $dateStart, $dateEnd, $filters)
+    {
+        // Cache key based on serialized parameters
+        $cacheKey = 'lang_rev_agg_' . md5(serialize([$filters, $dateStart ? $dateStart->toDateTimeString() : null, $dateEnd ? $dateEnd->toDateTimeString() : null]));
+
+        return Cache::remember($cacheKey, 60, function() use ($query, $dateStart, $dateEnd, $filters) {
+            $totalRevenue = [];
+            $totalTransactions = [];
+            $averageRevenue = [];
+            $revenueGrowth = [];
+            $outstandingPayments = [];
+
+            // Get all currencies present in the query
+            $activeCurrencies = (clone $query)
+                ->select('quotations.currency as currency')
+                ->distinct()
+                ->whereNotNull('quotations.currency')
+                ->pluck('currency')
+                ->toArray();
+
+            if (empty($activeCurrencies)) {
+                if (!empty($filters['currency']) && $filters['currency'] !== 'all') {
+                    $activeCurrencies = [$filters['currency']];
+                } else {
+                    $activeCurrencies = ['USD', 'ZAR', 'ZWG'];
+                }
+            }
+
+            // Total Revenue & Transactions by Currency
+            $revenueRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('SUM(payments.amount_paid) as total, COUNT(*) as tx_count')
+                ->where('payments.status', 'verified')
+                ->groupBy('quotations.currency')
+                ->get();
+            
+            $verifiedCountByCurrency = [];
+            foreach ($revenueRaw as $row) {
+                $totalRevenue[$row->currency] = (float)$row->total;
+                $verifiedCountByCurrency[$row->currency] = (int)$row->tx_count;
+            }
+
+            // Total Transactions (overall records including pending/rejected) by Currency
+            $allTxRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('COUNT(*) as tx_count')
+                ->groupBy('quotations.currency')
+                ->get();
+            foreach ($allTxRaw as $row) {
+                $totalTransactions[$row->currency] = (int)$row->tx_count;
+            }
+
+            // Average Revenue per Transaction by Currency
+            foreach ($activeCurrencies as $curr) {
+                $tot = $totalRevenue[$curr] ?? 0.0;
+                $cnt = $verifiedCountByCurrency[$curr] ?? 0;
+                $averageRevenue[$curr] = $cnt > 0 ? (float)($tot / $cnt) : 0.0;
+            }
+
+            // Outstanding Payments (sum of remaining balances on approved quotes matching the date range / filters)
+            $quoteQuery = Quotation::where('status', 'approved');
+            if (!empty($filters['service_category'])) {
+                $cat = $filters['service_category'];
+                $quoteQuery->whereHas('serviceRequest', function($q) use ($cat) {
+                    $q->where('service_category', $cat);
+                });
+            }
+            if (!empty($filters['client_id'])) {
+                $quoteQuery->whereHas('serviceRequest', function($q) use ($filters) {
+                    $q->where('submitted_by', $filters['client_id']);
+                });
+            }
+            if ($dateStart) {
+                $quoteQuery->where('created_at', '>=', $dateStart);
+            }
+            if ($dateEnd) {
+                $quoteQuery->where('created_at', '<=', $dateEnd);
+            }
+            if (!empty($filters['currency']) && $filters['currency'] !== 'all') {
+                $quoteQuery->where('currency', $filters['currency']);
+            }
+
+            $outstandingRaw = $quoteQuery
+                ->withSum(['payments as total_verified' => function($q) {
+                    $q->where('status', 'verified');
+                }], 'amount_paid')
+                ->get()
+                ->groupBy('currency');
+
+            foreach ($outstandingRaw as $curr => $quotes) {
+                $outstandingPayments[$curr] = $quotes->sum(fn($q) => max(0.0, (float)($q->amount - ($q->total_verified ?? 0))));
+            }
+
+            // Growth calculation by currency
+            $diffDays = 30;
+            if ($dateStart && $dateEnd) {
+                $diffDays = max(1, $dateStart->diffInDays($dateEnd));
+                $prevStart = $dateStart->copy()->subDays($diffDays + 1)->startOfDay();
+                $prevEnd = $dateStart->copy()->subDay()->endOfDay();
+            } else {
+                $prevStart = Carbon::now()->subDays(60)->startOfDay();
+                $prevEnd = Carbon::now()->subDays(31)->endOfDay();
+                $dateStart = Carbon::now()->subDays(30)->startOfDay();
+                $dateEnd = Carbon::now()->endOfDay();
+            }
+
+            // Build base query for growth (ignoring date parameters)
+            $growthQuery = Payment::join('quotations', 'payments.quotation_id', '=', 'quotations.id');
+            if (!empty($filters['service_category'])) {
+                $cat = $filters['service_category'];
+                $growthQuery->whereHas('serviceRequest', function($q) use ($cat) {
+                    $q->where('service_category', $cat);
+                });
+            }
+            if (!empty($filters['client_id'])) {
+                $growthQuery->where('client_id', $filters['client_id']);
+            }
+            if (!empty($filters['payment_status'])) {
+                $growthQuery->where('payments.status', $filters['payment_status']);
+            }
+            if (!empty($filters['payment_method'])) {
+                $growthQuery->where('bank_used', $filters['payment_method']);
+            }
+            if (!empty($filters['currency']) && $filters['currency'] !== 'all') {
+                $growthQuery->where('quotations.currency', $filters['currency']);
+            }
+
+            $currentRevenueRaw = (clone $growthQuery)
+                ->where('payments.status', 'verified')
+                ->where('payments.created_at', '>=', $dateStart)
+                ->where('payments.created_at', '<=', $dateEnd)
+                ->selectRaw('quotations.currency as currency, SUM(payments.amount_paid) as total')
+                ->groupBy('quotations.currency')
+                ->pluck('total', 'currency')
+                ->toArray();
+
+            $prevRevenueRaw = (clone $growthQuery)
+                ->where('payments.status', 'verified')
+                ->where('payments.created_at', '>=', $prevStart)
+                ->where('payments.created_at', '<=', $prevEnd)
+                ->selectRaw('quotations.currency as currency, SUM(payments.amount_paid) as total')
+                ->groupBy('quotations.currency')
+                ->pluck('total', 'currency')
+                ->toArray();
+
+            foreach ($activeCurrencies as $curr) {
+                $curVal = (float)($currentRevenueRaw[$curr] ?? 0.0);
+                $prevVal = (float)($prevRevenueRaw[$curr] ?? 0.0);
+                if ($prevVal > 0) {
+                    $revenueGrowth[$curr] = (($curVal - $prevVal) / $prevVal) * 100;
+                } else {
+                    $revenueGrowth[$curr] = $curVal > 0 ? 100.0 : 0.0;
+                }
+            }
+
+            // Fill empty active currencies to ensure API contracts
+            foreach ($activeCurrencies as $curr) {
+                if (!isset($totalRevenue[$curr])) $totalRevenue[$curr] = 0.0;
+                if (!isset($totalTransactions[$curr])) $totalTransactions[$curr] = 0;
+                if (!isset($averageRevenue[$curr])) $averageRevenue[$curr] = 0.0;
+                if (!isset($revenueGrowth[$curr])) $revenueGrowth[$curr] = 0.0;
+                if (!isset($outstandingPayments[$curr])) $outstandingPayments[$curr] = 0.0;
+            }
+
+            // Visualizations
+            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            $dateFormat = $isSqlite ? "strftime('%Y-%m-%d', payments.created_at)" : "DATE_FORMAT(payments.created_at, '%Y-%m-%d')";
+            $monthFormat = $isSqlite ? "strftime('%Y-%m', payments.created_at)" : "DATE_FORMAT(payments.created_at, '%Y-%m')";
+
+            // 1. Revenue Trend (Line Chart)
+            $trendRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw("{$dateFormat} as date_group, SUM(payments.amount_paid) as total")
+                ->where('payments.status', 'verified')
+                ->groupBy('quotations.currency', 'date_group')
+                ->orderBy('date_group')
+                ->get();
+            
+            $trend = [];
+            foreach ($trendRaw as $r) {
+                $trend[$r->currency][] = ['date' => $r->date_group, 'total' => (float)$r->total];
+            }
+
+            // 2. Revenue by Month (Bar Chart)
+            $byMonthRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw("{$monthFormat} as month_group, SUM(payments.amount_paid) as total")
+                ->where('payments.status', 'verified')
+                ->groupBy('quotations.currency', 'month_group')
+                ->orderBy('month_group')
+                ->get();
+
+            $byMonth = [];
+            foreach ($byMonthRaw as $r) {
+                $byMonth[$r->currency][] = [
+                    'month' => Carbon::parse($r->month_group . '-01')->format('M Y'),
+                    'total' => (float)$r->total
+                ];
+            }
+
+            // 3. Revenue by Service Category (Bar Chart)
+            $byServiceRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('service_requests.service_category, SUM(payments.amount_paid) as total')
+                ->where('payments.status', 'verified')
+                ->join('service_requests', 'payments.service_request_id', '=', 'service_requests.id')
+                ->groupBy('quotations.currency', 'service_requests.service_category')
+                ->get();
+
+            $byService = [];
+            foreach ($byServiceRaw as $r) {
+                $byService[$r->currency][] = [
+                    'category' => ucwords(str_replace('_', ' ', $r->service_category)),
+                    'total' => (float)$r->total
+                ];
+            }
+
+            // 4. Payment Method Distribution (Pie Chart)
+            $byMethodRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('bank_used as method, SUM(payments.amount_paid) as total, COUNT(*) as count')
+                ->where('payments.status', 'verified')
+                ->groupBy('quotations.currency', 'bank_used')
+                ->get();
+
+            $byMethod = [];
+            foreach ($byMethodRaw as $r) {
+                $byMethod[$r->currency][] = [
+                    'method' => $r->method,
+                    'total' => (float)$r->total,
+                    'count' => $r->count
+                ];
+            }
+
+            // 5. Revenue by Status (Pie Chart)
+            $byStatusRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('payments.status, SUM(payments.amount_paid) as total, COUNT(*) as count')
+                ->groupBy('quotations.currency', 'payments.status')
+                ->get();
+
+            $byStatus = [];
+            foreach ($byStatusRaw as $r) {
+                $byStatus[$r->currency][] = [
+                    'status' => ucwords($r->status),
+                    'total' => (float)$r->total,
+                    'count' => $r->count
+                ];
+            }
+
+            // 6. Top Services (Horizontal Bar Chart)
+            $topServicesRaw = (clone $query)
+                ->select('quotations.currency as currency')
+                ->selectRaw('service_requests.title, SUM(payments.amount_paid) as total')
+                ->where('payments.status', 'verified')
+                ->join('service_requests', 'payments.service_request_id', '=', 'service_requests.id')
+                ->groupBy('quotations.currency', 'service_requests.title')
+                ->orderBy('total', 'desc')
+                ->get();
+
+            $topServices = [];
+            foreach ($topServicesRaw as $r) {
+                $topServices[$r->currency][] = [
+                    'title' => $r->title,
+                    'total' => (float)$r->total
+                ];
+            }
+            // Slice to top 5 per currency
+            foreach ($topServices as $curr => $list) {
+                $topServices[$curr] = array_slice($list, 0, 5);
+            }
+
+            return [
+                'kpis' => [
+                    'total_revenue' => $totalRevenue,
+                    'total_transactions' => $totalTransactions,
+                    'average_revenue' => $averageRevenue,
+                    'revenue_growth' => $revenueGrowth,
+                    'outstanding_payments' => $outstandingPayments,
+                ],
+                'charts' => [
+                    'trend' => $trend,
+                    'by_month' => $byMonth,
+                    'by_service' => $byService,
+                    'by_method' => $byMethod,
+                    'by_status' => $byStatus,
+                    'top_services' => $topServices,
+                ]
+            ];
+        });
+    }
+
+    public function languageServicesRevenue(Request $request)
+    {
+        $this->checkReportAccess();
+
+        [$query, $dateStart, $dateEnd, $filters] = $this->getLanguageServicesRevenueData($request);
+
+        $aggregates = $this->calculateLanguageServicesRevenueAggregates($query, $dateStart, $dateEnd, $filters);
+
+        // Sorting
+        $sortField = $request->input('sort_by', 'created_at');
+        $sortDirection = $request->input('sort_desc', 'true') === 'true' ? 'desc' : 'asc';
+        
+        // Ensure sorting on payment properties works
+        if (in_array($sortField, ['id', 'amount_paid', 'status', 'created_at'])) {
+            $query->orderBy('payments.' . $sortField, $sortDirection);
+        } elseif ($sortField === 'currency') {
+            $query->orderBy('quotations.currency', $sortDirection);
+        } else {
+            $query->orderBy('payments.created_at', $sortDirection);
+        }
+
+        $payments = $query->paginate(10)->withQueryString();
+
+        // Dropdowns for filters
+        $clients = User::where('primary_category', 'Client')->select('id', 'name', 'email')->orderBy('name')->get();
+        $categoriesList = ['translation', 'editing', 'brailling', 'consultancy', 'sign_language'];
+        $categories = array_map(fn($c) => ['value' => $c, 'label' => ucwords(str_replace('_', ' ', $c))], $categoriesList);
+        
+        $paymentMethods = Payment::whereNotNull('bank_used')->distinct()->pluck('bank_used')->filter()->values()->toArray();
+
+        return Inertia::render('Reports/LanguageServicesRevenue', [
+            'payments' => $payments,
+            'kpis' => $aggregates['kpis'],
+            'charts' => $aggregates['charts'],
+            'filters' => $filters,
+            'filterOptions' => [
+                'clients' => $clients,
+                'categories' => $categories,
+                'payment_methods' => $paymentMethods,
+            ]
+        ]);
+    }
+
+    public function exportLanguageServicesRevenue(Request $request)
+    {
+        $this->checkReportAccess();
+
+        $format = $request->input('format', 'csv');
+
+        [$query, $dateStart, $dateEnd, $filters] = $this->getLanguageServicesRevenueData($request);
+        $payments = $query->get();
+
+        $aggregates = $this->calculateLanguageServicesRevenueAggregates($query, $dateStart, $dateEnd, $filters);
+        $kpis = $aggregates['kpis'];
+
+        if ($format === 'pdf') {
+            $data = [
+                'title' => 'Language Services Revenue Report',
+                'payments' => $payments,
+                'kpis' => $kpis,
+                'filters' => $filters,
+                'generated_by' => Auth::user()->name,
+                'generated_date' => now()->format('F d, Y h:i A'),
+                'type' => 'language_services'
+            ];
+
+            $pdf = Pdf::loadView('reports.revenue_pdf', $data);
+            return $pdf->download('language_services_revenue_report_' . time() . '.pdf');
+        } else {
+            // Excel/CSV
+            $filename = 'language_services_revenue_' . time() . '.' . ($format === 'excel' ? 'xlsx' : 'csv');
+            $contentType = $format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv';
+            
+            $headers = [
+                'Content-Type' => $contentType,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($payments, $kpis) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, ['MSU National Language Institute - Language Services Revenue Report']);
+                fputcsv($file, ['Generated Date:', now()->toDateTimeString()]);
+                fputcsv($file, []);
+                
+                fputcsv($file, ['KPI Summary by Currency']);
+                fputcsv($file, ['Currency', 'Total Revenue', 'Total Transactions', 'Average Revenue', 'Revenue Growth (%)', 'Outstanding Payments']);
+                foreach ($kpis['total_revenue'] as $curr => $total) {
+                    fputcsv($file, [
+                        $curr,
+                        number_format($total, 2),
+                        $kpis['total_transactions'][$curr] ?? 0,
+                        number_format($kpis['average_revenue'][$curr] ?? 0.0, 2),
+                        number_format($kpis['revenue_growth'][$curr] ?? 0.0, 2) . '%',
+                        number_format($kpis['outstanding_payments'][$curr] ?? 0.0, 2)
+                    ]);
+                }
+                fputcsv($file, []);
+
+                fputcsv($file, ['Transaction/Invoice Number', 'Customer Name', 'Service', 'Payment Method', 'Currency', 'Amount Paid', 'Outstanding Balance', 'Payment Status', 'Date Paid', 'Recorded By']);
+
+                foreach ($payments as $p) {
+                    $customerName = $p->serviceRequest && $p->serviceRequest->client 
+                        ? ($p->serviceRequest->client->organization ?? $p->serviceRequest->client->contact_person) 
+                        : ($p->client ? $p->client->name : 'N/A');
+                    $serviceLabel = $p->serviceRequest ? $p->serviceRequest->service_category : 'N/A';
+                    
+                    // Outstanding computation for row
+                    $outstanding = $p->quotation 
+                        ? max(0.0, (float)($p->quotation->amount - ($p->quotation->payments()->where('status', 'verified')->sum('amount_paid') ?? 0))) 
+                        : 0.0;
+
+                    fputcsv($file, [
+                        $p->quotation ? $p->quotation->reference_number : ('PAY-' . $p->id),
+                        $customerName,
+                        ucwords(str_replace('_', ' ', $serviceLabel)),
+                        $p->bank_used ?? 'N/A',
+                        $p->quotation_currency ?? 'N/A',
+                        $p->amount_paid,
+                        $outstanding,
+                        ucfirst($p->status),
+                        $p->created_at->format('Y-m-d H:i'),
+                        $p->verifiedBy ? $p->verifiedBy->name : 'Pending'
+                    ]);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+    }
+
+    private function getShortCoursesRevenueData(Request $request)
+    {
+        $filters = $request->only([
+            'preset', 'date_start', 'date_end', 'course_id', 'student_id', 'payment_status', 'payment_method', 'search'
+        ]);
+
+        [$dateStart, $dateEnd] = $this->resolveDateRange(
+            $filters['preset'] ?? null,
+            $filters['date_start'] ?? null,
+            $filters['date_end'] ?? null
+        );
+
+        // Build query
+        $query = CourseEnrollment::with(['user', 'intake.course.department']);
+
+        if ($dateStart) {
+            $query->where('course_enrollments.created_at', '>=', $dateStart);
+        }
+        if ($dateEnd) {
+            $query->where('course_enrollments.created_at', '<=', $dateEnd);
+        }
+        if (!empty($filters['course_id'])) {
+            $courseId = $filters['course_id'];
+            $query->whereHas('intake', function($q) use ($courseId) {
+                $q->where('course_id', $courseId);
+            });
+        }
+        if (!empty($filters['student_id'])) {
+            $query->where('user_id', $filters['student_id']);
+        }
+        if (!empty($filters['payment_status'])) {
+            $query->where('payment_status', $filters['payment_status']);
+        }
+        if (!empty($filters['payment_method'])) {
+            if ($filters['payment_method'] === 'Bank Proof Upload') {
+                $query->whereNotNull('payment_proof_path');
+            } else {
+                $query->whereNull('payment_proof_path');
+            }
+        }
+        if (!empty($filters['search'])) {
+            $search = '%' . $filters['search'] . '%';
+            $query->where(function($q) use ($search) {
+                $q->where('certificate_code', 'like', $search)
+                  ->orWhere('course_enrollments.id', 'like', $search)
+                  ->orWhereHas('user', function($sq) use ($search) {
+                      $sq->where('name', 'like', $search);
+                  })
+                  ->orWhereHas('intake.course', function($sq) use ($search) {
+                      $sq->where('title', 'like', $search);
+                  });
+            });
+        }
+
+        return [$query, $dateStart, $dateEnd, $filters];
+    }
+
+    private function calculateShortCoursesRevenueAggregates($query, $dateStart, $dateEnd, $filters)
+    {
+        $cacheKey = 'sc_rev_agg_' . md5(serialize([$filters, $dateStart ? $dateStart->toDateTimeString() : null, $dateEnd ? $dateEnd->toDateTimeString() : null]));
+
+        return Cache::remember($cacheKey, 60, function() use ($query, $dateStart, $dateEnd, $filters) {
+            $totalRevenue = (float) (clone $query)->where('payment_status', 'verified')->sum('amount_paid');
+            $totalTransactions = (clone $query)->count();
+            $verifiedCount = (clone $query)->where('payment_status', 'verified')->count();
+            $avgRevenue = $verifiedCount > 0 ? (float) ($totalRevenue / $verifiedCount) : 0.0;
+
+            // Growth calculation
+            $diffDays = 30;
+            if ($dateStart && $dateEnd) {
+                $diffDays = max(1, $dateStart->diffInDays($dateEnd));
+                $prevStart = $dateStart->copy()->subDays($diffDays + 1)->startOfDay();
+                $prevEnd = $dateStart->copy()->subDay()->endOfDay();
+            } else {
+                $prevStart = Carbon::now()->subDays(60)->startOfDay();
+                $prevEnd = Carbon::now()->subDays(31)->endOfDay();
+                $dateStart = Carbon::now()->subDays(30)->startOfDay();
+                $dateEnd = Carbon::now()->endOfDay();
+            }
+
+            $growthQuery = CourseEnrollment::query();
+            if (!empty($filters['course_id'])) {
+                $courseId = $filters['course_id'];
+                $growthQuery->whereHas('intake', function($q) use ($courseId) {
+                    $q->where('course_id', $courseId);
+                });
+            }
+            if (!empty($filters['student_id'])) {
+                $growthQuery->where('user_id', $filters['student_id']);
+            }
+            if (!empty($filters['payment_status'])) {
+                $growthQuery->where('payment_status', $filters['payment_status']);
+            }
+
+            $currentRevenue = (float) (clone $growthQuery)
+                ->where('payment_status', 'verified')
+                ->where('created_at', '>=', $dateStart)
+                ->where('created_at', '<=', $dateEnd)
+                ->sum('amount_paid');
+
+            $prevRevenue = (float) (clone $growthQuery)
+                ->where('payment_status', 'verified')
+                ->where('created_at', '>=', $prevStart)
+                ->where('created_at', '<=', $prevEnd)
+                ->sum('amount_paid');
+
+            $revenueGrowth = 0.0;
+            if ($prevRevenue > 0) {
+                $revenueGrowth = (($currentRevenue - $prevRevenue) / $prevRevenue) * 100;
+            } elseif ($currentRevenue > 0) {
+                $revenueGrowth = 100.0;
+            }
+
+            // Outstanding Payments sum(courses.price - course_enrollments.amount_paid)
+            $outstandingPayments = (float) (clone $query)
+                ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
+                ->selectRaw('SUM(CASE WHEN courses.price > course_enrollments.amount_paid THEN courses.price - course_enrollments.amount_paid ELSE 0 END) as total')
+                ->value('total') ?? 0.0;
+
+            // Visualizations
+            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            $dateFormat = $isSqlite ? "strftime('%Y-%m-%d', course_enrollments.created_at)" : "DATE_FORMAT(course_enrollments.created_at, '%Y-%m-%d')";
+            $monthFormat = $isSqlite ? "strftime('%Y-%m', course_enrollments.created_at)" : "DATE_FORMAT(course_enrollments.created_at, '%Y-%m')";
+
+            // 1. Revenue Trend (Line Chart)
+            $trend = (clone $query)->where('payment_status', 'verified')
+                ->selectRaw("{$dateFormat} as date_group, SUM(amount_paid) as total")
+                ->groupBy('date_group')
+                ->orderBy('date_group')
+                ->get()
+                ->map(fn($r) => ['date' => $r->date_group, 'total' => (float)$r->total])
+                ->toArray();
+
+            // 2. Revenue by Month (Bar Chart)
+            $byMonth = (clone $query)->where('payment_status', 'verified')
+                ->selectRaw("{$monthFormat} as month_group, SUM(amount_paid) as total")
+                ->groupBy('month_group')
+                ->orderBy('month_group')
+                ->get()
+                ->map(fn($r) => ['month' => Carbon::parse($r->month_group . '-01')->format('M Y'), 'total' => (float)$r->total])
+                ->toArray();
+
+            // 3. Revenue by Course Category (Bar Chart)
+            $byCourseCategory = (clone $query)->where('payment_status', 'verified')
+                ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
+                ->selectRaw('courses.category, SUM(course_enrollments.amount_paid) as total')
+                ->groupBy('courses.category')
+                ->get()
+                ->map(fn($r) => [
+                    'category' => $r->category,
+                    'total' => (float)$r->total
+                ])
+                ->toArray();
+
+            // 4. Payment Method Distribution (Pie Chart)
+            $byMethod = (clone $query)->where('payment_status', 'verified')
+                ->selectRaw("CASE WHEN payment_proof_path IS NOT NULL THEN 'Bank Proof Upload' ELSE 'Manual Admin Entry' END as method, SUM(amount_paid) as total, COUNT(*) as count")
+                ->groupBy('method')
+                ->get()
+                ->map(fn($r) => [
+                    'method' => $r->method,
+                    'total' => (float)$r->total,
+                    'count' => $r->count
+                ])
+                ->toArray();
+
+            // 5. Revenue by Status (Pie Chart)
+            $byStatus = (clone $query)
+                ->selectRaw('payment_status as status, SUM(amount_paid) as total, COUNT(*) as count')
+                ->groupBy('payment_status')
+                ->get()
+                ->map(fn($r) => [
+                    'status' => ucwords($r->status),
+                    'total' => (float)$r->total,
+                    'count' => $r->count
+                ])
+                ->toArray();
+
+            // 6. Top Courses (Horizontal Bar Chart)
+            $topCourses = (clone $query)->where('payment_status', 'verified')
+                ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
+                ->selectRaw('courses.title, SUM(course_enrollments.amount_paid) as total')
+                ->groupBy('courses.title')
+                ->orderBy('total', 'desc')
+                ->take(5)
+                ->get()
+                ->map(fn($r) => [
+                    'title' => $r->title,
+                    'total' => (float)$r->total
+                ])
+                ->toArray();
+
+            return [
+                'kpis' => [
+                    'total_revenue' => $totalRevenue,
+                    'total_transactions' => $totalTransactions,
+                    'average_revenue' => $avgRevenue,
+                    'revenue_growth' => $revenueGrowth,
+                    'outstanding_payments' => $outstandingPayments,
+                ],
+                'charts' => [
+                    'trend' => $trend,
+                    'by_month' => $byMonth,
+                    'by_service' => $byCourseCategory,
+                    'by_method' => $byMethod,
+                    'by_status' => $byStatus,
+                    'top_services' => $topCourses,
+                ]
+            ];
+        });
+    }
+
+    public function shortCoursesRevenue(Request $request)
+    {
+        $this->checkReportAccess();
+
+        [$query, $dateStart, $dateEnd, $filters] = $this->getShortCoursesRevenueData($request);
+
+        $aggregates = $this->calculateShortCoursesRevenueAggregates($query, $dateStart, $dateEnd, $filters);
+
+        // Sorting
+        $sortField = $request->input('sort_by', 'created_at');
+        $sortDirection = $request->input('sort_desc', 'true') === 'true' ? 'desc' : 'asc';
+
+        if (in_array($sortField, ['id', 'amount_paid', 'payment_status', 'created_at'])) {
+            $query->orderBy('course_enrollments.' . $sortField, $sortDirection);
+        } else {
+            $query->orderBy('course_enrollments.created_at', 'desc');
+        }
+
+        $enrollments = $query->paginate(10)->withQueryString();
+
+        // Dropdowns for filters
+        $courses = Course::select('id', 'title', 'code')->orderBy('title')->get();
+        $students = User::where('primary_category', 'Student')->select('id', 'name', 'email')->orderBy('name')->get();
+
+        return Inertia::render('Reports/ShortCoursesRevenue', [
+            'enrollments' => $enrollments,
+            'kpis' => $aggregates['kpis'],
+            'charts' => $aggregates['charts'],
+            'filters' => $filters,
+            'filterOptions' => [
+                'courses' => $courses,
+                'students' => $students,
+                'payment_methods' => ['Bank Proof Upload', 'Manual Admin Entry']
+            ]
+        ]);
+    }
+
+    public function exportShortCoursesRevenue(Request $request)
+    {
+        $this->checkReportAccess();
+
+        $format = $request->input('format', 'csv');
+
+        [$query, $dateStart, $dateEnd, $filters] = $this->getShortCoursesRevenueData($request);
+        $enrollments = $query->get();
+
+        $aggregates = $this->calculateShortCoursesRevenueAggregates($query, $dateStart, $dateEnd, $filters);
+        $kpis = $aggregates['kpis'];
+
+        if ($format === 'pdf') {
+            $data = [
+                'title' => 'Short Courses Revenue Report',
+                'enrollments' => $enrollments,
+                'kpis' => $kpis,
+                'filters' => $filters,
+                'generated_by' => Auth::user()->name,
+                'generated_date' => now()->format('F d, Y h:i A'),
+                'type' => 'short_courses'
+            ];
+
+            $pdf = Pdf::loadView('reports.revenue_pdf', $data);
+            return $pdf->download('short_courses_revenue_report_' . time() . '.pdf');
+        } else {
+            // Excel/CSV
+            $filename = 'short_courses_revenue_' . time() . '.' . ($format === 'excel' ? 'xlsx' : 'csv');
+            $contentType = $format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv';
+            
+            $headers = [
+                'Content-Type' => $contentType,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($enrollments, $kpis) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, ['MSU National Language Institute - Short Courses Revenue Report']);
+                fputcsv($file, ['Generated Date:', now()->toDateTimeString()]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['KPI Summary']);
+                fputcsv($file, ['Total Revenue', $kpis['total_revenue']]);
+                fputcsv($file, ['Total Transactions', $kpis['total_transactions']]);
+                fputcsv($file, ['Average Revenue per Transaction', $kpis['average_revenue']]);
+                fputcsv($file, ['Revenue Growth (%)', $kpis['revenue_growth'] . '%']);
+                fputcsv($file, ['Outstanding Payments', $kpis['outstanding_payments']]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['Transaction/Invoice Number', 'Student Name', 'Course', 'Payment Method', 'Amount Paid', 'Outstanding Balance', 'Payment Status', 'Date Paid', 'Recorded By']);
+
+                foreach ($enrollments as $e) {
+                    $method = $e->payment_proof_path ? 'Bank Proof Upload' : 'Manual Admin Entry';
+                    $courseTitle = $e->intake && $e->intake->course ? $e->intake->course->title : 'N/A';
+                    $coursePrice = $e->intake && $e->intake->course ? $e->intake->course->price : 0;
+                    
+                    $outstanding = max(0.0, (float)($coursePrice - $e->amount_paid));
+
+                    fputcsv($file, [
+                        'ENR-' . $e->id,
+                        $e->user ? $e->user->name : 'N/A',
+                        $courseTitle,
+                        $method,
+                        $e->amount_paid,
+                        $outstanding,
+                        ucfirst($e->payment_status),
+                        $e->created_at->format('Y-m-d H:i'),
+                        $e->payment_status === 'verified' ? 'Admin Assistant' : 'Pending'
+                    ]);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
     }
 
     /**
