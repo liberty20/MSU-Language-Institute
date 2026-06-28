@@ -469,7 +469,7 @@
                         <!-- Admin Delete Button -->
                         <button 
                             v-if="$page.props.auth.user && ($page.props.auth.roles.includes('ict_administrator') || $page.props.auth.roles.includes('executive_director'))" 
-                            @click="deleteTestimonial(idx)" 
+                            @click="deleteTestimonial(t.id)" 
                             class="absolute top-6 right-6 text-red-500 hover:text-red-700 transition p-1.5 hover:bg-red-50 rounded-full z-20"
                             title="Delete Testimony"
                         >
@@ -974,9 +974,9 @@ const formatDate = (dateString) => {
 
 // Admin Testimonial Moderation Helpers
 
-const deleteTestimonial = (idx) => {
+const deleteTestimonial = (id) => {
     if (!confirm('Are you sure you want to delete this testimonial? This action cannot be undone.')) return;
-    Inertia.delete(route('admin.testimonials.destroy', { idx: idx }), {
+    Inertia.delete(route('admin.testimonials.destroy', { id: id }), {
         onSuccess: () => {
             alert('Testimonial deleted successfully.');
         }

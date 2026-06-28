@@ -1067,7 +1067,10 @@ class CourseController extends Controller
             ->get();
 
         $faqs = SystemSetting::get('short_courses_faqs', []);
-        $testimonials = SystemSetting::get('short_courses_testimonials', []);
+        $testimonials = array_values(array_filter(
+            SystemSetting::get('short_courses_testimonials', []),
+            fn($t) => (isset($t['status']) && $t['status'] === 'approved') || !isset($t['status'])
+        ));
         $announcements = SystemSetting::get('short_courses_announcements', []);
         $contactInfo = SystemSetting::get('short_courses_contact_info', [
             'email' => 'language.institute@msu.ac.zw',

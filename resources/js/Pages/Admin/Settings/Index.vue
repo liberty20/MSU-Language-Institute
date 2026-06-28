@@ -520,32 +520,7 @@
                         </div>
                     </div>
 
-                    <!-- E. Testimonials -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center border-b border-gray-50 pb-2">
-                            <h4 class="font-bold text-[#0a1f44] text-sm">5. Testimonials &amp; Success Stories</h4>
-                            <button type="button" @click="addTestimonial" class="text-xs font-black text-blue-600 hover:underline">+ Add Testimonial</button>
-                        </div>
-                        <div class="space-y-4">
-                            <div v-for="(t, idx) in portalForm.testimonials" :key="idx" class="p-4 bg-gray-50 rounded-2xl border border-gray-150 relative space-y-3">
-                                <button type="button" @click="removeTestimonial(idx)" class="absolute top-2 right-4 text-xs font-black text-red-650 hover:underline">Remove</button>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Student Name *</label>
-                                        <input v-model="t.name" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="e.g. Sandra Gumbo" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Assigned Course *</label>
-                                        <input v-model="t.course" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="e.g. Unified English Braille" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Testimonial Quote Text *</label>
-                                    <textarea v-model="t.text" rows="2" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="Quote from the student..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <div class="pt-5 border-t border-gray-150 flex justify-end">
                         <button type="submit" class="bg-[#0a1f44] hover:bg-[#0c2859] text-[#f5c242] font-black text-xs px-8 py-3 rounded-full transition shadow-md uppercase tracking-wider">
@@ -571,6 +546,7 @@
                                     <textarea v-model="editingPendingText" rows="4" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium text-gray-750"></textarea>
                                     <div class="flex gap-2">
                                         <button @click="saveAndApprovePending(pt)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save & Approve</button>
+                                        <button @click="savePendingEdits(pt)" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save Edits</button>
                                         <button @click="cancelEditPending" class="px-3 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider transition">Cancel</button>
                                     </div>
                                 </div>
@@ -593,9 +569,6 @@
                                     <button @click="approveTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
                                         Approve
                                     </button>
-                                    <button @click="rejectTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-red-650 hover:bg-red-755 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
-                                        Reject
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -603,15 +576,20 @@
                     <div v-else class="p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs font-semibold">
                         No pending student testimonies awaiting review.
                     </div>
-                </div>
-
-                <!-- Published / Active Testimonials Panel -->
+                </div>                <!-- Published / Active Testimonials Panel -->
                 <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <h3 class="text-lg font-bold text-[#0a1f44] mb-2">Published Student Testimonials</h3>
-                    <p class="text-sm text-gray-550 mb-6">Manage testimonies currently visible on the short courses public portal.</p>
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-[#0a1f44] mb-1">Published Student Testimonials</h3>
+                            <p class="text-xs text-gray-500">Manage testimonies currently visible on the short courses public portal.</p>
+                        </div>
+                        <button @click="openCreateModal" class="px-4 py-2 rounded-xl bg-[#0a1f44] hover:bg-[#0c2859] text-[#f5c242] font-black text-xs uppercase tracking-wider transition shadow-sm">
+                            + Create Testimonial
+                        </button>
+                    </div>
 
-                    <div v-if="portalForm.testimonials && portalForm.testimonials.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div v-for="(t, idx) in portalForm.testimonials" :key="idx" class="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 relative flex flex-col justify-between space-y-4 shadow-xs">
+                    <div v-if="testimonials && testimonials.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-for="(t, idx) in testimonials" :key="idx" class="bg-slate-50/50 p-6 rounded-2xl border border-gray-150 relative flex flex-col justify-between space-y-4 shadow-xs">
                             <div class="space-y-3">
                                 <div v-if="editingActiveIndex === idx" class="space-y-3">
                                     <div>
@@ -627,7 +605,7 @@
                                         <textarea v-model="editingActiveForm.text" rows="3" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium text-gray-750"></textarea>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button @click="saveActiveTestimonial(idx)" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save Changes</button>
+                                        <button @click="saveActiveTestimonial()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">Save Changes</button>
                                         <button @click="cancelEditActive" class="px-3.5 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-[10px] uppercase tracking-wider transition">Cancel</button>
                                     </div>
                                 </div>
@@ -644,10 +622,10 @@
                                     </div>
                                 </div>
                                 <div v-if="editingActiveIndex !== idx" class="flex gap-2">
-                                    <button @click="startEditActive(t, idx)" class="px-3 py-1.5 rounded-lg bg-blue-650 hover:bg-blue-750 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                    <button @click="startEditActive(t, idx)" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
                                         Edit
                                     </button>
-                                    <button @click="deleteActiveTestimonial(idx)" class="px-3 py-1.5 rounded-lg bg-red-650 hover:bg-red-750 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                    <button @click="deleteActiveTestimonial(t.id)" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
                                         Delete
                                     </button>
                                 </div>
@@ -770,7 +748,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- Confirm Reset Modal -->
@@ -791,6 +768,44 @@
                         Yes, Reset Data
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Create Testimonial Modal -->
+        <div v-if="createModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeCreateModal">
+            <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-4 border-brand-gold relative">
+                <!-- Decorative Border -->
+                <div class="absolute inset-1.5 border border-brand-blue/30 pointer-events-none rounded-2xl"></div>
+
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-brand-gold/25 relative z-10">
+                    <div>
+                        <span class="px-2 py-0.5 text-[0.55rem] bg-brand-gold/15 text-brand-gold border border-brand-gold/30 rounded font-black uppercase tracking-widest">Administrator Tool</span>
+                        <h3 class="text-sm font-black mt-0.5 uppercase tracking-wider">Create Testimonial</h3>
+                    </div>
+                    <button @click="closeCreateModal" class="text-gray-300 hover:text-white transition text-lg p-1">&times;</button>
+                </div>
+                <form @submit.prevent="submitManualTestimonial" class="p-6 space-y-4 text-xs relative z-10">
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Student Name *</label>
+                        <input v-model="createForm.name" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-bold" placeholder="e.g. Sandra Gumbo" />
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Assigned Course *</label>
+                        <input v-model="createForm.course" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-semibold" placeholder="e.g. Unified English Braille" />
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Testimonial Quote Text *</label>
+                        <textarea v-model="createForm.text" rows="4" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium" placeholder="Write student quote here..."></textarea>
+                    </div>
+                    <div class="pt-3 border-t border-gray-150 flex justify-end gap-3">
+                        <button type="button" @click="closeCreateModal" class="px-4 py-2 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition text-[10px] uppercase tracking-wider">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition shadow text-[10px] uppercase tracking-wider">
+                            Publish Online
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </AuthenticatedLayout>
@@ -982,7 +997,6 @@ const deleteRole = (id) => {
 // Portal settings Form CRUD
 const portalForm = reactive({
     faqs: props.faqs ? JSON.parse(JSON.stringify(props.faqs)) : [],
-    testimonials: props.testimonials ? JSON.parse(JSON.stringify(props.testimonials)) : [],
     announcements: props.announcements ? JSON.parse(JSON.stringify(props.announcements)) : [],
     contactInfo: props.contactInfo ? JSON.parse(JSON.stringify(props.contactInfo)) : { email: '', phone: '', mobile: '', location: '', hours: '' },
     bankingDetails: props.bankingDetails ? JSON.parse(JSON.stringify(props.bankingDetails)) : { account_name: '', bank: '', branch: '', account_number: '', nostro_number: '', type: '', currency_accepted: '' }
@@ -993,13 +1007,6 @@ const addFaq = () => {
 };
 const removeFaq = (index) => {
     portalForm.faqs.splice(index, 1);
-};
-
-const addTestimonial = () => {
-    portalForm.testimonials.push({ name: '', course: '', text: '' });
-};
-const removeTestimonial = (index) => {
-    portalForm.testimonials.splice(index, 1);
 };
 
 const addAnnouncement = () => {
@@ -1043,6 +1050,18 @@ const saveAndApprovePending = (pt) => {
     });
 };
 
+const savePendingEdits = (pt) => {
+    Inertia.post(route('admin.testimonials.moderate'), {
+        id: pt.id,
+        text: editingPendingText.value
+    }, {
+        onSuccess: () => {
+            editingPendingId.value = null;
+            editingPendingText.value = '';
+        }
+    });
+};
+
 const approveTestimonialDirect = (id) => {
     if (confirm('Are you sure you want to approve and publish this testimony?')) {
         Inertia.post(route('admin.testimonials.approve'), { id });
@@ -1058,6 +1077,7 @@ const rejectTestimonialDirect = (id) => {
 // Active testimonies edit states
 const editingActiveIndex = ref(null);
 const editingActiveForm = reactive({
+    id: '',
     name: '',
     course: '',
     text: ''
@@ -1065,6 +1085,7 @@ const editingActiveForm = reactive({
 
 const startEditActive = (t, idx) => {
     editingActiveIndex.value = idx;
+    editingActiveForm.id = t.id;
     editingActiveForm.name = t.name;
     editingActiveForm.course = t.course;
     editingActiveForm.text = t.text;
@@ -1074,32 +1095,48 @@ const cancelEditActive = () => {
     editingActiveIndex.value = null;
 };
 
-const saveActiveTestimonial = (idx) => {
+const saveActiveTestimonial = () => {
     if (!editingActiveForm.name || !editingActiveForm.course || !editingActiveForm.text) {
         alert('All fields are required.');
         return;
     }
     
-    Inertia.post(route('admin.testimonials.update-active'), {
-        index: idx,
-        name: editingActiveForm.name,
-        course: editingActiveForm.course,
-        text: editingActiveForm.text
-    }, {
+    Inertia.post(route('admin.testimonials.update-active'), editingActiveForm, {
         onSuccess: () => {
             editingActiveIndex.value = null;
         }
     });
 };
 
-const deleteActiveTestimonial = (idx) => {
-    if (confirm('Are you sure you want to delete this published testimonial?')) {
-        Inertia.delete(route('admin.testimonials.destroy', { idx: idx }));
+const deleteActiveTestimonial = (id) => {
+    if (confirm('Are you sure you want to delete this published testimonial? This will immediately remove it from the public portal.')) {
+        Inertia.delete(route('admin.testimonials.destroy', { id: id }));
     }
 };
 
-// Watch testimonials prop changes to keep portalForm in sync
-watch(() => props.testimonials, (newVal) => {
-    portalForm.testimonials = newVal ? JSON.parse(JSON.stringify(newVal)) : [];
-}, { deep: true });
+const createModalOpen = ref(false);
+const createForm = reactive({
+    name: '',
+    course: '',
+    text: ''
+});
+
+const openCreateModal = () => {
+    createForm.name = '';
+    createForm.course = '';
+    createForm.text = '';
+    createModalOpen.value = true;
+};
+
+const closeCreateModal = () => {
+    createModalOpen.value = false;
+};
+
+const submitManualTestimonial = () => {
+    Inertia.post(route('admin.testimonials.store'), createForm, {
+        onSuccess: () => {
+            closeCreateModal();
+        }
+    });
+};
 </script>

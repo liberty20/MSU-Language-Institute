@@ -84,14 +84,54 @@ class SettingsController extends Controller
             'allow_registrations' => true,
         ]);
 
+        $allTestimonials = SystemSetting::get('short_courses_testimonials', []);
+        $dirty = false;
+        
+        // Normalize legacy and seeded ones
+        foreach ($allTestimonials as &$t) {
+            if (empty($t['id'])) {
+                $t['id'] = uniqid();
+                $dirty = true;
+            }
+            if (empty($t['status'])) {
+                $t['status'] = 'approved';
+                $dirty = true;
+            }
+        }
+
+        // Migrate legacy pending testimonies if any
+        $legacyPending = SystemSetting::get('short_courses_pending_testimonials', []);
+        if (!empty($legacyPending)) {
+            foreach ($legacyPending as $lp) {
+                $allTestimonials[] = [
+                    'id' => $lp['id'] ?? uniqid(),
+                    'name' => $lp['name'],
+                    'course' => $lp['course'],
+                    'text' => $lp['text'],
+                    'status' => 'pending',
+                    'submitted_at' => $lp['submitted_at'] ?? now()->toDateTimeString(),
+                ];
+            }
+            SystemSetting::set('short_courses_pending_testimonials', null);
+            $dirty = true;
+        }
+
+        if ($dirty) {
+            SystemSetting::set('short_courses_testimonials', $allTestimonials);
+        }
+
+        // Separate them by status
+        $activeTestimonials = array_values(array_filter($allTestimonials, fn($t) => isset($t['status']) && $t['status'] === 'approved'));
+        $pendingTestimonials = array_values(array_filter($allTestimonials, fn($t) => isset($t['status']) && $t['status'] === 'pending'));
+
         return Inertia::render('Admin/Settings/Index', [
             'units' => $units,
             'sections' => $sections,
             'roles' => $roles,
             'spatieRoles' => $spatieRoles,
             'faqs' => $faqs,
-            'testimonials' => $testimonials,
-            'pendingTestimonials' => SystemSetting::get('short_courses_pending_testimonials', []),
+            'testimonials' => $activeTestimonials,
+            'pendingTestimonials' => $pendingTestimonials,
             'announcements' => $announcements,
             'contactInfo' => $contactInfo,
             'bankingDetails' => $bankingDetails,
@@ -110,10 +150,6 @@ class SettingsController extends Controller
             'faqs' => 'required|array',
             'faqs.*.question' => 'required|string|max:255',
             'faqs.*.answer' => 'required|string',
-            'testimonials' => 'required|array',
-            'testimonials.*.name' => 'required|string|max:255',
-            'testimonials.*.course' => 'required|string|max:255',
-            'testimonials.*.text' => 'required|string',
             'announcements' => 'required|array',
             'announcements.*.date' => 'required|date',
             'announcements.*.title' => 'required|string|max:255',
@@ -135,14 +171,12 @@ class SettingsController extends Controller
         ]);
 
         $oldFaqs = SystemSetting::get('short_courses_faqs', []);
-        $oldTestimonials = SystemSetting::get('short_courses_testimonials', []);
         $oldAnnouncements = SystemSetting::get('short_courses_announcements', []);
         $oldContactInfo = SystemSetting::get('short_courses_contact_info', []);
         $oldBankingDetails = SystemSetting::get('short_courses_banking_details', []);
 
         if (
             $oldFaqs === $validated['faqs'] &&
-            $oldTestimonials === $validated['testimonials'] &&
             $oldAnnouncements === $validated['announcements'] &&
             $oldContactInfo === $validated['contactInfo'] &&
             $oldBankingDetails === $validated['bankingDetails']
@@ -151,7 +185,6 @@ class SettingsController extends Controller
         }
 
         SystemSetting::set('short_courses_faqs', $validated['faqs']);
-        SystemSetting::set('short_courses_testimonials', $validated['testimonials']);
         SystemSetting::set('short_courses_announcements', $validated['announcements']);
         SystemSetting::set('short_courses_contact_info', $validated['contactInfo']);
         SystemSetting::set('short_courses_banking_details', $validated['bankingDetails']);
@@ -160,7 +193,6 @@ class SettingsController extends Controller
         ActivityLog::log('update_short_courses_settings', 'Short Courses Public Information Portal settings updated.', null, [
             'previous' => [
                 'faqs' => $oldFaqs,
-                'testimonials' => $oldTestimonials,
                 'announcements' => $oldAnnouncements,
                 'contactInfo' => $oldContactInfo,
                 'bankingDetails' => $oldBankingDetails,
@@ -336,41 +368,39 @@ class SettingsController extends Controller
             'text' => 'nullable|string|max:1000',
         ]);
 
-        $pending = SystemSetting::get('short_courses_pending_testimonials', []);
-        $foundIndex = null;
-        foreach ($pending as $idx => $pt) {
-            if ($pt['id'] === $validated['id']) {
-                $foundIndex = $idx;
-                break;
-            }
+        try {
+            \DB::transaction(function() use ($validated) {
+                $all = SystemSetting::get('short_courses_testimonials', []);
+                $foundIndex = -1;
+                foreach ($all as $idx => $t) {
+                    if (isset($t['id']) && $t['id'] === $validated['id']) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === -1) {
+                    throw new \Exception('Pending testimonial not found.');
+                }
+
+                $all[$foundIndex]['status'] = 'approved';
+                if (!empty($validated['text'])) {
+                    $all[$foundIndex]['text'] = $validated['text'];
+                }
+                $all[$foundIndex]['moderated_by'] = \Auth::user()->name;
+                $all[$foundIndex]['moderated_at'] = now()->toDateTimeString();
+
+                SystemSetting::set('short_courses_testimonials', $all);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'approve_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' approved testimonial from student ' . $all[$foundIndex]['name'] . ' for course ' . $all[$foundIndex]['course']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        if ($foundIndex === null) {
-            return redirect()->back()->with('error', 'Pending testimonial not found.');
-        }
-
-        $pt = $pending[$foundIndex];
-        $text = !empty($validated['text']) ? $validated['text'] : $pt['text'];
-
-        // Move to active testimonials
-        $active = SystemSetting::get('short_courses_testimonials', []);
-        $active[] = [
-            'name' => $pt['name'],
-            'course' => $pt['course'],
-            'text' => $text,
-        ];
-
-        // Remove from pending list
-        array_splice($pending, $foundIndex, 1);
-
-        SystemSetting::set('short_courses_testimonials', $active);
-        SystemSetting::set('short_courses_pending_testimonials', $pending);
-
-        // Audit Trail
-        ActivityLog::log(
-            'approve_testimonial',
-            'Administrator ' . \Auth::user()->name . ' approved testimonial from student ' . $pt['name'] . ' for course ' . $pt['course'] . ($text !== $pt['text'] ? ' (moderated)' : '')
-        );
 
         return redirect()->back()->with('success', 'Testimonial approved and posted successfully!');
     }
@@ -384,55 +414,121 @@ class SettingsController extends Controller
             'id' => 'required|string',
         ]);
 
-        $pending = SystemSetting::get('short_courses_pending_testimonials', []);
-        $foundIndex = null;
-        foreach ($pending as $idx => $pt) {
-            if ($pt['id'] === $validated['id']) {
-                $foundIndex = $idx;
-                break;
-            }
+        try {
+            \DB::transaction(function() use ($validated) {
+                $all = SystemSetting::get('short_courses_testimonials', []);
+                $foundIndex = -1;
+                foreach ($all as $idx => $t) {
+                    if (isset($t['id']) && $t['id'] === $validated['id']) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === -1) {
+                    throw new \Exception('Pending testimonial not found.');
+                }
+
+                $all[$foundIndex]['status'] = 'rejected';
+                $all[$foundIndex]['moderated_by'] = \Auth::user()->name;
+                $all[$foundIndex]['moderated_at'] = now()->toDateTimeString();
+
+                SystemSetting::set('short_courses_testimonials', $all);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'reject_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' rejected testimonial from student ' . $all[$foundIndex]['name'] . ' for course ' . $all[$foundIndex]['course']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        if ($foundIndex === null) {
-            return redirect()->back()->with('error', 'Pending testimonial not found.');
-        }
-
-        $pt = $pending[$foundIndex];
-
-        // Remove from pending list
-        array_splice($pending, $foundIndex, 1);
-        SystemSetting::set('short_courses_pending_testimonials', $pending);
-
-        // Audit Trail
-        ActivityLog::log(
-            'reject_testimonial',
-            'Administrator ' . \Auth::user()->name . ' rejected testimonial from student ' . $pt['name'] . ' for course ' . $pt['course']
-        );
 
         return redirect()->back()->with('success', 'Testimonial rejected successfully.');
     }
 
     /**
-     * Delete an active testimonial (both dynamic and static).
+     * Moderate (edit pending) testimonial without approving it immediately.
      */
-    public function destroyTestimonial($idx)
+    public function moderateTestimonial(Request $request)
     {
-        $active = SystemSetting::get('short_courses_testimonials', []);
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'text' => 'required|string|max:1000',
+        ]);
 
-        if (!isset($active[$idx])) {
-            return redirect()->back()->with('error', 'Testimonial not found.');
+        try {
+            \DB::transaction(function() use ($validated) {
+                $all = SystemSetting::get('short_courses_testimonials', []);
+                $foundIndex = -1;
+                foreach ($all as $idx => $t) {
+                    if (isset($t['id']) && $t['id'] === $validated['id']) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === -1) {
+                    throw new \Exception('Testimonial not found.');
+                }
+
+                $oldText = $all[$foundIndex]['text'];
+                $all[$foundIndex]['text'] = $validated['text'];
+                $all[$foundIndex]['moderated_by'] = \Auth::user()->name;
+                $all[$foundIndex]['moderated_at'] = now()->toDateTimeString();
+
+                SystemSetting::set('short_courses_testimonials', $all);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'moderate_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' moderated testimonial from student ' . $all[$foundIndex]['name'],
+                    null,
+                    ['old_text' => $oldText, 'new_text' => $validated['text']]
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
 
-        $pt = $active[$idx];
+        return redirect()->back()->with('success', 'Testimonial moderated and saved successfully.');
+    }
 
-        array_splice($active, $idx, 1);
-        SystemSetting::set('short_courses_testimonials', $active);
+    /**
+     * Delete an active testimonial by its unique ID.
+     */
+    public function destroyTestimonial($id)
+    {
+        try {
+            \DB::transaction(function() use ($id) {
+                $all = SystemSetting::get('short_courses_testimonials', []);
+                $foundIndex = -1;
+                foreach ($all as $idx => $t) {
+                    if (isset($t['id']) && $t['id'] === $id) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
 
-        // Audit Trail
-        ActivityLog::log(
-            'delete_testimonial',
-            'Administrator ' . \Auth::user()->name . ' deleted active testimonial from student ' . ($pt['name'] ?? 'Unknown')
-        );
+                if ($foundIndex === -1) {
+                    throw new \Exception('Testimonial not found.');
+                }
+
+                $pt = $all[$foundIndex];
+
+                array_splice($all, $foundIndex, 1);
+                SystemSetting::set('short_courses_testimonials', $all);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'delete_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' deleted active testimonial from student ' . ($pt['name'] ?? 'Unknown')
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->back()->with('success', 'Testimonial deleted successfully.');
     }
@@ -443,31 +539,44 @@ class SettingsController extends Controller
     public function updateActiveTestimonial(Request $request)
     {
         $validated = $request->validate([
-            'index' => 'required|integer',
+            'id' => 'required|string',
             'name' => 'required|string|max:255',
             'course' => 'required|string|max:255',
             'text' => 'required|string|max:1000',
         ]);
 
-        $active = SystemSetting::get('short_courses_testimonials', []);
+        try {
+            \DB::transaction(function() use ($validated) {
+                $all = SystemSetting::get('short_courses_testimonials', []);
+                $foundIndex = -1;
+                foreach ($all as $idx => $t) {
+                    if (isset($t['id']) && $t['id'] === $validated['id']) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
 
-        if (!isset($active[$validated['index']])) {
-            return redirect()->back()->with('error', 'Testimonial not found.');
+                if ($foundIndex === -1) {
+                    throw new \Exception('Testimonial not found.');
+                }
+
+                $all[$foundIndex]['name'] = $validated['name'];
+                $all[$foundIndex]['course'] = $validated['course'];
+                $all[$foundIndex]['text'] = $validated['text'];
+                $all[$foundIndex]['moderated_by'] = \Auth::user()->name;
+                $all[$foundIndex]['moderated_at'] = now()->toDateTimeString();
+
+                SystemSetting::set('short_courses_testimonials', $all);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'edit_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' edited active testimonial for student ' . $validated['name']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        $active[$validated['index']] = [
-            'name' => $validated['name'],
-            'course' => $validated['course'],
-            'text' => $validated['text'],
-        ];
-
-        SystemSetting::set('short_courses_testimonials', $active);
-
-        // Audit Trail
-        ActivityLog::log(
-            'edit_testimonial',
-            'Administrator ' . \Auth::user()->name . ' edited active testimonial for student ' . $validated['name']
-        );
 
         return redirect()->back()->with('success', 'Testimonial updated successfully.');
     }
@@ -658,6 +767,44 @@ class SettingsController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'System data reset executed successfully. All client requests, quotations, and assignments have been permanently removed.');
+    }
+
+    /**
+     * Create/Add a new active testimonial manually from the settings panel.
+     */
+    public function storeTestimonial(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'course' => 'required|string|max:255',
+            'text' => 'required|string|max:1000',
+        ]);
+
+        try {
+            \DB::transaction(function() use ($validated) {
+                $active = SystemSetting::get('short_courses_testimonials', []);
+                $active[] = [
+                    'id' => uniqid(),
+                    'name' => $validated['name'],
+                    'course' => $validated['course'],
+                    'text' => $validated['text'],
+                    'status' => 'approved',
+                    'submitted_at' => now()->toDateTimeString(),
+                ];
+
+                SystemSetting::set('short_courses_testimonials', $active);
+
+                // Audit Trail
+                ActivityLog::log(
+                    'create_testimonial',
+                    'Administrator ' . \Auth::user()->name . ' created a new testimonial for ' . $validated['name']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Testimonial created successfully.');
     }
 }
 

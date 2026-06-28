@@ -365,17 +365,18 @@ class StudentPortalController extends Controller
             ->where(['enrollment_status' => 'completed'])
             ->firstOrFail();
 
-        // Store the pending testimony under a separate setting key
-        $pendingTestimonials = \App\Models\SystemSetting::get('short_courses_pending_testimonials', []);
-        $pendingTestimonials[] = [
+        // Store the pending testimony under the single testimonials setting array
+        $testimonials = \App\Models\SystemSetting::get('short_courses_testimonials', []);
+        $testimonials[] = [
             'id' => uniqid(),
             'name' => $user->name,
             'course' => $enrollment->intake->course->title,
             'text' => $validated['text'],
+            'status' => 'pending',
             'submitted_at' => now()->toDateTimeString(),
         ];
 
-        \App\Models\SystemSetting::set('short_courses_pending_testimonials', $pendingTestimonials);
+        \App\Models\SystemSetting::set('short_courses_testimonials', $testimonials);
 
         // Notify Admins
         $admins = \App\Models\User::whereHas('roles', function($q) {

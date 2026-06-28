@@ -280,10 +280,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('settings/reset/request', [\App\Http\Controllers\Admin\SettingsController::class, 'initiateResetRequest'])->name('settings.reset.request');
         Route::post('settings/reset/action', [\App\Http\Controllers\Admin\SettingsController::class, 'actionResetRequest'])->name('settings.reset.action');
         Route::post('settings/reset', [\App\Http\Controllers\Admin\SettingsController::class, 'resetData'])->name('settings.reset');
-        Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('admin.testimonials.approve');
-        Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('admin.testimonials.reject');
-        Route::delete('testimonials/{idx}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('admin.testimonials.destroy');
-        Route::post('testimonials/update-active', [\App\Http\Controllers\Admin\SettingsController::class, 'updateActiveTestimonial'])->name('admin.testimonials.update-active');
+        Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('testimonials.approve');
+        Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('testimonials.reject');
+        Route::post('testimonials/moderate', [\App\Http\Controllers\Admin\SettingsController::class, 'moderateTestimonial'])->name('testimonials.moderate');
+        Route::delete('testimonials/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('testimonials.destroy');
+        Route::post('testimonials/update-active', [\App\Http\Controllers\Admin\SettingsController::class, 'updateActiveTestimonial'])->name('testimonials.update-active');
+        Route::post('testimonials', [\App\Http\Controllers\Admin\SettingsController::class, 'storeTestimonial'])->name('testimonials.store');
     });
 
     Route::middleware('role:deputy_director')->group(function () {

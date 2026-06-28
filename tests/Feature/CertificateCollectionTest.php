@@ -179,16 +179,15 @@ class CertificateCollectionTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        // Check it was removed from pending and added to active/published testimonials
-        $this->assertCount(0, SystemSetting::get('short_courses_pending_testimonials', []));
-        
+        // Check it was added to active/published testimonials with approved status
         $active = SystemSetting::get('short_courses_testimonials', []);
         $this->assertCount(1, $active);
+        $this->assertEquals('approved', $active[0]['status']);
         $this->assertEquals('This course is exceptionally life changing!', $active[0]['text']);
 
         // 4. Admin edits active testimony
         $response = $this->post(route('admin.testimonials.update-active'), [
-            'index' => 0,
+            'id' => $testimonyId,
             'name' => 'John D.',
             'course' => 'Braille UEB',
             'text' => 'Loved it!',
@@ -202,8 +201,22 @@ class CertificateCollectionTest extends TestCase
         $this->assertEquals('Loved it!', $active[0]['text']);
 
         // 5. Admin deletes active testimony
-        $response = $this->delete(route('admin.testimonials.destroy', 0));
+        $response = $this->delete(route('admin.testimonials.destroy', $testimonyId));
         $response->assertRedirect();
         $this->assertCount(0, SystemSetting::get('short_courses_testimonials', []));
+
+        // 6. Admin manually creates a new testimonial
+        $response = $this->post(route('admin.testimonials.store'), [
+            'name' => 'Jane Doe',
+            'course' => 'Swahili Beginners',
+            'text' => 'Brilliant swahili introduction!'
+        ]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $active = SystemSetting::get('short_courses_testimonials', []);
+        $this->assertCount(1, $active);
+        $this->assertEquals('Jane Doe', $active[0]['name']);
+        $this->assertEquals('Brilliant swahili introduction!', $active[0]['text']);
     }
 }
