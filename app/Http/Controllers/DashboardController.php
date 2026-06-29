@@ -792,10 +792,12 @@ class DashboardController extends Controller
 
             foreach ($overdueTasks as $task) {
                 // Prevent duplicates
-                $exists = $user->notifications()
-                    ->where('data->task_id', $task->id)
-                    ->where('data->alert_type', 'overdue')
-                    ->exists();
+                $exists = $user->notifications->contains(function ($notification) use ($task) {
+                    $data = $notification->data;
+                    return is_array($data)
+                        && isset($data['task_id']) && $data['task_id'] == $task->id
+                        && isset($data['alert_type']) && $data['alert_type'] === 'overdue';
+                });
 
                 if (!$exists) {
                     $user->notify(new \App\Notifications\SystemNotification(
@@ -816,10 +818,12 @@ class DashboardController extends Controller
                 ->get();
 
             foreach ($approachingTasks as $task) {
-                $exists = $user->notifications()
-                    ->where('data->task_id', $task->id)
-                    ->where('data->alert_type', 'approaching')
-                    ->exists();
+                $exists = $user->notifications->contains(function ($notification) use ($task) {
+                    $data = $notification->data;
+                    return is_array($data)
+                        && isset($data['task_id']) && $data['task_id'] == $task->id
+                        && isset($data['alert_type']) && $data['alert_type'] === 'approaching';
+                });
 
                 if (!$exists) {
                     $user->notify(new \App\Notifications\SystemNotification(
@@ -852,10 +856,12 @@ class DashboardController extends Controller
                     if (!$submitted) {
                         $due = \Carbon\Carbon::parse($asg->due_date);
                         if ($due->isPast()) {
-                            $exists = $user->notifications()
-                                ->where('data->course_assignment_id', $asg->id)
-                                ->where('data->alert_type', 'overdue')
-                                ->exists();
+                            $exists = $user->notifications->contains(function ($notification) use ($asg) {
+                                $data = $notification->data;
+                                return is_array($data)
+                                    && isset($data['course_assignment_id']) && $data['course_assignment_id'] == $asg->id
+                                    && isset($data['alert_type']) && $data['alert_type'] === 'overdue';
+                            });
 
                             if (!$exists) {
                                 $user->notify(new \App\Notifications\SystemNotification(
@@ -867,10 +873,12 @@ class DashboardController extends Controller
                                 ));
                             }
                         } elseif ($due->between($now, $fortyEightHoursLater)) {
-                            $exists = $user->notifications()
-                                ->where('data->course_assignment_id', $asg->id)
-                                ->where('data->alert_type', 'approaching')
-                                ->exists();
+                            $exists = $user->notifications->contains(function ($notification) use ($asg) {
+                                $data = $notification->data;
+                                return is_array($data)
+                                    && isset($data['course_assignment_id']) && $data['course_assignment_id'] == $asg->id
+                                    && isset($data['alert_type']) && $data['alert_type'] === 'approaching';
+                            });
 
                             if (!$exists) {
                                 $user->notify(new \App\Notifications\SystemNotification(
@@ -895,10 +903,12 @@ class DashboardController extends Controller
                 foreach ($assignments as $asg) {
                     $due = \Carbon\Carbon::parse($asg->due_date);
                     if ($due->between($now, $fortyEightHoursLater)) {
-                        $exists = $user->notifications()
-                            ->where('data->course_assignment_id', $asg->id)
-                            ->where('data->alert_type', 'instructor_approaching')
-                            ->exists();
+                        $exists = $user->notifications->contains(function ($notification) use ($asg) {
+                            $data = $notification->data;
+                            return is_array($data)
+                                && isset($data['course_assignment_id']) && $data['course_assignment_id'] == $asg->id
+                                && isset($data['alert_type']) && $data['alert_type'] === 'instructor_approaching';
+                        });
 
                         if (!$exists) {
                             $user->notify(new \App\Notifications\SystemNotification(

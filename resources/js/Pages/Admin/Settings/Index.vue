@@ -569,6 +569,9 @@
                                     <button @click="approveTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
                                         Approve
                                     </button>
+                                    <button @click="rejectTestimonialDirect(pt.id)" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Reject
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -429,16 +429,15 @@ class SettingsController extends Controller
                     throw new \Exception('Pending testimonial not found.');
                 }
 
-                $all[$foundIndex]['status'] = 'rejected';
-                $all[$foundIndex]['moderated_by'] = \Auth::user()->name;
-                $all[$foundIndex]['moderated_at'] = now()->toDateTimeString();
+                $pt = $all[$foundIndex];
+                array_splice($all, $foundIndex, 1);
 
                 SystemSetting::set('short_courses_testimonials', $all);
 
                 // Audit Trail
                 ActivityLog::log(
                     'reject_testimonial',
-                    'Administrator ' . \Auth::user()->name . ' rejected testimonial from student ' . $all[$foundIndex]['name'] . ' for course ' . $all[$foundIndex]['course']
+                    'Administrator ' . \Auth::user()->name . ' rejected and deleted testimonial from student ' . ($pt['name'] ?? 'Unknown') . ' for course ' . ($pt['course'] ?? 'Unknown')
                 );
             });
         } catch (\Exception $e) {

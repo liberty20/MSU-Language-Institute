@@ -41,18 +41,34 @@ class SystemNotification extends Notification
      */
     public function via($notifiable)
     {
-        $exists = $notifiable->unreadNotifications()
-            ->where('data->type', $this->type)
-            ->where('data->title', $this->title)
-            ->where('data->message', $this->message)
-            ->where('data->action_url', $this->actionUrl)
-            ->exists();
+        $exists = $notifiable->unreadNotifications->contains(function ($notification) {
+            $data = $notification->data;
+            return is_array($data)
+                && ($data['type'] ?? null) === $this->type
+                && ($data['title'] ?? null) === $this->title
+                && ($data['message'] ?? null) === $this->message
+                && ($data['action_url'] ?? null) === $this->actionUrl;
+        });
 
         if ($exists) {
             return [];
         }
 
         return ['database'];
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     *
+     * @param  mixed  $notifiable
+     * @return \Illuminate\Notifications\Messages\MailMessage
+     */
+    public function toMail($notifiable)
+    {
+        return (new MailMessage)
+                    ->line('The introduction to the notification.')
+                    ->action('Notification Action', url('/'))
+                    ->line('Thank you for using our application!');
     }
 
     /**
@@ -81,11 +97,13 @@ class SystemNotification extends Notification
             return;
         }
 
-        $exists = $user->unreadNotifications()
-            ->where('data->type', $type)
-            ->where('data->title', $title)
-            ->where('data->message', $message)
-            ->exists();
+        $exists = $user->unreadNotifications->contains(function ($notification) use ($type, $title, $message) {
+            $data = $notification->data;
+            return is_array($data)
+                && ($data['type'] ?? null) === $type
+                && ($data['title'] ?? null) === $title
+                && ($data['message'] ?? null) === $message;
+        });
 
         if (!$exists) {
             $user->notify(new self($type, $title, $message, $actionUrl, $extraData, $triggerSource));

@@ -81,7 +81,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Intake</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Total Intake</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.total_requests }}</span>
                         </div>
                         <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
@@ -101,7 +101,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Queue</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Active Queue</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.active_assignments }}</span>
                         </div>
                         <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -121,7 +121,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Completed</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Completed</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.completed_services }}</span>
                         </div>
                         <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -141,7 +141,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Turnaround</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Turnaround</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.avg_turnaround }}d</span>
                         </div>
                         <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
@@ -161,7 +161,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Satisfaction</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Satisfaction</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.client_satisfaction }}%</span>
                         </div>
                         <div class="p-2.5 bg-teal-50 text-teal-600 rounded-xl">
@@ -181,7 +181,7 @@
                     <div class="absolute top-0 left-0 w-full h-[3px] bg-sky-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Quality KPI</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Quality KPI</span>
                             <span class="block text-2xl font-black text-slate-800 mt-1">{{ animatedTotals.kpi_performance }}%</span>
                         </div>
                         <div class="p-2.5 bg-sky-50 text-sky-650 rounded-xl">
@@ -202,7 +202,7 @@
                     <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Language Services Revenue</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Language Services Revenue</span>
                             <div class="flex flex-col gap-0.5 mt-1">
                                 <span v-for="(amount, curr) in animatedRevenue" :key="curr" class="block text-sm font-black font-mono leading-none"
                                       :class="{
@@ -236,7 +236,7 @@
                     <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
-                            <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Short Courses Revenue</span>
+                            <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Short Courses Revenue</span>
                             <div class="flex flex-col gap-0.5 mt-1">
                                 <span v-for="(amount, curr) in animatedShortCoursesRevenue" :key="curr" class="block text-sm font-black font-mono leading-none"
                                       :class="{
@@ -556,7 +556,7 @@
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500"></div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Enrolled</span>
+                                <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Total Enrolled</span>
                                 <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.total }}</span>
                             </div>
                             <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
@@ -574,7 +574,7 @@
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500"></div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Students</span>
+                                <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Active Students</span>
                                 <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.active }}</span>
                             </div>
                             <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -592,7 +592,7 @@
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-amber-500"></div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending</span>
+                                <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Pending</span>
                                 <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.pending }}</span>
                             </div>
                             <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
@@ -610,7 +610,7 @@
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-[#d4af37]"></div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Completed</span>
+                                <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Completed</span>
                                 <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.completed }}</span>
                             </div>
                             <div class="p-2.5 bg-yellow-50 text-[#d4af37] rounded-xl">
@@ -628,7 +628,7 @@
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-red-500"></div>
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Dropped</span>
+                                <span class="block text-[10px] font-black text-slate-700 uppercase tracking-widest">Dropped</span>
                                 <span class="block text-2xl font-black text-slate-800 mt-1">{{ props.studentEnrollmentStats.dropped }}</span>
                             </div>
                             <div class="p-2.5 bg-red-50 text-red-650 rounded-xl">
