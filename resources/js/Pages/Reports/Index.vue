@@ -552,7 +552,8 @@
                 <!-- Short Course Enrollment KPI Deck -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
                     <!-- Card 1: Total Enrolled -->
-                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div @click="Inertia.visit(route('reports.short-courses-enrollments', { status: 'all' }))" 
+                         class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:scale-[1.02]">
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-blue-500"></div>
                         <div class="flex justify-between items-start">
                             <div>
@@ -570,7 +571,8 @@
                     </div>
 
                     <!-- Card 2: Active Enrolled -->
-                    <div class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+                    <div @click="Inertia.visit(route('reports.short-courses-enrollments', { status: 'active' }))" 
+                         class="bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:scale-[1.02]">
                         <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500"></div>
                         <div class="flex justify-between items-start">
                             <div>

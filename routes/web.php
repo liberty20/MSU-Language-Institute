@@ -245,6 +245,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reports/language-services-revenue/export', [ReportController::class, 'exportLanguageServicesRevenue'])->name('reports.language-services-revenue.export');
     Route::get('reports/short-courses-revenue', [ReportController::class, 'shortCoursesRevenue'])->name('reports.short-courses-revenue');
     Route::get('reports/short-courses-revenue/export', [ReportController::class, 'exportShortCoursesRevenue'])->name('reports.short-courses-revenue.export');
+    Route::get('reports/short-courses-enrollments', [ReportController::class, 'shortCoursesEnrollments'])->name('reports.short-courses-enrollments');
+    Route::get('reports/short-courses-enrollments/export', [ReportController::class, 'exportShortCoursesEnrollments'])->name('reports.short-courses-enrollments.export');
 
     // Payments routes for clients
     Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store']);

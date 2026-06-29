@@ -1886,4 +1886,201 @@ class ReportController extends Controller
             'filters' => $filters,
         ];
     }
+
+    public function shortCoursesEnrollments(Request $request)
+    {
+        $this->checkReportAccess();
+
+        // 1. Build Query
+        $query = CourseEnrollment::whereHas('user', function($q) {
+            $q->where('primary_category', 'Student');
+        })->with(['user', 'intake.course.department', 'intake.instructor']);
+
+        // 2. Build Base Query for Stats (ignores status filter, but includes course/instructor/search filters)
+        $statsQuery = CourseEnrollment::whereHas('user', function($q) {
+            $q->where('primary_category', 'Student');
+        });
+
+        // 3. Apply Filters
+        $filters = [
+            'course_id' => $request->input('course_id', ''),
+            'instructor_id' => $request->input('instructor_id', ''),
+            'search' => $request->input('search', ''),
+            'status' => $request->input('status', 'all'),
+            'sort_by' => $request->input('sort_by', 'created_at'),
+            'sort_desc' => $request->input('sort_desc', 'true'),
+        ];
+
+        // Apply filters to both queries
+        foreach ([$query, $statsQuery] as $q) {
+            if (!empty($filters['course_id'])) {
+                $q->whereHas('intake.course', function($sub) use ($filters) {
+                    $sub->where('id', $filters['course_id']);
+                });
+            }
+
+            if (!empty($filters['instructor_id'])) {
+                $q->whereHas('intake', function($sub) use ($filters) {
+                    $sub->where('instructor_id', $filters['instructor_id']);
+                });
+            }
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $q->whereHas('user', function($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        // Apply status filter only to list query
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('enrollment_status', $filters['status']);
+        }
+
+        // 4. Calculate Stats
+        $stats = [
+            'total' => (clone $statsQuery)->count(),
+            'active' => (clone $statsQuery)->where('enrollment_status', 'active')->count(),
+            'pending' => (clone $statsQuery)->where('enrollment_status', 'pending')->count(),
+            'completed' => (clone $statsQuery)->where('enrollment_status', 'completed')->count(),
+            'dropped' => (clone $statsQuery)->where('enrollment_status', 'dropped')->count(),
+        ];
+
+        // 5. Apply Sorting to list query
+        $sortField = $filters['sort_by'];
+        $sortDirection = $filters['sort_desc'] === 'true' ? 'desc' : 'asc';
+
+        if ($sortField === 'student') {
+            $query->join('users', 'course_enrollments.user_id', '=', 'users.id')
+                ->select('course_enrollments.*')
+                ->orderBy('users.name', $sortDirection);
+        } elseif ($sortField === 'course') {
+            $query->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
+                ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
+                ->select('course_enrollments.*')
+                ->orderBy('courses.title', $sortDirection);
+        } elseif (in_array($sortField, ['enrollment_status', 'created_at'])) {
+            $query->orderBy('course_enrollments.' . $sortField, $sortDirection);
+        } else {
+            $query->orderBy('course_enrollments.created_at', 'desc');
+        }
+
+        // Paginate
+        $enrollments = $query->paginate(10)->withQueryString();
+
+        // 6. Dropdown options
+        $courses = Course::select('id', 'title', 'code')->orderBy('title')->get();
+        $instructors = User::whereHas('roles', function($q) {
+            $q->where('name', 'language_expert');
+        })->orWhereHas('instructedIntakes')
+          ->select('id', 'name')
+          ->orderBy('name')
+          ->get();
+
+        return Inertia::render('Reports/ShortCoursesEnrollments', [
+            'enrollments' => $enrollments,
+            'kpis' => $stats,
+            'filters' => $filters,
+            'filterOptions' => [
+                'courses' => $courses,
+                'instructors' => $instructors,
+            ]
+        ]);
+    }
+
+    public function exportShortCoursesEnrollments(Request $request)
+    {
+        $this->checkReportAccess();
+
+        $format = $request->input('format', 'csv');
+
+        // 1. Build Query
+        $query = CourseEnrollment::whereHas('user', function($q) {
+            $q->where('primary_category', 'Student');
+        })->with(['user', 'intake.course.department', 'intake.instructor']);
+
+        // 2. Apply Filters
+        $filters = [
+            'course_id' => $request->input('course_id', ''),
+            'instructor_id' => $request->input('instructor_id', ''),
+            'search' => $request->input('search', ''),
+            'status' => $request->input('status', 'all'),
+        ];
+
+        if (!empty($filters['course_id'])) {
+            $query->whereHas('intake.course', function($sub) use ($filters) {
+                $sub->where('id', $filters['course_id']);
+            });
+        }
+
+        if (!empty($filters['instructor_id'])) {
+            $query->whereHas('intake', function($sub) use ($filters) {
+                $sub->where('instructor_id', $filters['instructor_id']);
+            });
+        }
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('user', function($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('enrollment_status', $filters['status']);
+        }
+
+        $enrollments = $query->orderBy('created_at', 'desc')->get();
+
+        if ($format === 'pdf') {
+            $data = [
+                'title' => 'Short Courses Student Enrollments Report',
+                'enrollments' => $enrollments,
+                'filters' => $filters,
+                'generated_by' => Auth::user()->name,
+                'generated_date' => now()->format('F d, Y h:i A'),
+            ];
+
+            $pdf = Pdf::loadView('reports.short_courses_enrollments_pdf', $data);
+            return $pdf->download('short_courses_enrollments_report_' . time() . '.pdf');
+        } else {
+            // Excel/CSV
+            $filename = 'short_courses_enrollments_' . time() . '.' . ($format === 'excel' ? 'xlsx' : 'csv');
+            $contentType = $format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv';
+            
+            $headers = [
+                'Content-Type' => $contentType,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($enrollments) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, ['MSU National Language Institute - Short Courses Student Enrollments Report']);
+                fputcsv($file, ['Generated Date:', now()->toDateTimeString()]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['Enrollment ID', 'Student Name', 'Student Email', 'Course Code', 'Course Title', 'Intake Batch', 'Instructor Name', 'Tuition Paid', 'Payment Status', 'Enrollment Status', 'Date Enrolled']);
+
+                foreach ($enrollments as $e) {
+                    fputcsv($file, [
+                        'ENR-' . $e->id,
+                        $e->user ? $e->user->name : 'N/A',
+                        $e->user ? $e->user->email : 'N/A',
+                        $e->intake && $e->intake->course ? $e->intake->course->code : 'N/A',
+                        $e->intake && $e->intake->course ? $e->intake->course->title : 'N/A',
+                        $e->intake ? $e->intake->name : 'N/A',
+                        $e->intake && $e->intake->instructor ? $e->intake->instructor->name : 'Unassigned',
+                        $e->amount_paid,
+                        ucfirst($e->payment_status),
+                        ucfirst($e->enrollment_status),
+                        $e->created_at->format('Y-m-d H:i'),
+                    ]);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+    }
 }
