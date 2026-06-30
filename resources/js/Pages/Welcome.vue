@@ -16,7 +16,7 @@
                 <div class="hidden md:flex items-center gap-8">
                     <a href="#services" @click.prevent="toggleServices" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Services</a>
                     <Link :href="route('courses.public')" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
-                    <a href="#announcements" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
+                    <a href="#announcements" @click.prevent="toggleAnnouncements" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
                     <button @click="showAbout = true" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
                     
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')" 
@@ -42,7 +42,7 @@
             <div v-show="mobileMenuOpen" class="md:hidden bg-[#0a1f44] border-t border-white/10 shadow-xl px-6 py-4 space-y-4">
                 <a href="#services" @click="mobileMenuOpen = false; toggleServices()" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Services</a>
                 <Link :href="route('courses.public')" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
-                <a href="#announcements" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
+                <a href="#announcements" @click="mobileMenuOpen = false; toggleAnnouncements()" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
                 <button @click="mobileMenuOpen = false; showAbout = true" class="block w-full text-left text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
                 <div class="border-t border-white/10 pt-4">
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')" @click="mobileMenuOpen = false"
@@ -119,44 +119,6 @@
             </div>
         </section>
 
-        <!-- Announcements Section -->
-        <section id="announcements" class="py-20 bg-white border-b border-gray-100">
-            <div class="max-w-7xl mx-auto px-6 lg:px-8">
-                <div class="text-center max-w-2xl mx-auto mb-16">
-                    <span class="inline-block py-1 px-4 rounded-full bg-brand-gold/10 text-[#f5c242] text-xs font-bold tracking-widest uppercase mb-3">
-                        Latest Notices
-                    </span>
-                    <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">News &amp; Announcements</h3>
-                    <p class="text-gray-600 text-base">Stay updated with current events, academic updates, and intake schedules at the MSU National Language Institute.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Notice 1 -->
-                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
-                        <div class="absolute top-0 left-0 w-2 h-full bg-brand-gold"></div>
-                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 28, 2026</span>
-                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-[#f5c242] transition-colors">Braille Competency Certification</h4>
-                        <p class="text-sm text-gray-600 leading-relaxed">Applications for the Winter 2026 Unified English Braille (UEB) training batches are officially open. Enrollment capacity is limited to 25 seats per intake. Standard tuition fees apply.</p>
-                    </div>
-
-                    <!-- Notice 2 -->
-                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
-                        <div class="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
-                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 25, 2026</span>
-                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-blue-600 transition-colors">Weekend Swahili Conversational Intake</h4>
-                        <p class="text-sm text-gray-600 leading-relaxed">Interactive Swahili Swac-101 conversational cohorts will begin operations on Saturday mornings at the Gweru Main Campus. Ideal for corporate stakeholders and business travelers.</p>
-                    </div>
-
-                    <!-- Notice 3 -->
-                    <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl border border-gray-150 shadow-sm relative group overflow-hidden">
-                        <div class="absolute top-0 left-0 w-2 h-full bg-green-600"></div>
-                        <span class="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">May 20, 2026</span>
-                        <h4 class="text-lg font-black text-[#0a1f44] mt-2 mb-3 group-hover:text-green-600 transition-colors">Sign Language Evening Cohorts</h4>
-                        <p class="text-sm text-gray-600 leading-relaxed">To promote national inclusivity, evening Zimbabwean Sign Language batches are now scheduled from 5:30 PM to 7:30 PM to accommodate public service and healthcare personnel.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
 
 
 
@@ -209,6 +171,136 @@
             </div>
         </section>
 
+        <!-- Announcements Section -->
+        <section id="announcements" v-show="showAnnouncements" class="py-24 bg-gray-50 transition-all duration-500 border-t border-gray-200/50">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <span class="inline-block py-1.5 px-4 rounded-full bg-[#f5c242]/10 text-[#b5891a] text-xs font-black tracking-widest uppercase mb-2 border border-[#f5c242]/15">
+                        Latest Updates
+                    </span>
+                    <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">News & Announcements</h3>
+                    <p class="text-gray-600 text-lg">Stay updated with current events, academic schedules, and institutional announcements at MSUNLI.</p>
+                </div>
+
+                <!-- Live Announcements List -->
+                <div v-if="liveNotices.length === 0" class="bg-white rounded-2xl border border-gray-150 p-16 text-center text-gray-400 italic shadow-sm">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                    </svg>
+                    No announcements are available at the moment.
+                </div>
+
+                <div v-else class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                    <div v-for="notice in liveNotices" :key="notice.id" 
+                         class="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                        
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-full bg-[#0a1f44]/5 text-[#0a1f44] font-black text-sm flex items-center justify-center border border-[#0a1f44]/15 flex-shrink-0 uppercase shadow-inner">
+                                {{ notice.creator ? notice.creator.name.charAt(0) : 'A' }}
+                            </div>
+
+                            <div class="flex-grow space-y-3 min-w-0">
+                                <div class="flex flex-wrap items-baseline gap-2">
+                                    <h4 @click="viewNoticeDetails(notice)" class="text-lg md:text-xl font-extrabold text-[#0a1f44] hover:text-blue-700 transition cursor-pointer leading-snug break-words">
+                                        {{ notice.title }}
+                                    </h4>
+                                </div>
+
+                                <div class="text-[10px] text-gray-400 font-semibold flex flex-wrap gap-x-3 gap-y-1">
+                                    <span>Posted by: <strong class="text-gray-650">{{ notice.creator ? notice.creator.name : 'Administrator' }}</strong></span>
+                                    <span>&bull;</span>
+                                    <span>Date: <strong class="text-gray-655">{{ formatDate(notice.published_at || notice.created_at) }}</strong></span>
+                                </div>
+
+                                <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line break-words font-medium line-clamp-3 group-hover:line-clamp-none transition-all duration-300">
+                                    {{ notice.content }}
+                                </p>
+
+                                <!-- Attachments -->
+                                <div v-if="notice.documents && notice.documents.length > 0" class="pt-3 border-t border-gray-100 space-y-2">
+                                    <h5 class="text-[10px] font-black text-gray-500 uppercase tracking-wider">Attachments:</h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        <a v-for="doc in notice.documents" :key="doc.id"
+                                           :href="route('announcements.attachment.download', doc.id)"
+                                           class="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-[#0a1f44] border border-gray-200 rounded-lg px-3 py-1.5 transition text-xs font-semibold">
+                                            <svg class="w-4 h-4 text-gray-450" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            <span class="truncate max-w-[180px]">{{ doc.filename }}</span>
+                                            <span class="text-[9px] text-gray-400 font-medium">({{ (doc.file_size / 1024).toFixed(0) }} KB)</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3 pt-3 justify-end border-t border-gray-50 items-center">
+                                    <button @click="viewNoticeDetails(notice)" 
+                                            class="text-xs font-bold text-[#0a1f44] hover:underline transition uppercase tracking-wide mr-auto flex items-center gap-1">
+                                        <span>Read Full Announcement</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notice Detail Modal -->
+        <Teleport to="body">
+            <div v-if="detailModalOpen" class="modal fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="detailModalOpen = false">
+                <div class="modal-dialog modal-content bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 relative text-slate-800" @click.stop>
+                    <div class="modal-header">
+                        <h4 class="modal-title">Announcement Details</h4>
+                        <button type="button" @click="detailModalOpen = false" class="btn-close text-white/80 hover:text-white transition focus:outline-none">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body p-6 space-y-6">
+                        <div class="border-b border-gray-100 pb-4 space-y-2">
+                            <h2 class="text-xl md:text-2xl font-black text-[#0a1f44] leading-tight">
+                                {{ selectedNotice?.title }}
+                            </h2>
+                            <div class="flex flex-wrap items-center gap-3 text-[10px] text-gray-550 font-semibold">
+                                <span>Posted by: <strong class="text-gray-750">{{ selectedNotice?.creator ? selectedNotice.creator.name : 'Administrator' }}</strong></span>
+                                <span>&bull;</span>
+                                <span>Date: <strong class="text-gray-750">{{ formatDate(selectedNotice?.published_at || selectedNotice?.created_at) }}</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="text-xs md:text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words font-medium">
+                            {{ selectedNotice?.content }}
+                        </div>
+
+                        <!-- Attachments -->
+                        <div v-if="selectedNotice?.documents && selectedNotice.documents.length > 0" class="pt-4 border-t border-gray-100 space-y-3">
+                            <h4 class="text-[10px] font-black text-gray-550 uppercase tracking-wider">Attachments:</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <a v-for="doc in selectedNotice.documents" :key="doc.id"
+                                   :href="route('announcements.attachment.download', doc.id)"
+                                   class="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-[#0a1f44] border border-gray-200 rounded-xl px-4 py-3 transition text-xs font-semibold shadow-sm">
+                                    <svg class="w-5 h-5 text-gray-450 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    <div class="flex-grow min-w-0">
+                                        <div class="truncate font-bold text-gray-800">{{ doc.filename }}</div>
+                                        <div class="text-[9px] text-gray-400 font-medium">{{ (doc.file_size / 1024).toFixed(0) }} KB</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer pt-4 border-t border-gray-150 flex justify-end gap-3 px-6 py-4 bg-gray-50">
+                        <button type="button" @click="detailModalOpen = false" class="px-4 py-2 rounded-xl border border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition text-xs uppercase tracking-wide">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- CTA Section -->
         <section class="py-20 relative bg-gradient-to-r from-[#0a1f44] to-[#0c2859] text-white overflow-hidden">
             <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
@@ -240,6 +332,7 @@
                         <li><Link :href="route('login')" class="text-gray-400 hover:text-white transition text-sm">Portal Login</Link></li>
                         <li><Link :href="route('courses.public')" class="text-gray-400 hover:text-[#f5c242] transition text-sm">Available Courses</Link></li>
                         <li><a href="#services" @click.prevent="toggleServices" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Our Services</a></li>
+                        <li><a href="#announcements" @click.prevent="toggleAnnouncements" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Announcements</a></li>
                         <li><button @click="showAbout = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">About Us</button></li>
                         <li><button @click="showTerms = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Terms &amp; Conditions</button></li>
                         <li><button @click="showPrivacy = true" class="text-gray-400 hover:text-white transition text-sm cursor-pointer">Privacy Policy</button></li>
@@ -373,12 +466,13 @@
 
 <script setup>
 import { Head, Link } from '@inertiajs/inertia-vue3';
-import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, reactive, watch } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const scrolled = ref(false);
 const mobileMenuOpen = ref(false);
 const showServices = ref(false);
+const showAnnouncements = ref(false);
 const showAbout = ref(false);
 const showTerms = ref(false);
 const showPrivacy = ref(false);
@@ -387,6 +481,7 @@ const props = defineProps({
     courses: Array,
     intakes: Array,
     contactInfo: Object,
+    notices: Array,
 });
 
 const zimbabweanLanguages = [
@@ -505,16 +600,62 @@ const submitEnrollment = () => {
 const toggleServices = () => {
     showServices.value = !showServices.value;
     if (showServices.value) {
+        window.history.pushState(null, null, '#services');
         nextTick(() => {
             document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
         });
+    } else {
+        window.history.pushState(null, null, ' ');
     }
 };
+
+const toggleAnnouncements = () => {
+    showAnnouncements.value = !showAnnouncements.value;
+    if (showAnnouncements.value) {
+        window.history.pushState(null, null, '#announcements');
+        nextTick(() => {
+            document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    } else {
+        window.history.pushState(null, null, ' ');
+    }
+};
+
+const detailModalOpen = ref(false);
+const selectedNotice = ref(null);
+const liveNotices = ref(props.notices || []);
+
+const viewNoticeDetails = (notice) => {
+    selectedNotice.value = notice;
+    detailModalOpen.value = true;
+};
+
+watch(detailModalOpen, (newVal) => {
+    if (newVal) {
+        document.body.classList.add('overflow-hidden');
+    } else {
+        document.body.classList.remove('overflow-hidden');
+    }
+});
+
+const pollNotices = async () => {
+    try {
+        const response = await fetch(route('announcements.live-data'));
+        if (response.ok) {
+            const data = await response.json();
+            liveNotices.value = data.notices || [];
+        }
+    } catch (error) {
+        console.error('Failed to sync live public announcements:', error);
+    }
+};
+
+let pollInterval = null;
 
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const handleScroll = () => {
@@ -523,9 +664,51 @@ const handleScroll = () => {
 
 onMounted(() => {
     window.addEventListener('scroll', handleScroll);
+    pollNotices();
+    pollInterval = setInterval(pollNotices, 5000);
+
+    if (window.location.hash === '#announcements') {
+        showAnnouncements.value = true;
+        nextTick(() => {
+            document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    } else if (window.location.hash === '#services') {
+        showServices.value = true;
+        nextTick(() => {
+            document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+    document.body.classList.remove('overflow-hidden');
 });
 </script>
+
+<style scoped>
+.modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    width: 100%;
+    max-width: 600px;
+}
+.modal-header {
+    background-color: #0a1f44;
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.modal-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+</style>

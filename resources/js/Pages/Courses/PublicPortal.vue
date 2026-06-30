@@ -2,13 +2,32 @@
     <Head title="Short Courses Public Information Portal" />
 
     <div class="min-h-screen bg-gray-50 text-gray-800 font-sans selection:bg-brand-gold selection:text-[#0a1f44]">
+        <!-- Maintenance Mode Screen Overlay -->
+        <div v-if="liveConfig.maintenance_mode && !isAdmin" 
+             class="fixed inset-0 z-[100] bg-[#0a1f44] text-white flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-350">
+            <div class="max-w-md bg-white/5 backdrop-blur-md border border-[#f5c242]/20 p-8 rounded-3xl shadow-2xl space-y-6">
+                <img src="/msu-logo-2.png" alt="MSU Logo" class="h-20 w-auto mx-auto bg-white p-2 rounded-2xl shadow-lg border border-brand-gold/30" />
+                <div class="space-y-2">
+                    <span class="px-3 py-1 bg-red-650/10 text-red-500 border border-red-500/20 rounded-full text-xs font-black uppercase tracking-wider">System Offline</span>
+                    <h2 class="text-3xl font-black tracking-tight mt-2">Under Maintenance</h2>
+                    <p class="text-sm text-gray-300 leading-relaxed font-medium">
+                        The Midlands State University National Language Institute portal is currently undergoing scheduled system updates. Please try again later.
+                    </p>
+                </div>
+                <div class="pt-6 border-t border-white/10 text-xs text-gray-450 space-y-2 font-semibold">
+                    <p>Administrative Contact: <a :href="'mailto:' + liveContactInfo.email" class="text-[#f5c242] hover:underline">{{ liveContactInfo.email }}</a></p>
+                    <p>Support Desk: {{ liveContactInfo.phone }}</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Premium Navbar Header -->
         <header class="bg-[#0a1f44] border-b border-brand-gold/25 sticky top-0 z-40 transition-all duration-300">
             <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                 <Link href="/" class="flex items-center gap-3.5 group">
                     <img src="/msu-logo-2.png" alt="MSU Logo" class="h-11 sm:h-14 w-auto object-contain bg-white p-1 rounded-lg shadow-sm group-hover:scale-105 transition-transform duration-300" />
                     <div>
-                        <h1 class="text-white font-black text-base sm:text-lg tracking-wide leading-none group-hover:text-brand-gold transition-colors">MSUNLI</h1>
+                        <h1 class="text-white font-black text-base sm:text-lg tracking-wide leading-none group-hover:text-brand-gold transition-colors">{{ liveConfig.site_name || 'MSUNLI' }}</h1>
                         <p class="text-[0.6rem] sm:text-[0.65rem] text-brand-gold uppercase tracking-wider font-bold mt-0.5">National Language Institute</p>
                     </div>
                 </Link>
@@ -24,6 +43,9 @@
                     <a href="#faq" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
                         FAQ
                     </a>
+                    <Link href="/#announcements" class="text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
+                        Announcements
+                    </Link>
                     <Link v-if="!$page.props.auth.user" :href="canLogin ? route('login') : '/login'" 
                           class="bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-5 py-2 rounded-full transition shadow-md text-xs uppercase tracking-wider">
                         Portal Login
@@ -54,6 +76,9 @@
                 <a href="#faq" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
                     FAQ
                 </a>
+                <Link href="/#announcements" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-200 hover:text-brand-gold transition">
+                    Announcements
+                </Link>
                 <div class="border-t border-brand-gold/15 pt-4">
                     <Link v-if="!$page.props.auth.user" :href="canLogin ? route('login') : '/login'" @click="mobileMenuOpen = false"
                           class="block w-full text-center bg-brand-gold hover:bg-yellow-400 text-[#0a1f44] font-bold px-5 py-2.5 rounded-full transition shadow-md text-xs uppercase tracking-wider">
@@ -236,11 +261,18 @@
                         </button>
                         <!-- Dynamic Apply Button linked directly to the open intake modal -->
                         <button 
-                            v-if="getCourseStatus(course.id) === 'Open'"
+                            v-if="getCourseStatus(course.id) === 'Open' && liveConfig.allow_registrations"
                             @click="openEnrollModal(getActiveIntake(course.id))" 
                             class="bg-[#0a1f44] hover:bg-[#0c2859] text-[#f5c242] font-black px-5 py-2.5 rounded-full text-xs transition uppercase tracking-wider shadow"
                         >
                             Apply Now
+                        </button>
+                        <button 
+                            v-else-if="getCourseStatus(course.id) === 'Open' && !liveConfig.allow_registrations"
+                            disabled
+                            class="bg-gray-150 text-gray-400 font-black px-5 py-2.5 rounded-full text-xs cursor-not-allowed uppercase tracking-wider border border-gray-200"
+                        >
+                            Apply Now (Closed)
                         </button>
                         <button 
                             v-else-if="getCourseStatus(course.id) === 'Full'"
@@ -363,7 +395,7 @@
                             Course Fees &amp; Tuition Payment
                         </h3>
                         <p class="text-gray-600 leading-relaxed text-sm">
-                            Tuition fees vary per course batch and are configured dynamically by the Executive Directorate. All payments must be processed directly into the MSU National Language Institute {{ bankingDetails.bank }} accounts listed. Once paid, remember to upload your deposit slip or proof of transfer in the application form below.
+                            Tuition fees vary per course batch and are configured dynamically by the Executive Directorate. All payments must be processed directly into the MSU National Language Institute {{ liveBankingDetails.bank }} accounts listed. Once paid, remember to upload your deposit slip or proof of transfer in the application form below.
                         </p>
                         
                         <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 text-amber-900 text-xs leading-relaxed space-y-2">
@@ -378,33 +410,33 @@
                     <!-- Banking Details Card -->
                     <div class="bg-white p-8 rounded-3xl border border-gray-150 shadow-md space-y-5">
                         <div class="border-b border-gray-100 pb-4">
-                            <h4 class="font-black text-[#0a1f44] text-base">{{ bankingDetails.bank }} Accounts Details</h4>
+                            <h4 class="font-black text-[#0a1f44] text-base">{{ liveBankingDetails.bank }} Accounts Details</h4>
                             <p class="text-xs text-gray-400">Official Institutional Deposit Channels</p>
                         </div>
                         <div class="space-y-3.5 text-xs text-gray-600">
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Account Name:</span>
-                                <span class="font-extrabold text-gray-800 text-right">{{ bankingDetails.account_name || 'Midlands State University' }}</span>
+                                <span class="font-extrabold text-gray-800 text-right">{{ liveBankingDetails.account_name || 'Midlands State University' }}</span>
                             </div>
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Bank Name:</span>
-                                <span class="font-bold text-gray-800">{{ bankingDetails.bank }}</span>
+                                <span class="font-bold text-gray-800">{{ liveBankingDetails.bank }}</span>
                             </div>
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Branch Name:</span>
-                                <span class="font-bold text-gray-800">{{ bankingDetails.branch }}</span>
+                                <span class="font-bold text-gray-800">{{ liveBankingDetails.branch }}</span>
                             </div>
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Local Currency Account (ZiG):</span>
-                                <span class="font-black text-[#0a1f44]">{{ bankingDetails.account_number }}</span>
+                                <span class="font-black text-[#0a1f44]">{{ liveBankingDetails.account_number }}</span>
                             </div>
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Nostro USD Account:</span>
-                                <span class="font-black text-blue-700">{{ bankingDetails.nostro_number }}</span>
+                                <span class="font-black text-blue-700">{{ liveBankingDetails.nostro_number }}</span>
                             </div>
                             <div class="flex justify-between py-1.5 border-b border-gray-50">
                                 <span class="font-bold text-gray-400">Accepted Currencies:</span>
-                                <span class="font-bold text-gray-800">{{ bankingDetails.currency_accepted }}</span>
+                                <span class="font-bold text-gray-800">{{ liveBankingDetails.currency_accepted }}</span>
                             </div>
                             <div class="flex justify-between py-1.5">
                                 <span class="font-bold text-gray-400">Payment Modes:</span>
@@ -430,7 +462,7 @@
                 </div>
 
                 <div class="space-y-4">
-                    <div v-for="(faq, i) in faqs" :key="i" class="border border-gray-150 rounded-2xl overflow-hidden bg-gray-50 shadow-sm transition-all duration-300">
+                    <div v-for="(faq, i) in liveFaqs" :key="i" class="border border-gray-150 rounded-2xl overflow-hidden bg-gray-50 shadow-sm transition-all duration-300">
                         <button 
                             @click="toggleFaq(i)"
                             class="w-full px-6 py-4 text-left font-bold text-[#0a1f44] flex justify-between items-center text-sm focus:outline-none"
@@ -465,7 +497,7 @@
 
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div v-for="(t, idx) in testimonials" :key="idx" class="bg-gray-50 p-8 rounded-3xl border border-gray-150 shadow-sm hover:shadow-md transition duration-300 relative flex flex-col justify-between">
+                    <div v-for="(t, idx) in liveTestimonials" :key="idx" class="bg-gray-50 p-8 rounded-3xl border border-gray-150 shadow-sm hover:shadow-md transition duration-300 relative flex flex-col justify-between">
                         <!-- Admin Delete Button -->
                         <button 
                             v-if="$page.props.auth.user && ($page.props.auth.roles.includes('ict_administrator') || $page.props.auth.roles.includes('executive_director'))" 
@@ -523,17 +555,17 @@
                     <ul class="space-y-3 text-xs text-gray-400">
                         <li class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <span>{{ contactInfo.location || 'MSU Graduate School of Business Leadership Campus, Language Institute Gweru, Zimbabwe' }}</span>
+                            <span>{{ liveContactInfo.location || 'MSU Graduate School of Business Leadership Campus, Language Institute Gweru, Zimbabwe' }}</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <svg class="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            <a :href="'mailto:' + contactInfo.email" class="hover:text-white transition text-xs">{{ contactInfo.email }}</a>
+                            <a :href="'mailto:' + liveContactInfo.email" class="hover:text-white transition text-xs">{{ liveContactInfo.email }}</a>
                         </li>
                         <li class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                             <span>
-                                Telephone: <a :href="'tel:' + contactInfo.phone" class="hover:text-white transition text-xs font-semibold">{{ contactInfo.phone }}</a><br/>
-                                Mobile: <a :href="'tel:' + contactInfo.mobile" class="hover:text-white transition text-xs font-semibold">{{ contactInfo.mobile }}</a>
+                                Telephone: <a :href="'tel:' + liveContactInfo.phone" class="hover:text-white transition text-xs font-semibold">{{ liveContactInfo.phone }}</a><br/>
+                                Mobile: <a :href="'tel:' + liveContactInfo.mobile" class="hover:text-white transition text-xs font-semibold">{{ liveContactInfo.mobile }}</a>
                             </span>
                         </li>
                     </ul>
@@ -721,20 +753,100 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3';
+import { Head, Link, usePage } from '@inertiajs/inertia-vue3';
 import { Inertia } from '@inertiajs/inertia';
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
+    config: Object,
     courses: Array,
     intakes: Array,
     faqs: Array,
     testimonials: Array,
     pendingTestimonials: Array,
-    announcements: Array,
     contactInfo: Object,
     bankingDetails: Object,
     canLogin: Boolean,
+});
+
+// Reactive live synced configurations
+const liveConfig = ref(props.config || {
+    site_name: 'MSU Language Institute Portal',
+    admin_email: 'language.institute@msu.ac.zw',
+    support_phone: '+263 54 2260331',
+    max_upload_size: 10,
+    maintenance_mode: false,
+    allow_registrations: true,
+});
+const liveFaqs = ref(props.faqs || []);
+const liveTestimonials = ref(props.testimonials || []);
+
+const liveContactInfo = ref(props.contactInfo || {
+    email: 'language.institute@msu.ac.zw',
+    phone: '+263 54 2260331',
+    mobile: '+263 772 123 456',
+    location: 'MSU Gweru Main Campus, Gweru, Zimbabwe',
+    hours: 'Monday - Friday: 8:00 AM - 4:30 PM'
+});
+const liveBankingDetails = ref(props.bankingDetails || {
+    account_name: 'Midlands State University National Language Institute',
+    bank: 'CBZ Bank',
+    branch: 'Gweru Branch',
+    account_number: '01223456789012',
+    nostro_number: '01223456789099',
+    type: 'Current Account',
+    currency_accepted: 'USD, ZiG'
+});
+const liveCourses = ref(props.courses || []);
+const liveIntakes = ref(props.intakes || []);
+
+// Real-Time Synchronization Polling
+const pollPortalData = async () => {
+    try {
+        const response = await fetch(route('courses.live-config'));
+        if (response.ok) {
+            const data = await response.json();
+            liveConfig.value = data.config || liveConfig.value;
+            liveFaqs.value = data.faqs || [];
+            liveTestimonials.value = data.testimonials || [];
+
+            liveContactInfo.value = data.contactInfo || liveContactInfo.value;
+            liveBankingDetails.value = data.bankingDetails || liveBankingDetails.value;
+            liveCourses.value = data.courses || [];
+            liveIntakes.value = data.intakes || [];
+        }
+    } catch (error) {
+        console.error('Failed to sync live portal data:', error);
+    }
+};
+
+let pollInterval = null;
+onMounted(async () => {
+    await pollPortalData();
+    // Scroll to hash if present on load
+    if (window.location.hash) {
+        setTimeout(() => {
+            const el = document.querySelector(window.location.hash);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 400);
+    }
+    pollInterval = setInterval(pollPortalData, 5000); // Sync every 5 seconds
+});
+
+onUnmounted(() => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+});
+
+// Admin check computed
+const isAdmin = computed(() => {
+    const user = usePage().props.value.auth.user;
+    if (!user) return false;
+    const roles = usePage().props.value.auth.roles || [];
+    return roles.some(r => ['ict_administrator', 'executive_director', 'deputy_director'].includes(r));
 });
 
 // Search and Filtering State
@@ -759,7 +871,7 @@ const scrollToCatalog = () => {
 
 // Dynamically retrieve unique categories from database courses
 const uniqueCategories = computed(() => {
-    const categories = props.courses.map(c => c.category).filter(Boolean);
+    const categories = liveCourses.value.map(c => c.category).filter(Boolean);
     return [...new Set(categories)].sort();
 });
 
@@ -769,13 +881,13 @@ const quickFilterCategories = computed(() => {
 
 // Get the active/open intake for a course
 const getActiveIntake = (courseId) => {
-    const courseIntakes = props.intakes.filter(i => i.course_id === courseId);
+    const courseIntakes = liveIntakes.value.filter(i => i.course_id === courseId);
     return courseIntakes.find(i => i.status === 'open') || courseIntakes[0] || null;
 };
 
 // Get the dynamic status of a course: Open, Closed, Full, Upcoming
 const getCourseStatus = (courseId) => {
-    const courseIntakes = props.intakes.filter(i => i.course_id === courseId);
+    const courseIntakes = liveIntakes.value.filter(i => i.course_id === courseId);
     if (courseIntakes.length === 0) return 'Closed';
     
     const openIntake = courseIntakes.find(i => i.status === 'open');
@@ -813,7 +925,7 @@ const enrollFromModal = () => {
 
 // Filtered Courses Computed
 const filteredCourses = computed(() => {
-    return props.courses.filter(course => {
+    return liveCourses.value.filter(course => {
         const matchesSearch = !searchQuery.value.trim() || [
             course.title,
             course.code,

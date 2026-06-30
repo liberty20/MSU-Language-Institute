@@ -38,7 +38,7 @@ class SettingsController extends Controller
 
         $faqs = SystemSetting::get('short_courses_faqs', []);
         $testimonials = SystemSetting::get('short_courses_testimonials', []);
-        $announcements = SystemSetting::get('short_courses_announcements', []);
+        $announcements = []; // Obsolete: managed via Notices now.
         $contactInfo = SystemSetting::get('short_courses_contact_info', [
             'email' => '', 'phone' => '', 'mobile' => '', 'location' => '', 'hours' => ''
         ]);
@@ -132,7 +132,7 @@ class SettingsController extends Controller
             'faqs' => $faqs,
             'testimonials' => $activeTestimonials,
             'pendingTestimonials' => $pendingTestimonials,
-            'announcements' => $announcements,
+            'announcements' => [],
             'contactInfo' => $contactInfo,
             'bankingDetails' => $bankingDetails,
             'emailLogs' => $emailLogs,
@@ -150,10 +150,6 @@ class SettingsController extends Controller
             'faqs' => 'required|array',
             'faqs.*.question' => 'required|string|max:255',
             'faqs.*.answer' => 'required|string',
-            'announcements' => 'required|array',
-            'announcements.*.date' => 'required|date',
-            'announcements.*.title' => 'required|string|max:255',
-            'announcements.*.text' => 'required|string',
             'contactInfo' => 'required|array',
             'contactInfo.email' => 'required|email|max:255',
             'contactInfo.phone' => 'required|string|max:100',
@@ -171,51 +167,35 @@ class SettingsController extends Controller
         ]);
 
         $oldFaqs = SystemSetting::get('short_courses_faqs', []);
-        $oldAnnouncements = SystemSetting::get('short_courses_announcements', []);
         $oldContactInfo = SystemSetting::get('short_courses_contact_info', []);
         $oldBankingDetails = SystemSetting::get('short_courses_banking_details', []);
 
         if (
             $oldFaqs === $validated['faqs'] &&
-            $oldAnnouncements === $validated['announcements'] &&
             $oldContactInfo === $validated['contactInfo'] &&
             $oldBankingDetails === $validated['bankingDetails']
         ) {
             return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
         }
 
-        SystemSetting::set('short_courses_faqs', $validated['faqs']);
-        SystemSetting::set('short_courses_announcements', $validated['announcements']);
-        SystemSetting::set('short_courses_contact_info', $validated['contactInfo']);
-        SystemSetting::set('short_courses_banking_details', $validated['bankingDetails']);
+        try {
+            DB::transaction(function() use ($validated, $oldFaqs, $oldContactInfo, $oldBankingDetails) {
+                SystemSetting::set('short_courses_faqs', $validated['faqs']);
+                SystemSetting::set('short_courses_contact_info', $validated['contactInfo']);
+                SystemSetting::set('short_courses_banking_details', $validated['bankingDetails']);
 
-        // Log settings changes in the audit trail
-        ActivityLog::log('update_short_courses_settings', 'Short Courses Public Information Portal settings updated.', null, [
-            'previous' => [
-                'faqs' => $oldFaqs,
-                'announcements' => $oldAnnouncements,
-                'contactInfo' => $oldContactInfo,
-                'bankingDetails' => $oldBankingDetails,
-            ],
-            'new' => $validated,
-        ]);
-
-        // Check if a new announcement was added
-        if (count($validated['announcements']) > count($oldAnnouncements)) {
-            $latestAnn = last($validated['announcements']);
-            $title = isset($latestAnn['title']) ? $latestAnn['title'] : 'New Announcement';
-            $text = isset($latestAnn['text']) ? $latestAnn['text'] : 'Please check the portal for details.';
-            
-            // Notify all students
-            $students = \App\Models\User::role('student')->get();
-            foreach ($students as $student) {
-                $student->notify(new \App\Notifications\SystemNotification('Courses', 'New Course Announcement: ' . $title, $text, route('student.courses')));
-            }
-            // Notify all instructors
-            $instructors = \App\Models\User::role('language_expert')->get();
-            foreach ($instructors as $instructor) {
-                $instructor->notify(new \App\Notifications\SystemNotification('Courses', 'New Course Announcement: ' . $title, $text, route('instructor.enrollments')));
-            }
+                // Log settings changes in the audit trail
+                ActivityLog::log('update_short_courses_settings', 'Short Courses Public Information Portal settings updated.', null, [
+                    'previous' => [
+                        'faqs' => $oldFaqs,
+                        'contactInfo' => $oldContactInfo,
+                        'bankingDetails' => $oldBankingDetails,
+                    ],
+                    'new' => $validated,
+                ]);
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to save settings: ' . $e->getMessage());
         }
 
         return redirect()->back()->with('success', 'Short Courses Public Information Portal settings updated successfully.');
@@ -597,12 +577,18 @@ class SettingsController extends Controller
             return redirect()->back()->with('error', 'No changes detected. Configuration remains unchanged.');
         }
 
-        SystemSetting::set('deputy_system_config', $validated);
+        try {
+            DB::transaction(function() use ($validated, $oldConfig) {
+                SystemSetting::set('deputy_system_config', $validated);
 
-        ActivityLog::log('update_settings', 'System configuration settings updated.', null, [
-            'previous' => $oldConfig,
-            'new'      => $validated,
-        ]);
+                ActivityLog::log('update_settings', 'System configuration settings updated.', null, [
+                    'previous' => $oldConfig,
+                    'new'      => $validated,
+                ]);
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to update system configuration: ' . $e->getMessage());
+        }
 
         return redirect()->back()->with('success', 'System configuration settings updated successfully.');
     }

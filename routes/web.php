@@ -43,11 +43,18 @@ Route::get('/', function () {
         'hours' => 'Monday - Friday: 8:00 AM - 4:30 PM'
     ]);
 
+    $notices = \App\Models\Notice::whereNotNull('published_at')
+        ->where('target_type', 'publish_to_portal')
+        ->with(['creator', 'course', 'documents'])
+        ->orderBy('published_at', 'desc')
+        ->get();
+
     return Inertia::render('Welcome', [
         'courses' => $courses,
         'intakes' => $intakes,
         'contactInfo' => $contactInfo,
         'canLogin' => Route::has('login'),
+        'notices' => $notices,
     ]);
 });
 
@@ -109,7 +116,12 @@ Route::get('/db-test', function () {
 
 Route::get('courses-catalog', [CourseController::class, 'publicCatalog'])->name('courses.catalog');
 Route::get('short-courses', [CourseController::class, 'publicPortal'])->name('courses.public');
+Route::get('short-courses/live-config', [CourseController::class, 'liveConfig'])->name('courses.live-config');
 Route::post('courses/apply', [CourseController::class, 'submitApplication'])->name('courses.apply');
+
+// Public Announcement Routes
+Route::get('announcements/live-data', [NoticeController::class, 'liveData'])->name('announcements.live-data');
+Route::get('announcements/attachments/{id}', [NoticeController::class, 'downloadAttachment'])->name('announcements.attachment.download');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -150,6 +162,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Notices Management Routes (Admin + Students)
     Route::get('notices', [NoticeController::class, 'index'])->name('notices.index');
+    Route::get('notices/live-data', [NoticeController::class, 'liveDataAuthenticated'])->name('notices.live-data');
     Route::post('notices', [NoticeController::class, 'store'])->name('notices.store');
     Route::post('notices/{notice}', [NoticeController::class, 'update'])->name('notices.update');
     Route::post('notices/{notice}/publish', [NoticeController::class, 'publish'])->name('notices.publish');

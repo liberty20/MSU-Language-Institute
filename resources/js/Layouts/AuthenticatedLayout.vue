@@ -438,7 +438,7 @@ let pollInterval = null;
 
 onMounted(() => {
     fetchNotifications();
-    pollInterval = setInterval(fetchNotifications, 30000); // 30s polling
+    pollInterval = setInterval(fetchNotifications, 10000); // 10s polling
 });
 
 onUnmounted(() => {

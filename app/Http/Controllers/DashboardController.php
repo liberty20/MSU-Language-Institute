@@ -462,6 +462,7 @@ class DashboardController extends Controller
             'document_id' => \App\Models\UploadedDocument::class,
             'report_id' => \App\Models\Report::class,
             'course_application_id' => \App\Models\CourseApplication::class,
+            'notice_id' => \App\Models\Notice::class,
         ];
 
         foreach ($directIds as $key => $modelClass) {
@@ -733,6 +734,36 @@ class DashboardController extends Controller
                 }
                 return $serviceRequest->assignments()->where('assigned_to', $user->id)->exists();
             }
+            return false;
+        }
+
+        // 11. Notice
+        if ($class === \App\Models\Notice::class) {
+            if ($user->primary_category !== 'Student') {
+                return true;
+            }
+
+            if (is_null($record->published_at)) {
+                return false;
+            }
+
+            if ($record->target_type === 'all_students') {
+                return \App\Models\CourseEnrollment::where('user_id', $user->id)
+                    ->where('enrollment_status', 'active')
+                    ->where('created_at', '<=', $record->published_at)
+                    ->exists();
+            }
+
+            if ($record->target_type === 'specific_course') {
+                return \App\Models\CourseEnrollment::where('user_id', $user->id)
+                    ->where('enrollment_status', 'active')
+                    ->where('created_at', '<=', $record->published_at)
+                    ->whereHas('intake', function($q) use ($record) {
+                        $q->where('course_id', $record->course_id);
+                    })
+                    ->exists();
+            }
+
             return false;
         }
 

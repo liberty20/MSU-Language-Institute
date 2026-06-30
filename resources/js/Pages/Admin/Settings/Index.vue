@@ -472,37 +472,10 @@
                         </div>
                     </div>
 
-                    <!-- C. Announcements -->
+                    <!-- C. FAQs -->
                     <div class="space-y-4">
                         <div class="flex justify-between items-center border-b border-gray-50 pb-2">
-                            <h4 class="font-bold text-[#0a1f44] text-sm">3. Announcements &amp; Notices</h4>
-                            <button type="button" @click="addAnnouncement" class="text-xs font-black text-blue-600 hover:underline">+ Add Notice</button>
-                        </div>
-                        <div class="space-y-4">
-                            <div v-for="(ann, idx) in portalForm.announcements" :key="idx" class="p-4 bg-gray-50 rounded-2xl border border-gray-150 relative space-y-3">
-                                <button type="button" @click="removeAnnouncement(idx)" class="absolute top-2 right-4 text-xs font-black text-red-650 hover:underline">Remove</button>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <div>
-                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Date *</label>
-                                        <input v-model="ann.date" type="date" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" />
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Notice Title *</label>
-                                        <input v-model="ann.title" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="e.g. Winter 2026 UEB Admission" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-[9px] font-black text-gray-700 uppercase mb-0.5">Notice Description Text *</label>
-                                    <textarea v-model="ann.text" rows="2" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="Details of announcement..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- D. FAQs -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center border-b border-gray-50 pb-2">
-                            <h4 class="font-bold text-[#0a1f44] text-sm">4. Frequently Asked Questions</h4>
+                            <h4 class="font-bold text-[#0a1f44] text-sm">3. Frequently Asked Questions</h4>
                             <button type="button" @click="addFaq" class="text-xs font-black text-blue-600 hover:underline">+ Add FAQ</button>
                         </div>
                         <div class="space-y-4">
@@ -1000,7 +973,7 @@ const deleteRole = (id) => {
 // Portal settings Form CRUD
 const portalForm = reactive({
     faqs: props.faqs ? JSON.parse(JSON.stringify(props.faqs)) : [],
-    announcements: props.announcements ? JSON.parse(JSON.stringify(props.announcements)) : [],
+    // announcements is deprecated here
     contactInfo: props.contactInfo ? JSON.parse(JSON.stringify(props.contactInfo)) : { email: '', phone: '', mobile: '', location: '', hours: '' },
     bankingDetails: props.bankingDetails ? JSON.parse(JSON.stringify(props.bankingDetails)) : { account_name: '', bank: '', branch: '', account_number: '', nostro_number: '', type: '', currency_accepted: '' }
 });
@@ -1012,12 +985,7 @@ const removeFaq = (index) => {
     portalForm.faqs.splice(index, 1);
 };
 
-const addAnnouncement = () => {
-    portalForm.announcements.push({ date: new Date().toISOString().split('T')[0], title: '', text: '' });
-};
-const removeAnnouncement = (index) => {
-    portalForm.announcements.splice(index, 1);
-};
+
 
 const submitPortalSettings = () => {
     Inertia.post(route('admin.settings.short-courses.update'), portalForm, {

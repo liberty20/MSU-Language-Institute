@@ -1071,7 +1071,6 @@ class CourseController extends Controller
             SystemSetting::get('short_courses_testimonials', []),
             fn($t) => (isset($t['status']) && $t['status'] === 'approved') || !isset($t['status'])
         ));
-        $announcements = SystemSetting::get('short_courses_announcements', []);
         $contactInfo = SystemSetting::get('short_courses_contact_info', [
             'email' => 'language.institute@msu.ac.zw',
             'phone' => '+263 54 2260331',
@@ -1090,15 +1089,77 @@ class CourseController extends Controller
         ]);
 
         return Inertia::render('Courses/PublicPortal', [
+            'config' => SystemSetting::get('deputy_system_config', [
+                'site_name'           => 'MSU Language Institute Portal',
+                'admin_email'         => 'language.institute@msu.ac.zw',
+                'support_phone'       => '+263 54 2260331',
+                'max_upload_size'     => 10,
+                'maintenance_mode'    => false,
+                'allow_registrations' => true,
+            ]),
             'courses' => $courses,
             'intakes' => $intakes,
             'faqs' => $faqs,
             'testimonials' => $testimonials,
             'pendingTestimonials' => SystemSetting::get('short_courses_pending_testimonials', []),
-            'announcements' => $announcements,
             'contactInfo' => $contactInfo,
             'bankingDetails' => $bankingDetails,
             'canLogin' => \Route::has('login'),
+        ]);
+    }
+
+    /**
+     * Get live portal settings for real-time synchronization.
+     */
+    public function liveConfig()
+    {
+        $config = SystemSetting::get('deputy_system_config', [
+            'site_name'           => 'MSU Language Institute Portal',
+            'admin_email'         => 'language.institute@msu.ac.zw',
+            'support_phone'       => '+263 54 2260331',
+            'max_upload_size'     => 10,
+            'maintenance_mode'    => false,
+            'allow_registrations' => true,
+        ]);
+
+        $faqs = SystemSetting::get('short_courses_faqs', []);
+        $testimonials = array_values(array_filter(
+            SystemSetting::get('short_courses_testimonials', []),
+            fn($t) => (isset($t['status']) && $t['status'] === 'approved') || !isset($t['status'])
+        ));
+        $contactInfo = SystemSetting::get('short_courses_contact_info', [
+            'email' => 'language.institute@msu.ac.zw',
+            'phone' => '+263 54 2260331',
+            'mobile' => '+263 772 123 456',
+            'location' => 'MSU Gweru Main Campus, Gweru, Zimbabwe',
+            'hours' => 'Monday - Friday: 8:00 AM - 4:30 PM'
+        ]);
+        $bankingDetails = SystemSetting::get('short_courses_banking_details', [
+            'account_name' => 'Midlands State University National Language Institute',
+            'bank' => 'CBZ Bank',
+            'branch' => 'Gweru Branch',
+            'account_number' => '01223456789012',
+            'nostro_number' => '01223456789099',
+            'type' => 'Current Account',
+            'currency_accepted' => 'USD, ZiG'
+        ]);
+
+        $courses = Course::with('department')
+            ->where('is_published', true)
+            ->get();
+
+        $intakes = CourseIntake::with(['course', 'instructor', 'enrollments'])
+            ->where('status', '!=', 'draft')
+            ->get();
+
+        return response()->json([
+            'config' => $config,
+            'faqs' => $faqs,
+            'testimonials' => $testimonials,
+            'contactInfo' => $contactInfo,
+            'bankingDetails' => $bankingDetails,
+            'courses' => $courses,
+            'intakes' => $intakes,
         ]);
     }
 
@@ -1107,6 +1168,11 @@ class CourseController extends Controller
      */
     public function enroll(Request $request)
     {
+        $config = SystemSetting::get('deputy_system_config', []);
+        if (isset($config['allow_registrations']) && ($config['allow_registrations'] === false || $config['allow_registrations'] === 0 || $config['allow_registrations'] === '0')) {
+            return redirect()->back()->with('error', 'Registrations are currently closed by the administration.');
+        }
+
         $request->validate([
             'course_intake_id' => 'required|exists:course_intakes,id',
             'payment_proof' => 'required|file|max:10240', // max 10MB
@@ -1179,6 +1245,11 @@ class CourseController extends Controller
      */
     public function submitApplication(Request $request)
     {
+        $config = SystemSetting::get('deputy_system_config', []);
+        if (isset($config['allow_registrations']) && ($config['allow_registrations'] === false || $config['allow_registrations'] === 0 || $config['allow_registrations'] === '0')) {
+            return redirect()->back()->with('error', 'Registrations are currently closed by the administration.');
+        }
+
         $validated = $request->validate([
             'course_intake_id'      => 'required|exists:course_intakes,id',
             'full_name'             => 'required|string|max:255',
@@ -1240,10 +1311,15 @@ class CourseController extends Controller
         ]);
 
         // Log the activity
-        $systemUser = User::whereIn('email', ['admin@msunli.edu', 'executive.director@msunli.edu'])->first();
+        $systemUser = User::whereIn('email', ['admin@msunli.edu', 'executive.director@msunli.edu', 'admin.assistant@msunli.edu'])->first()
+            ?? User::whereHas('roles', function($q) {
+                $q->whereIn('name', ['ict_administrator', 'admin_assistant', 'executive_director']);
+            })->first()
+            ?? User::first();
+
         CourseApplicationLog::create([
             'course_application_id' => $application->id,
-            'user_id'               => $systemUser ? $systemUser->id : 1,
+            'user_id'               => $systemUser ? $systemUser->id : null,
             'action'                => 'submitted',
             'comment'               => 'Registration application submitted successfully.',
         ]);

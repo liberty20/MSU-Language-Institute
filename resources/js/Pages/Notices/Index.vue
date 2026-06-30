@@ -32,6 +32,7 @@
                 <div class="w-44">
                     <select v-model="targetFilter" class="w-full text-xs rounded-xl border-gray-200 focus:border-[#f5c242] focus:ring-1 focus:ring-[#0a1f44] py-2.5 font-medium">
                         <option value="all">All Targets</option>
+                        <option value="publish_to_portal">Publish to Portal</option>
                         <option value="all_students">All Students</option>
                         <option value="specific_course">Specific Course</option>
                     </select>
@@ -88,8 +89,8 @@
                                 </h3>
                                 
                                 <span class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider"
-                                      :class="notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
-                                    {{ notice.target_type === 'all_students' ? 'All Students' : (notice.course ? notice.course.code : 'Specific Course') }}
+                                      :class="notice.target_type === 'publish_to_portal' ? 'bg-emerald-100 text-emerald-800' : (notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800')">
+                                    {{ notice.target_type === 'publish_to_portal' ? 'Publish to Portal' : (notice.target_type === 'all_students' ? 'All Students' : (notice.course ? notice.course.code : 'Specific Course')) }}
                                 </span>
                             </div>
 
@@ -171,8 +172,8 @@
                                 </td>
                                 <td class="p-4">
                                     <span class="px-2.5 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider"
-                                          :class="notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
-                                        {{ notice.target_type === 'all_students' ? 'All Students' : (notice.course ? notice.course.code : 'Specific Course') }}
+                                          :class="notice.target_type === 'publish_to_portal' ? 'bg-emerald-100 text-emerald-800' : (notice.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800')">
+                                        {{ notice.target_type === 'publish_to_portal' ? 'Publish to Portal' : (notice.target_type === 'all_students' ? 'All Students' : (notice.course ? notice.course.code : 'Specific Course')) }}
                                     </span>
                                 </td>
                                 <td class="p-4">{{ notice.creator ? notice.creator.name : 'Administrator' }}</td>
@@ -234,15 +235,16 @@
                             <div class="space-y-1">
                                 <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Audience *</label>
                                 <select v-model="form.target_type" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                    <option value="publish_to_portal">Publish to Portal</option>
                                     <option value="all_students">All Students</option>
-                                    <option value="specific_course">Specific Course Offerings</option>
+                                    <option value="specific_course">Specific Course</option>
                                 </select>
                                 <div v-if="form.errors.target_type" class="text-red-500 text-xs mt-1">{{ form.errors.target_type }}</div>
                             </div>
 
                             <div class="space-y-1" v-if="form.target_type === 'specific_course'">
                                 <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide">Target Course *</label>
-                                <select v-model="form.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required>
+                                <select v-model="form.course_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" :required="form.target_type === 'specific_course'">
                                     <option :value="null" disabled>Select course offering...</option>
                                     <option v-for="course in courses" :key="course.id" :value="course.id">{{ course.code }} - {{ course.title }}</option>
                                 </select>
@@ -294,13 +296,13 @@
                         </div>
 
                         <!-- Publish immediately option (only for create) -->
-                        <div class="flex items-center gap-2 py-1" v-if="!isEditing">
+                        <div class="flex items-center gap-2 py-1" v-if="!isEditing && form.target_type !== 'publish_to_portal'">
                             <input v-model="form.publish_immediately" type="checkbox" id="publish_immediately" class="rounded border-gray-300 text-[#0a1f44] focus:ring-[#0a1f44]" />
                             <label for="publish_immediately" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish announcement immediately to students</label>
                         </div>
 
                         <!-- Publish on update option -->
-                        <div class="flex items-center gap-2 py-1" v-if="isEditing && !editingNoticePublished">
+                        <div class="flex items-center gap-2 py-1" v-if="isEditing && !editingNoticePublished && form.target_type !== 'publish_to_portal'">
                             <input v-model="form.publish" type="checkbox" id="publish_update" class="rounded border-gray-300 text-[#0a1f44] focus:ring-[#0a1f44]" />
                             <label for="publish_update" class="text-xs font-bold text-gray-700 select-none cursor-pointer">Publish now (Make visible to students)</label>
                         </div>
@@ -336,8 +338,8 @@
                             </h2>
                             <div class="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-semibold">
                                 <span class="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider"
-                                      :class="selectedNotice?.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
-                                    {{ selectedNotice?.target_type === 'all_students' ? 'All Students' : (selectedNotice?.course ? selectedNotice.course.code : 'Specific Course') }}
+                                      :class="selectedNotice?.target_type === 'publish_to_portal' ? 'bg-emerald-100 text-emerald-800' : (selectedNotice?.target_type === 'all_students' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800')">
+                                    {{ selectedNotice?.target_type === 'publish_to_portal' ? 'Publish to Portal' : (selectedNotice?.target_type === 'all_students' ? 'All Students' : (selectedNotice?.course ? selectedNotice.course.code : 'Specific Course')) }}
                                 </span>
                                 <span v-if="!selectedNotice?.published_at" class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-500 text-[#0a1f44] uppercase tracking-wider">
                                     Draft
@@ -395,7 +397,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
@@ -409,6 +411,40 @@ const isAdmin = computed(() => {
     return ['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => roles.includes(r));
 });
 
+// Live announcements polling
+const liveNotices = ref(props.notices || []);
+
+const pollNotices = async () => {
+    try {
+        const response = await fetch(route('notices.live-data'));
+        if (response.ok) {
+            const data = await response.json();
+            liveNotices.value = data.notices || [];
+        }
+    } catch (error) {
+        console.error('Failed to sync live notices:', error);
+    }
+};
+
+let pollInterval = null;
+
+onMounted(() => {
+    pollNotices();
+    pollInterval = setInterval(pollNotices, 10000);
+});
+
+onUnmounted(() => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+    document.body.classList.remove('overflow-hidden');
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+        mainEl.classList.remove('overflow-hidden');
+        mainEl.style.overflow = '';
+    }
+});
+
 // Filters and Search
 const searchQuery = ref('');
 const statusFilter = ref('all');
@@ -417,7 +453,7 @@ const sortBy = ref('newest');
 const viewMode = ref('cards');
 
 const filteredNotices = computed(() => {
-    let result = props.notices.filter(notice => {
+    let result = liveNotices.value.filter(notice => {
         // Search filter
         const query = searchQuery.value.toLowerCase().trim();
         const matchesQuery = !query || 
@@ -496,12 +532,18 @@ const fileFields = ref([{ id: Date.now(), file: null }]);
 const form = useForm({
     title: '',
     content: '',
-    target_type: 'all_students',
+    target_type: 'publish_to_portal',
     course_id: null,
     publish_immediately: false,
     publish: false,
     files: [],
     deleted_file_ids: [],
+});
+
+watch(() => form.target_type, (newVal) => {
+    if (newVal !== 'specific_course') {
+        form.course_id = null;
+    }
 });
 
 const openCreateModal = () => {
@@ -516,7 +558,7 @@ const openCreateModal = () => {
     
     form.title = '';
     form.content = '';
-    form.target_type = 'all_students';
+    form.target_type = 'publish_to_portal';
     form.course_id = null;
     form.publish_immediately = false;
     form.publish = false;
