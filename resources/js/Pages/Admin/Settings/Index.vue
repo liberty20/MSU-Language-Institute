@@ -96,14 +96,6 @@
                                 <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Max Upload Size (MB)</label>
                                 <input v-model="configForm.max_upload_size" type="number" min="1" max="100" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
                             </div>
-                            <div class="flex items-center gap-2 py-2">
-                                <input v-model="configForm.maintenance_mode" type="checkbox" id="maintenance_mode" class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
-                                <label for="maintenance_mode" class="text-sm font-bold text-gray-700 select-none">Enable System Maintenance Mode</label>
-                            </div>
-                            <div class="flex items-center gap-2 py-2">
-                                <input v-model="configForm.allow_registrations" type="checkbox" id="allow_registrations" class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
-                                <label for="allow_registrations" class="text-sm font-bold text-gray-700 select-none">Allow Public Student Registrations</label>
-                            </div>
                         </div>
 
                         <div class="pt-4 border-t border-gray-100 flex justify-end">
@@ -838,8 +830,8 @@ const configForm = ref({
     admin_email: props.config.admin_email || '',
     support_phone: props.config.support_phone || '',
     max_upload_size: props.config.max_upload_size || 10,
-    maintenance_mode: props.config.maintenance_mode === 1 || props.config.maintenance_mode === true,
-    allow_registrations: props.config.allow_registrations === 1 || props.config.allow_registrations === true,
+    maintenance_mode: false,
+    allow_registrations: false,
 });
 
 const searchQuery = ref(props.filters.search || '');
