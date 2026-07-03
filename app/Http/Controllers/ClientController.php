@@ -37,8 +37,11 @@ class ClientController extends Controller
             $query->whereStatus($request->status);
         }
 
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $clients */
+        $clients = $query->orderByDesc('created_at')->paginate(10);
+
         return Inertia::render('Clients/Index', [
-            'clients' => $query->orderByDesc('created_at')->paginate(10)->withQueryString(),
+            'clients' => $clients->withQueryString(),
             'filters' => $request->only(['search', 'status']),
         ]);
     }

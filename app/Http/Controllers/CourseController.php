@@ -710,7 +710,7 @@ class CourseController extends Controller
         ]);
 
         $reportType = $request->report_type;
-        $format = $request->format;
+        $format = $request->input('format');
 
         $filteredIntakes = $this->getProcessedIntakesData($request);
 
@@ -735,7 +735,7 @@ class CourseController extends Controller
             'format' => 'required|in:csv,excel,pdf',
         ]);
 
-        $format = $request->format;
+        $format = $request->input('format');
         $intake = CourseIntake::with(['course', 'instructor'])->findOrFail($intakeId);
 
         // Fetch students enrolled in this intake
@@ -938,6 +938,8 @@ class CourseController extends Controller
             'enrollment_status' => 'active',
         ]);
 
+        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseEnrollment::class, $enrollment->id);
+
         return redirect()->back()->with('success', 'Payment verified and enrollment activated successfully!');
     }
 
@@ -1122,6 +1124,11 @@ class CourseController extends Controller
             'allow_registrations' => true,
         ]);
 
+        if (isset($config['maintenance_mode']) && $config['maintenance_mode']) {
+            $config['maintenance_mode'] = false;
+            SystemSetting::set('deputy_system_config', $config);
+        }
+
         $faqs = SystemSetting::get('short_courses_faqs', []);
         $testimonials = array_values(array_filter(
             SystemSetting::get('short_courses_testimonials', []),
@@ -1237,6 +1244,7 @@ class CourseController extends Controller
 
         return Inertia::render('Courses/StudentDashboard', [
             'enrollments' => $enrollments,
+            'outstandingTasks' => resolve(\App\Services\ReminderService::class)->getOutstandingTasks($user),
         ]);
     }
 
@@ -1355,7 +1363,9 @@ class CourseController extends Controller
             });
         }
 
-        $applications = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $applications */
+        $applications = $query->orderBy('created_at', 'desc')->paginate(10);
+        $applications = $applications->withQueryString();
 
         $courses = Course::orderBy('title')->get(['id', 'title', 'code']);
 
@@ -1434,7 +1444,7 @@ class CourseController extends Controller
             ]);
 
             // Add activity log
-            \App\Models\ActivityLog::create([
+            ActivityLog::create([
                 'user_id'       => $user->id,
                 'action'        => 'verified_application',
                 'subject_type'  => CourseApplication::class,
@@ -1443,6 +1453,8 @@ class CourseController extends Controller
                 'ip_address'    => $request->ip(),
                 'user_agent'    => $request->userAgent()
             ]);
+
+            \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
 
             return redirect()->route('course-applications.index')->with('success', 'Application verified successfully and forwarded to the Deputy Director.');
 
@@ -1496,6 +1508,8 @@ class CourseController extends Controller
                 'comment'   => $request->comment ?? ''
             ]
         );
+
+        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
 
         return redirect()->back()->with('success', 'Application recommended successfully! Forwarded to the Director.');
     }
@@ -1660,6 +1674,8 @@ class CourseController extends Controller
                 }
             }
 
+            \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
+
             return redirect()->back()->with('success', 'Application approved successfully! Student account activated and enrolled.');
 
         } catch (\Exception $transactionEx) {
@@ -1712,6 +1728,8 @@ class CourseController extends Controller
             ]
         );
 
+        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
+
         return redirect()->back()->with('success', 'Application rejected successfully.');
     }
 
@@ -1748,7 +1766,9 @@ class CourseController extends Controller
             abort(404, 'File not found.');
         }
 
-        $absolutePath = Storage::disk('public')->path($path);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        $absolutePath = $disk->path($path);
         
         $originalName = basename($path);
         return response()->file($absolutePath, [

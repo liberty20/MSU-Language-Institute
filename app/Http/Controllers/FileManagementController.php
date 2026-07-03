@@ -110,7 +110,7 @@ class FileManagementController extends Controller
                             if ($parent->target_type === 'all_students') {
                                 $hasAccess = true;
                             } else {
-                                $hasAccess = \App\Models\CourseEnrollment::where('user_id', $user->id)
+                                $hasAccess = CourseEnrollment::where('user_id', $user->id)
                                     ->where('enrollment_status', 'active')
                                     ->whereIn('course_intake_id', function($q) use ($parent) {
                                         $q->select('id')
@@ -140,7 +140,7 @@ class FileManagementController extends Controller
                 $announcement = \App\Models\Announcement::findOrFail($id);
                 $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
                 $isInstructor = ($user->id === $announcement->instructor_id);
-                $isStudent = \App\Models\CourseEnrollment::where('user_id', $user->id)
+                $isStudent = CourseEnrollment::where('user_id', $user->id)
                     ->where('enrollment_status', 'active')
                     ->whereIn('course_intake_id', function($q) use ($announcement) {
                         $q->select('id')
@@ -193,14 +193,16 @@ class FileManagementController extends Controller
         }
 
         // 2. Validate file existence
-        if (!$path || !Storage::disk('public')->exists($path)) {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        if (!$path || !$disk->exists($path)) {
             abort(404, 'Requested document not found on server.');
         }
 
-        $absolutePath = Storage::disk('public')->path($path);
+        $absolutePath = $disk->path($path);
 
         if (!$mimeType) {
-            $mimeType = Storage::disk('public')->mimeType($path) ?: 'application/octet-stream';
+            $mimeType = $disk->mimeType($path) ?: 'application/octet-stream';
         }
 
         // 3. Resolve clean filename extension

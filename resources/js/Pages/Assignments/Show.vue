@@ -79,8 +79,10 @@
                                 <span class="text-gray-900 font-medium text-sm mt-0.5 block">{{ assignment.service_request?.source_language || 'N/A' }}</span>
                             </div>
                             <div>
-                                <span class="block text-gray-400 uppercase tracking-wider font-semibold">Target Language</span>
-                                <span class="text-gray-900 font-medium text-sm mt-0.5 block">{{ assignment.service_request?.target_language || 'N/A' }}</span>
+                                <span class="block text-gray-400 uppercase tracking-wider font-semibold">Target Language(s)</span>
+                                <span class="text-gray-900 font-medium text-sm mt-0.5 block">
+                                    {{ Array.isArray(assignment.service_request?.target_language) ? assignment.service_request.target_language.join(', ') : (assignment.service_request?.target_language || 'N/A') }}
+                                </span>
                             </div>
                             <div>
                                 <span class="block text-gray-400 uppercase tracking-wider font-semibold">Priority</span>
@@ -179,24 +181,56 @@
 
                         <!-- State Machine Description -->
                         <div class="space-y-4">
-                            <!-- State 1: Assigned / Pending -->
-                            <div v-if="assignment.status === 'assigned' || assignment.status === 'pending'" class="space-y-4">
+                            <!-- State 1: Assigned (Awaiting review) -->
+                            <div v-if="assignment.status === 'assigned'" class="space-y-4">
                                 <div v-if="(assignment.assigned_to?.id || assignment.assigned_to) === $page.props.auth.user.id" class="space-y-4">
                                     <div class="bg-amber-50 text-amber-800 p-4 rounded-xl text-sm border border-amber-100 leading-relaxed">
-                                        This task has been assigned to you. Click <strong>Start Task</strong> to change the status to "In Progress" and begin work.
+                                        This task has been assigned to you. Please review and **Accept** or **Reject** this assignment.
                                     </div>
-                                    <button @click="startWork" :disabled="submitting" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-5 py-3 rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2">
-                                        <span v-if="submitting" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                        <span>Accept & Start Task</span>
-                                    </button>
+                                    <div class="flex gap-3">
+                                        <button @click="acceptTask" :disabled="submitting" class="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">
+                                            Accept Task
+                                        </button>
+                                        <button @click="showRejectModal = true" :disabled="submitting" class="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">
+                                            Reject Task
+                                        </button>
+                                    </div>
                                 </div>
                                 <div v-else class="bg-amber-50 text-amber-850 p-4 rounded-xl text-sm border border-amber-200 leading-relaxed font-semibold">
-                                    Awaiting action from Assigned Specialist ({{ assignment.assigned_to?.name || 'Staff' }}).
+                                    Awaiting Specialist ({{ assignment.assigned_to?.name || 'Staff' }}) response to assignment.
                                 </div>
                             </div>
 
-                            <!-- State 2: In Progress -->
-                            <div v-else-if="assignment.status === 'in_progress' || assignment.status === 'accepted'" class="space-y-4">
+                            <!-- State 2: Accepted -->
+                            <div v-else-if="assignment.status === 'accepted'" class="space-y-4">
+                                <div v-if="(assignment.assigned_to?.id || assignment.assigned_to) === $page.props.auth.user.id" class="space-y-4">
+                                    <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm border border-blue-100 leading-relaxed">
+                                        You have accepted this task. Click **Start Task** to begin.
+                                    </div>
+                                    <button @click="startWork" :disabled="submitting" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-5 py-3 rounded-xl font-bold transition shadow-sm">
+                                        Start Task &rarr;
+                                    </button>
+                                </div>
+                                <div v-else class="bg-blue-50 text-blue-850 p-4 rounded-xl text-sm border border-blue-250 leading-relaxed font-semibold">
+                                    Specialist accepted the task. Awaiting execution start.
+                                </div>
+                            </div>
+
+                            <!-- State 3: Rejected -->
+                            <div v-else-if="assignment.status === 'rejected'" class="space-y-4">
+                                <div class="bg-red-50 text-red-800 p-4 rounded-xl text-sm border border-red-150 leading-relaxed">
+                                    <h4 class="font-bold text-red-900">Task Rejected</h4>
+                                    <p class="text-xs mt-1 leading-snug">
+                                        This task was rejected by the specialist.
+                                    </p>
+                                    <div v-if="assignment.rejection_reason" class="mt-2.5 p-2 bg-white/60 rounded-lg text-xs font-mono text-red-950 border border-red-200/50">
+                                        <strong>Reason:</strong> {{ assignment.rejection_reason }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- State 4: In Progress -->
+                            <div v-else-if="assignment.status === 'in_progress'" class="space-y-4">
                                 <div v-if="(assignment.assigned_to?.id || assignment.assigned_to) === $page.props.auth.user.id" class="space-y-4">
                                     <div class="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm border border-blue-100 leading-relaxed">
                                         You are currently working on this task. Once you have finished, upload the final files and submit them for Director review.
@@ -214,7 +248,7 @@
                                 </div>
                             </div>
 
-                            <!-- State 3: Completed -->
+                            <!-- State 5: Completed -->
                             <div v-else-if="assignment.status === 'completed'" class="space-y-4">
                                 <div class="bg-green-50 text-green-800 p-4 rounded-xl text-sm border border-green-100 leading-relaxed flex items-start gap-2">
                                     <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -324,6 +358,37 @@
                 </form>
             </div>
         </div>
+        <!-- Reject Modal -->
+        <div v-if="showRejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-150 p-6 space-y-6 transform scale-100 transition-transform">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h3 class="text-lg font-bold text-gray-900">Reject Task Assignment</h3>
+                    <button @click="showRejectModal = false" class="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="rejectTask" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-gray-700">Rejection Reason <span class="text-red-500">*</span></label>
+                        <textarea v-model="rejectionForm.rejection_reason" placeholder="Please specify the reason why you are rejecting this task (mandatory)..." rows="4" required class="w-full border-gray-300 rounded-lg shadow-sm focus:border-red-500 focus:ring-red-500 text-sm"></textarea>
+                        <div v-if="rejectionForm.errors.rejection_reason" class="text-red-500 text-xs font-semibold">{{ rejectionForm.errors.rejection_reason }}</div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button type="button" @click="showRejectModal = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-sm transition">
+                            Cancel
+                        </button>
+                        <button type="submit" :disabled="rejectionForm.processing || !rejectionForm.rejection_reason.trim()" class="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg font-bold text-sm transition shadow-sm flex items-center gap-2">
+                            <span v-if="rejectionForm.processing" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span>Confirm Rejection</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
@@ -339,6 +404,7 @@ const props = defineProps({
 
 const submitting = ref(false);
 const showUploadModal = ref(false);
+const showRejectModal = ref(false);
 const isDragOver = ref(false);
 const selectedFile = ref(null);
 const fileInput = ref(null);
@@ -347,6 +413,31 @@ const form = useForm({
     file: null,
     notes: '',
 });
+
+const rejectionForm = useForm({
+    status: 'rejected',
+    rejection_reason: '',
+});
+
+const acceptTask = () => {
+    submitting.value = true;
+    Inertia.patch(route('assignments.update', props.assignment.id), {
+        status: 'accepted'
+    }, {
+        onFinish: () => {
+            submitting.value = false;
+        }
+    });
+};
+
+const rejectTask = () => {
+    rejectionForm.patch(route('assignments.update', props.assignment.id), {
+        onSuccess: () => {
+            showRejectModal.value = false;
+            rejectionForm.reset();
+        }
+    });
+};
 
 const startWork = () => {
     submitting.value = true;

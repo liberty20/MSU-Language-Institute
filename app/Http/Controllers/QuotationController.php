@@ -61,8 +61,11 @@ class QuotationController extends Controller
             });
         }
 
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $quotations */
+        $quotations = $query->orderBy('created_at', 'desc')->paginate(10);
+
         return Inertia::render('Quotations/Index', [
-            'quotations' => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'quotations' => $quotations->withQueryString(),
             'filters'    => [
                 'status' => $request->status,
                 'search' => $request->search,
@@ -114,7 +117,7 @@ class QuotationController extends Controller
 
         ActivityLog::log(
             'quotation_created',
-            'Created quotation Reference #' . $quotation->id . ' for amount ' . $quotation->currency . ' ' . number_format($quotation->amount, 2),
+            'Created quotation Reference #' . $quotation->id . ' for amount ' . $quotation->currency . ' ' . number_format((float) $quotation->amount, 2),
             $quotation,
             [
                 'currency' => $quotation->currency,
@@ -123,6 +126,8 @@ class QuotationController extends Controller
                 'prepared_by' => $user->name,
             ]
         );
+
+        \App\Services\ReminderService::markAsCompleted(\App\Models\ServiceRequest::class, $quotation->service_request_id);
 
         return redirect()->route('quotations.index')->with('success', 'Quotation generated and submitted successfully.');
     }
@@ -271,6 +276,8 @@ class QuotationController extends Controller
                 $msg = 'Quotation rejected successfully.';
             }
         }
+
+        \App\Services\ReminderService::markAsCompleted(\App\Models\Quotation::class, $quotation->id);
 
         return redirect()->route('quotations.index')->with('success', $msg);
     }

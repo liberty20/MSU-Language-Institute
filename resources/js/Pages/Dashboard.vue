@@ -37,6 +37,9 @@
                 </div>
             </div>
 
+            <!-- Outstanding Tasks Section -->
+            <OutstandingTasksWidget v-if="outstandingTasks && outstandingTasks.length > 0" :tasks="outstandingTasks" />
+
             <!-- Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- If staff outside AOS, show user-specific operational metrics -->
@@ -313,12 +316,14 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/inertia-vue3';
+import OutstandingTasksWidget from '@/Components/OutstandingTasksWidget.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 defineProps({
     stats: Object,
     recentRequests: Array,
-    recentActivities: Array
+    recentActivities: Array,
+    outstandingTasks: Array
 });
 
 const currentHour = ref(new Date().getHours());

@@ -85,6 +85,10 @@ class TaskController extends Controller
 
         $task->save();
 
+        if ($task->status === 'completed') {
+            \App\Services\ReminderService::markAsCompleted(\App\Models\Task::class, $task->id);
+        }
+
         return redirect()->back()->with('success', 'Task updated.');
     }
 

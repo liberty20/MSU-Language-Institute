@@ -220,6 +220,7 @@ class StudentPortalController extends Controller
 
         $timetables = CourseTimetable::with(['intake.course', 'intake.instructor'])
             ->whereIn('course_intake_id', $intakeIds)
+            ->upcoming()
             ->orderBy('date', 'asc')
             ->orderByRaw('start_time asc')
             ->get();
@@ -343,6 +344,8 @@ class StudentPortalController extends Controller
                 ['assignment_id' => $assignment->id, 'student_id' => $user->id]
             ));
         }
+
+        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseAssignment::class, $assignment->id, $user->id);
 
         return redirect()->back()->with('success', 'Assignment submitted successfully!');
     }

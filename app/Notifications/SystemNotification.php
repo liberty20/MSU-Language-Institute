@@ -54,7 +54,11 @@ class SystemNotification extends Notification
             return [];
         }
 
-        return ['database'];
+        $channels = ['database'];
+        if (!empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+        return $channels;
     }
 
     /**
@@ -66,8 +70,9 @@ class SystemNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->line('The introduction to the notification.')
-                    ->action('Notification Action', url('/'))
+                    ->subject($this->title)
+                    ->line($this->message)
+                    ->action('View Details', $this->actionUrl ? url($this->actionUrl) : url('/'))
                     ->line('Thank you for using our application!');
     }
 

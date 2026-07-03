@@ -117,16 +117,17 @@ class ServiceRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'client_id'        => 'required|exists:clients,id',
-            'service_category' => 'required|in:translation,editing,brailling,sign_language,consultancy,short_courses',
-            'title'            => 'required|string|max:255',
-            'description'      => 'required|string',
-            'source_language'  => 'nullable|string|max:100',
-            'target_language'  => 'nullable|string|max:100',
-            'priority'         => 'required|in:low,medium,high,urgent',
-            'deadline'         => 'nullable|date|after:today',
-            'notes'            => 'nullable|string',
-            'files.*'          => 'nullable|file|max:10240', // max 10MB each
+            'client_id'          => 'required|exists:clients,id',
+            'service_category'   => 'required|in:translation,editing,brailling,sign_language,consultancy,short_courses',
+            'title'              => 'required|string|max:255',
+            'description'        => 'required|string',
+            'source_language'    => 'nullable|string|max:100',
+            'target_language'    => 'nullable|array',
+            'target_language.*'  => 'string|max:100',
+            'priority'           => 'required|in:low,medium,high,urgent',
+            'deadline'           => 'nullable|date|after:today',
+            'notes'              => 'nullable|string',
+            'files.*'            => 'nullable|file|max:10240', // max 10MB each
         ]);
 
         $validated['submitted_by'] = Auth::id();

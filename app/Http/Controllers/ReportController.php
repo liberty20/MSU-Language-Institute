@@ -243,7 +243,9 @@ class ReportController extends Controller
         $avgSatisfactionScore = ($avgSatisfactionScore && $avgSatisfactionScore > 0) ? round($avgSatisfactionScore * 20, 1) : 94.0;
 
         // --- Trend Analysis over 6 months ---
-        $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+        /** @var \Illuminate\Database\Connection $connection */
+        $connection = \DB::connection();
+        $isSqlite = $connection->getDriverName() === 'sqlite';
         $rawDateFormat = $isSqlite ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')";
 
         $monthlyTrends = [];
@@ -285,7 +287,7 @@ class ReportController extends Controller
         $reports = $reportsQuery->orderBy('created_at', 'desc')->paginate(10);
 
         // Fetch student enrollment stats & list
-        $seBase = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+        $seBase = CourseEnrollment::whereHas('user', function($q) {
             $q->where('primary_category', 'Student');
         });
         if ($request->filled('student_course_id')) {
@@ -320,7 +322,7 @@ class ReportController extends Controller
             $yearMonth = $date->format('Y-m');
             $monthName = $date->format('M Y');
             
-            $enrollQ = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+            $enrollQ = CourseEnrollment::whereHas('user', function($q) {
                 $q->where('primary_category', 'Student');
             })->whereRaw("{$rawDateFormat} = ?", [$yearMonth]);
             if ($request->filled('student_course_id')) {
@@ -340,7 +342,7 @@ class ReportController extends Controller
             ];
         }
 
-        $seQuery = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+        $seQuery = CourseEnrollment::whereHas('user', function($q) {
             $q->where('primary_category', 'Student');
         })->with(['user', 'intake.course.department']);
         if ($request->filled('student_course_id')) {
@@ -362,22 +364,28 @@ class ReportController extends Controller
         if ($request->filled('date_end')) {
             $seQuery->where('created_at', '<=', $request->date_end . ' 23:59:59');
         }
-        $enrolledStudents = $seQuery->orderBy('created_at', 'desc')->paginate(10, ['*'], 'students_page')->withQueryString();
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $enrolledStudents */
+        $enrolledStudents = $seQuery->orderBy('created_at', 'desc')->paginate(10, ['*'], 'students_page');
+        $enrolledStudents = $enrolledStudents->withQueryString();
 
         // Fetch supporting filter options
         $filterOptions = [
             'departments' => Department::select('id', 'name', 'code')->get(),
-            'courses' => \App\Models\Course::select('id', 'title', 'code')->get(),
+            'courses' => Course::select('id', 'title', 'code')->get(),
             'staff' => User::where('primary_category', 'Staff')->select('id', 'name', 'email')->get(),
             'categories' => array_map(fn($c) => ['value' => $c, 'label' => ucwords(str_replace('_', ' ', $c))], $categoriesList),
         ];
+
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $serviceRequests */
+        $serviceRequests = (clone $query)->with(['client', 'assignedTo'])->orderBy('created_at', 'desc')->paginate(10);
+        $serviceRequests = $serviceRequests->withQueryString();
 
         return Inertia::render('Reports/Index', [
             'byCategory' => $categoryVolume,
             'categoryTurnaround' => $categoryTurnaround,
             'byStatus' => $taskStatuses,
             'monthly' => $monthlyTrends,
-            'serviceRequests' => (clone $query)->with(['client', 'assignedTo'])->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'serviceRequests' => $serviceRequests,
             'totals' => [
                 'total_requests' => $totalRequests,
                 'active_assignments' => $activeAssignments,
@@ -386,13 +394,13 @@ class ReportController extends Controller
                 'kpi_performance' => $kpiPercentage,
                 'avg_turnaround' => $avgTurnaroundTime,
                 'client_satisfaction' => $avgSatisfactionScore,
-                'revenue_generated' => \App\Models\Payment::where('payments.status', 'verified')
+                'revenue_generated' => Payment::where('payments.status', 'verified')
                     ->join('quotations', 'payments.quotation_id', '=', 'quotations.id')
                     ->selectRaw('quotations.currency, SUM(payments.amount_paid) as total')
                     ->groupBy('quotations.currency')
                     ->pluck('total', 'currency')
                     ->toArray(),
-                'short_courses_revenue' => \App\Models\CourseEnrollment::where('course_enrollments.payment_status', 'verified')
+                'short_courses_revenue' => CourseEnrollment::where('course_enrollments.payment_status', 'verified')
                     ->join('course_intakes', 'course_enrollments.course_intake_id', '=', 'course_intakes.id')
                     ->join('courses', 'course_intakes.course_id', '=', 'courses.id')
                     ->selectRaw('courses.currency, SUM(courses.price) as total')
@@ -425,7 +433,7 @@ class ReportController extends Controller
         $user = Auth::user();
         $title = $request->title;
         $type = $request->report_type;
-        $format = $request->format;
+        $format = $request->input('format');
         $filters = $request->get('filters', []);
 
         // Aggregate matching data depending on the specialized report type selected
@@ -583,7 +591,7 @@ class ReportController extends Controller
         $data['generated_by'] = Auth::user()->name;
         $data['generated_date'] = Carbon::now()->format('F d, Y h:i A');
 
-        if ($request->format == 'pdf') {
+        if ($request->input('format') == 'pdf') {
             $pdf = Pdf::loadView('reports.pdf', $data);
             return $pdf->download('operational_report_' . $type . '_' . time() . '.pdf');
         } else {
@@ -708,11 +716,13 @@ class ReportController extends Controller
     public function download($filename)
     {
         $path = 'reports/' . $filename;
-        if (!Storage::disk('public')->exists($path)) {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        if (!$disk->exists($path)) {
             abort(404, 'The requested report file does not exist.');
         }
 
-        return Storage::disk('public')->download($path);
+        return $disk->download($path);
     }
 
     private function checkReportAccess()
@@ -995,7 +1005,9 @@ class ReportController extends Controller
             }
 
             // Visualizations
-            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            /** @var \Illuminate\Database\Connection $connection */
+            $connection = \DB::connection();
+            $isSqlite = $connection->getDriverName() === 'sqlite';
             $dateFormat = $isSqlite ? "strftime('%Y-%m-%d', payments.created_at)" : "DATE_FORMAT(payments.created_at, '%Y-%m-%d')";
             $monthFormat = $isSqlite ? "strftime('%Y-%m', payments.created_at)" : "DATE_FORMAT(payments.created_at, '%Y-%m')";
 
@@ -1143,7 +1155,9 @@ class ReportController extends Controller
             $query->orderBy('payments.created_at', $sortDirection);
         }
 
-        $payments = $query->paginate(10)->withQueryString();
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $payments */
+        $payments = $query->paginate(10);
+        $payments = $payments->withQueryString();
 
         // Dropdowns for filters
         $clients = User::where('primary_category', 'Client')->select('id', 'name', 'email')->orderBy('name')->get();
@@ -1374,7 +1388,9 @@ class ReportController extends Controller
                 ->value('total') ?? 0.0;
 
             // Visualizations
-            $isSqlite = \DB::connection()->getDriverName() === 'sqlite';
+            /** @var \Illuminate\Database\Connection $connection */
+            $connection = \DB::connection();
+            $isSqlite = $connection->getDriverName() === 'sqlite';
             $dateFormat = $isSqlite ? "strftime('%Y-%m-%d', course_enrollments.created_at)" : "DATE_FORMAT(course_enrollments.created_at, '%Y-%m-%d')";
             $monthFormat = $isSqlite ? "strftime('%Y-%m', course_enrollments.created_at)" : "DATE_FORMAT(course_enrollments.created_at, '%Y-%m')";
 
@@ -1486,7 +1502,9 @@ class ReportController extends Controller
             $query->orderBy('course_enrollments.created_at', 'desc');
         }
 
-        $enrollments = $query->paginate(10)->withQueryString();
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $enrollments */
+        $enrollments = $query->paginate(10);
+        $enrollments = $enrollments->withQueryString();
 
         // Dropdowns for filters
         $courses = Course::select('id', 'title', 'code')->orderBy('title')->get();
@@ -1812,7 +1830,7 @@ class ReportController extends Controller
 
         // 6. Student Enrollment Report type pipeline
         if ($reportType === 'student_enrollment') {
-            $seQuery = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+            $seQuery = CourseEnrollment::whereHas('user', function($q) {
                 $q->where('primary_category', 'Student');
             })->with(['user', 'intake.course.department']);
             if (!empty($filters['student_course_id'])) {
@@ -1837,7 +1855,7 @@ class ReportController extends Controller
             $studentEnrollments = $seQuery->orderBy('created_at', 'desc')->get();
 
             // Calculate stats for metrics
-            $seBase = \App\Models\CourseEnrollment::whereHas('user', function($q) {
+            $seBase = CourseEnrollment::whereHas('user', function($q) {
                 $q->where('primary_category', 'Student');
             });
             if (!empty($filters['student_course_id'])) {
@@ -1967,7 +1985,9 @@ class ReportController extends Controller
         }
 
         // Paginate
-        $enrollments = $query->paginate(10)->withQueryString();
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $enrollments */
+        $enrollments = $query->paginate(10);
+        $enrollments = $enrollments->withQueryString();
 
         // 6. Dropdown options
         $courses = Course::select('id', 'title', 'code')->orderBy('title')->get();

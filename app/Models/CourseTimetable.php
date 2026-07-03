@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $date
+ */
 class CourseTimetable extends Model
 {
     use HasFactory;
@@ -51,6 +54,12 @@ class CourseTimetable extends Model
             }
         }
         return date('H:i', strtotime($value));
+    }
+
+    public function scopeUpcoming($query)
+    {
+        $today = \Carbon\Carbon::now(config('app.timezone'))->toDateString();
+        return $query->where('date', '>=', $today);
     }
 
     public function intake()

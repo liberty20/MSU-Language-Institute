@@ -166,7 +166,7 @@ class InstructorPortalController extends Controller
         $intake = CourseIntake::findOrFail($intakeId);
         $instructorId = $intake->instructor_id;
 
-        $query = CourseTimetable::whereDate('date', $date)
+        $query = CourseTimetable::whereRaw('date(date) = ?', [$date])
             ->where(function ($q) use ($startTime, $endTime) {
                 $q->where('start_time', '<', $endTime)
                   ->where('end_time', '>', $startTime);
@@ -872,6 +872,8 @@ class InstructorPortalController extends Controller
         ));
 
         ActivityLog::log('grade_assignment', 'Graded assignment submission for student ' . $student->name, $submission);
+
+        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseAssignmentSubmission::class, $submissionId);
 
         return redirect()->back()->with('success', 'Submission graded successfully!');
     }

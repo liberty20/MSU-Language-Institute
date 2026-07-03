@@ -27,6 +27,9 @@
                 </a>
             </div>
 
+            <!-- Outstanding Tasks Section -->
+            <OutstandingTasksWidget v-if="outstandingTasks && outstandingTasks.length > 0" :tasks="outstandingTasks" />
+
 
 
             <!-- Enrollments Cards Grid -->
@@ -231,10 +234,12 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Inertia } from '@inertiajs/inertia';
+import OutstandingTasksWidget from '@/Components/OutstandingTasksWidget.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 defineProps({
     enrollments: Array,
+    outstandingTasks: Array,
 });
 
 const currentHour = ref(new Date().getHours());

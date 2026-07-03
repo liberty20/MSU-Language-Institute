@@ -101,7 +101,7 @@ class UserController extends Controller
             'category' => 'nullable|string',
         ]);
 
-        $format = $request->format;
+        $format = $request->input('format');
         $category = $request->input('category', 'all');
 
         $query = User::query();

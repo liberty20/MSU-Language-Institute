@@ -11,7 +11,7 @@ class Assignment extends Model
 
     protected $fillable = [
         'service_request_id', 'assigned_to', 'assigned_by',
-        'role_in_task', 'status', 'notes', 'started_at', 'completed_at',
+        'role_in_task', 'status', 'notes', 'started_at', 'completed_at', 'rejection_reason',
     ];
 
     protected $casts = [

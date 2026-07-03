@@ -55,6 +55,30 @@ class ServiceRequest extends Model
         return $this->hasMany(Assignment::class);
     }
 
+    public function getTargetLanguageAttribute($value)
+    {
+        if (empty($value)) {
+            return [];
+        }
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+        if (strpos($value, ',') !== false) {
+            return array_map('trim', explode(',', $value));
+        }
+        return [$value];
+    }
+
+    public function setTargetLanguageAttribute($value)
+    {
+        if (is_array($value)) {
+            $this->attributes['target_language'] = json_encode(array_values(array_filter($value)));
+        } else {
+            $this->attributes['target_language'] = $value;
+        }
+    }
+
     public function getServiceLabelAttribute()
     {
         return ucwords(str_replace('_', ' ', $this->service_category));

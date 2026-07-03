@@ -14,10 +14,11 @@ class CreateAssignmentsTable extends Migration
             $table->foreignId('assigned_to')->constrained('users')->cascadeOnDelete();
             $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('role_in_task', 100)->nullable();
-            $table->enum('status', ['assigned', 'accepted', 'in_progress', 'completed', 'reassigned'])->default('assigned');
+            $table->enum('status', ['assigned', 'accepted', 'rejected', 'in_progress', 'completed', 'reassigned'])->default('assigned');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->text('notes')->nullable();
+            $table->text('rejection_reason')->nullable();
             $table->timestamps();
         });
     }

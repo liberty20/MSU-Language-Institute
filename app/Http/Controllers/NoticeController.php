@@ -398,11 +398,13 @@ class NoticeController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        if (!$doc->file_path || !Storage::disk('public')->exists($doc->file_path)) {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        if (!$doc->file_path || !$disk->exists($doc->file_path)) {
             abort(404, 'File not found.');
         }
 
-        $absolutePath = Storage::disk('public')->path($doc->file_path);
+        $absolutePath = $disk->path($doc->file_path);
         return response()->download($absolutePath, $doc->filename);
     }
 }

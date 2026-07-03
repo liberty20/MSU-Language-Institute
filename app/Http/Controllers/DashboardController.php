@@ -193,6 +193,7 @@ class DashboardController extends Controller
             'stats'               => $stats,
             'recentRequests'      => $recentRequests,
             'recentActivities'    => $recentActivities,
+            'outstandingTasks'    => resolve(\App\Services\ReminderService::class)->getOutstandingTasks($user),
         ]);
     }
 
@@ -299,7 +300,9 @@ class DashboardController extends Controller
             $query->whereDate('created_at', '<=', request('date_end'));
         }
 
-        $logs = $query->paginate(25)->withQueryString()->through(function ($log) {
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $logs */
+        $logs = $query->paginate(25);
+        $logs = $logs->withQueryString()->through(function ($log) {
             // Determine Module based on triggers
             $module = 'System Administration';
             $sType = $log->subject_type;
@@ -415,11 +418,8 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         if ($user) {
-            try {
-                $this->checkDeadlines($user);
-            } catch (\Exception $e) {
-                \Log::error("Error checking deadlines: " . $e->getMessage());
-            }
+            // Legacy inline dynamic deadline checking is removed to ensure
+            // background scheduled tasks remain the sole generator of reminders
 
             // Clean up invalid/orphaned notifications
             $allNotifications = $user->notifications()->get();
@@ -450,15 +450,15 @@ class DashboardController extends Controller
 
         // 1. Check direct ID references
         $directIds = [
-            'task_id' => \App\Models\Task::class,
-            'quotation_id' => \App\Models\Quotation::class,
+            'task_id' => Task::class,
+            'quotation_id' => Quotation::class,
             'course_assignment_id' => \App\Models\CourseAssignment::class,
             'course_intake_id' => \App\Models\CourseIntake::class,
             'course_id' => \App\Models\Course::class,
-            'client_id' => \App\Models\Client::class,
-            'service_request_id' => \App\Models\ServiceRequest::class,
+            'client_id' => Client::class,
+            'service_request_id' => ServiceRequest::class,
             'user_id' => \App\Models\User::class,
-            'payment_id' => \App\Models\Payment::class,
+            'payment_id' => Payment::class,
             'document_id' => \App\Models\UploadedDocument::class,
             'report_id' => \App\Models\Report::class,
             'course_application_id' => \App\Models\CourseApplication::class,
@@ -492,10 +492,10 @@ class DashboardController extends Controller
                     $modelClass = null;
                     switch ($key) {
                         case 'quotations':
-                            $modelClass = \App\Models\Quotation::class;
+                            $modelClass = Quotation::class;
                             break;
                         case 'tasks':
-                            $modelClass = \App\Models\Task::class;
+                            $modelClass = Task::class;
                             break;
                         case 'assignments':
                             $modelClass = \App\Models\Assignment::class;
@@ -513,7 +513,7 @@ class DashboardController extends Controller
                             $modelClass = \App\Models\CourseIntake::class;
                             break;
                         case 'service-requests':
-                            $modelClass = \App\Models\ServiceRequest::class;
+                            $modelClass = ServiceRequest::class;
                             break;
                         case 'users':
                             $modelClass = \App\Models\User::class;
@@ -522,7 +522,7 @@ class DashboardController extends Controller
                             $modelClass = \App\Models\Department::class;
                             break;
                         case 'payments':
-                            $modelClass = \App\Models\Payment::class;
+                            $modelClass = Payment::class;
                             break;
                         case 'documents':
                             $modelClass = \App\Models\UploadedDocument::class;
@@ -548,7 +548,7 @@ class DashboardController extends Controller
 
             // Check authorization for the URL route
             try {
-                $request = \Illuminate\Http\Request::create($actionUrl, 'GET');
+                $request = Request::create($actionUrl, 'GET');
                 $route = \Illuminate\Support\Facades\Route::getRoutes()->match($request);
                 if ($route) {
                     $middleware = $route->gatherMiddleware();
@@ -615,13 +615,13 @@ class DashboardController extends Controller
         $class = get_class($record);
 
         // 1. Task
-        if ($class === \App\Models\Task::class) {
+        if ($class === Task::class) {
             $assignment = $record->assignment;
             return $assignment && $assignment->assigned_to == $user->id;
         }
 
         // 2. Quotation
-        if ($class === \App\Models\Quotation::class) {
+        if ($class === Quotation::class) {
             if ($record->prepared_by == $user->id) {
                 return true;
             }
@@ -639,7 +639,7 @@ class DashboardController extends Controller
         }
 
         // 3. ServiceRequest
-        if ($class === \App\Models\ServiceRequest::class) {
+        if ($class === ServiceRequest::class) {
             if ($user->primary_category === 'Client') {
                 return $record->submitted_by == $user->id;
             }
@@ -698,7 +698,7 @@ class DashboardController extends Controller
         }
 
         // 8. Payment
-        if ($class === \App\Models\Payment::class) {
+        if ($class === Payment::class) {
             if ($user->primary_category === 'Client') {
                 return $record->client_id == $user->id;
             }
@@ -781,6 +781,9 @@ class DashboardController extends Controller
         
         $notification->markAsRead();
 
+        \App\Services\ReminderService::markAsAcknowledged($id);
+        \App\Services\ReminderService::markAsDismissed($id);
+
         if (!$this->isNotificationValid($notification, $user)) {
             $notification->delete();
 
@@ -815,7 +818,7 @@ class DashboardController extends Controller
 
         if ($assignmentIds->isNotEmpty()) {
             // Overdue Tasks
-            $overdueTasks = \App\Models\Task::whereIn('assignment_id', $assignmentIds)
+            $overdueTasks = Task::whereIn('assignment_id', $assignmentIds)
                 ->where('status', '!=', 'completed')
                 ->whereNotNull('due_date')
                 ->where('due_date', '<', $now)
@@ -842,7 +845,7 @@ class DashboardController extends Controller
             }
 
             // Approaching Tasks (due in next 48 hours)
-            $approachingTasks = \App\Models\Task::whereIn('assignment_id', $assignmentIds)
+            $approachingTasks = Task::whereIn('assignment_id', $assignmentIds)
                 ->where('status', '!=', 'completed')
                 ->whereNotNull('due_date')
                 ->whereBetween('due_date', [$now, $fortyEightHoursLater])
@@ -960,12 +963,17 @@ class DashboardController extends Controller
     {
         $notification = Auth::user()->notifications()->findOrFail($id);
         $notification->markAsRead();
+        \App\Services\ReminderService::markAsDismissed($id);
         return response()->json(['status' => 'success']);
     }
 
     public function markAllNotificationsAsRead()
     {
-        Auth::user()->unreadNotifications->markAsRead();
+        $unread = Auth::user()->unreadNotifications;
+        foreach ($unread as $notification) {
+            $notification->markAsRead();
+            \App\Services\ReminderService::markAsDismissed($notification->id);
+        }
         return response()->json(['status' => 'success']);
     }
 
@@ -985,7 +993,7 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15) : collect();
 
-        return \Inertia\Inertia::render('Notifications/History', [
+        return Inertia::render('Notifications/History', [
             'notifications' => $notifications,
         ]);
     }

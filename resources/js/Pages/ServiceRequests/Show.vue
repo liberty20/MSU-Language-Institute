@@ -73,9 +73,9 @@
                                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Source Language</p>
                                 <p class="text-gray-800 font-medium">{{ serviceRequest.source_language }}</p>
                             </div>
-                            <div v-if="serviceRequest.target_language">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Target Language</p>
-                                <p class="text-gray-800 font-medium">{{ serviceRequest.target_language }}</p>
+                            <div v-if="serviceRequest.target_language && (Array.isArray(serviceRequest.target_language) ? serviceRequest.target_language.length > 0 : serviceRequest.target_language)">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Target Language(s)</p>
+                                <p class="text-gray-800 font-medium">{{ Array.isArray(serviceRequest.target_language) ? serviceRequest.target_language.join(', ') : serviceRequest.target_language }}</p>
                             </div>
                             <div v-if="serviceRequest.estimated_hours">
                                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Est. Hours</p>

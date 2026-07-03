@@ -16,7 +16,7 @@ class CreateServiceRequestsTable extends Migration
             $table->string('title');
             $table->text('description');
             $table->string('source_language', 100)->nullable();
-            $table->string('target_language', 100)->nullable();
+            $table->text('target_language')->nullable();
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
             $table->enum('status', ['pending', 'quoted', 'approved', 'in_progress', 'review', 'completed', 'cancelled'])->default('pending');
             $table->date('deadline')->nullable();

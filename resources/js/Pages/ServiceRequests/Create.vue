@@ -69,14 +69,62 @@
                         <div v-if="form.errors.source_language" class="text-red-500 text-xs mt-1">{{ form.errors.source_language }}</div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Target Language(s) *</label>
-                        <select v-model="selectedTarget" @change="updateTargetLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]">
-                            <option value="" disabled>Select Target Language</option>
-                            <option v-for="lang in zimbabweanLanguages" :key="lang" :value="lang">{{ lang }}</option>
-                        </select>
-                        <div v-if="selectedTarget === 'Other'" class="mt-2 transition-all duration-300">
-                            <input type="text" v-model="customTarget" @input="updateTargetLanguage" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" placeholder="Please specify other target language(s)" />
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Language(s) *</label>
+                        
+                        <!-- Selected languages pills -->
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <span v-for="(lang, idx) in form.target_language" :key="lang" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0a1f44]/10 text-[#0a1f44] border border-[#0a1f44]/20 transition-all duration-200">
+                                {{ lang }}
+                                <button type="button" @click="removeTargetLanguage(idx)" class="hover:text-red-600 transition-colors focus:outline-none">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </span>
+                            <span v-if="!form.target_language.length" class="text-xs text-gray-400 italic">No target languages selected yet. Please select at least one below.</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Custom checkable multi-select dropdown -->
+                            <div class="relative">
+                                <!-- Trigger Button -->
+                                <button type="button" @click="showTargetDropdown = !showTargetDropdown" class="w-full text-left bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-[#0a1f44] focus:border-[#0a1f44] text-sm cursor-pointer flex justify-between items-center h-[38px] relative z-30">
+                                    <span class="block truncate text-gray-700">
+                                        {{ form.target_language.length ? form.target_language.join(', ') : '-- Choose Target Language(s) --' }}
+                                    </span>
+                                    <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 z-30">
+                                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </span>
+                                </button>
+
+                                <!-- Click-Outside Guard Overlay -->
+                                <div v-if="showTargetDropdown" class="fixed inset-0 z-20 cursor-default" @click="showTargetDropdown = false"></div>
+
+                                <!-- Dropdown panel -->
+                                <div v-if="showTargetDropdown" class="absolute z-30 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm border border-gray-150">
+                                    <!-- Search filter -->
+                                    <div class="px-3 py-2 border-b border-gray-100 sticky top-0 bg-white z-10">
+                                        <input type="text" v-model="searchLanguageQuery" placeholder="Search language..." class="w-full text-xs rounded-md border-gray-300 focus:border-[#0a1f44] focus:ring-[#0a1f44] py-1 px-2" />
+                                    </div>
+                                    <!-- Language options with checkboxes -->
+                                    <div class="divide-y divide-gray-50 max-h-48 overflow-y-auto">
+                                        <label v-for="lang in filteredLanguages" :key="lang" class="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer select-none text-gray-700 text-sm font-medium">
+                                            <input type="checkbox" :checked="form.target_language.includes(lang)" @change="toggleTargetLanguage(lang)" class="h-4 w-4 text-[#0a1f44] focus:ring-[#0a1f44] border-gray-300 rounded mr-3" />
+                                            <span>{{ lang }}</span>
+                                        </label>
+                                        <div v-if="filteredLanguages.length === 0" class="text-xs text-gray-400 italic p-3 text-center">
+                                            No languages match search.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom target language text input -->
+                            <div class="flex gap-2">
+                                <input type="text" v-model="newCustomTarget" placeholder="Specify other language..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44]" @keydown.enter.prevent="addCustomTarget" />
+                                <button type="button" @click="addCustomTarget" class="px-4 py-2 bg-[#0a1f44] text-white rounded-md text-xs font-bold hover:bg-[#152a4d] transition-colors">
+                                    Add
+                                </button>
+                            </div>
                         </div>
                         <div v-if="form.errors.target_language" class="text-red-500 text-xs mt-1">{{ form.errors.target_language }}</div>
                     </div>
@@ -164,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
 
@@ -247,7 +295,7 @@ const form = useForm({
     title: '',
     description: '',
     source_language: '',
-    target_language: '',
+    target_language: [],
     priority: 'medium',
     deadline: '',
     files: [],
@@ -255,9 +303,6 @@ const form = useForm({
 
 const selectedSource = ref(form.source_language && zimbabweanLanguages.includes(form.source_language) ? form.source_language : (form.source_language ? 'Other' : ''));
 const customSource = ref(selectedSource.value === 'Other' ? form.source_language : '');
-
-const selectedTarget = ref(form.target_language && zimbabweanLanguages.includes(form.target_language) ? form.target_language : (form.target_language ? 'Other' : ''));
-const customTarget = ref(selectedTarget.value === 'Other' ? form.target_language : '');
 
 const updateSourceLanguage = () => {
     if (selectedSource.value === 'Other') {
@@ -267,11 +312,41 @@ const updateSourceLanguage = () => {
     }
 };
 
-const updateTargetLanguage = () => {
-    if (selectedTarget.value === 'Other') {
-        form.target_language = customTarget.value;
+const showTargetDropdown = ref(false);
+const searchLanguageQuery = ref('');
+
+const filteredLanguages = computed(() => {
+    return zimbabweanLanguages.filter(lang => 
+        lang !== 'Other' && 
+        lang.toLowerCase().includes(searchLanguageQuery.value.toLowerCase())
+    );
+});
+
+const toggleTargetLanguage = (lang) => {
+    const index = form.target_language.indexOf(lang);
+    if (index > -1) {
+        form.target_language.splice(index, 1);
     } else {
-        form.target_language = selectedTarget.value;
+        form.target_language.push(lang);
+    }
+};
+
+const addTargetLanguage = (lang) => {
+    if (lang && !form.target_language.includes(lang)) {
+        form.target_language.push(lang);
+    }
+};
+
+const removeTargetLanguage = (index) => {
+    form.target_language.splice(index, 1);
+};
+
+const newCustomTarget = ref('');
+const addCustomTarget = () => {
+    const val = newCustomTarget.value.trim();
+    if (val) {
+        addTargetLanguage(val);
+        newCustomTarget.value = '';
     }
 };
 

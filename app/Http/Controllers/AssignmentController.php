@@ -102,7 +102,7 @@ class AssignmentController extends Controller
             $isStaffOutsideAos = true;
         }
 
-        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && (int) $assignment->assigned_to !== (int) $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -120,7 +120,7 @@ class AssignmentController extends Controller
             $isStaffOutsideAos = true;
         }
 
-        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && $assignment->assigned_to !== $user->id) {
+        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && (int) $assignment->assigned_to !== (int) $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -156,6 +156,8 @@ class AssignmentController extends Controller
             $assignment->serviceRequest->update(['status' => 'review']);
         }
 
+        \App\Services\ReminderService::markAsCompleted(\App\Models\Assignment::class, $assignment->id);
+
         return redirect()->back()->with('success', 'Assignment completed and deliverable submitted successfully.');
     }
 
@@ -170,10 +172,23 @@ class AssignmentController extends Controller
 
     public function update(Request $request, Assignment $assignment)
     {
+        $user = Auth::user();
+        $user->loadMissing('department');
+        
+        $isStaffOutsideAos = false;
+        if ($user->department && $user->department->code !== 'AOS' && $user->primary_category === 'Staff') {
+            $isStaffOutsideAos = true;
+        }
+
+        if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && (int) $assignment->assigned_to !== (int) $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
         $validated = $request->validate([
-            'status'       => 'sometimes|in:assigned,accepted,in_progress,completed,reassigned',
-            'role_in_task' => 'sometimes|nullable|string|max:100',
-            'notes'        => 'nullable|string',
+            'status'           => 'sometimes|in:assigned,accepted,rejected,in_progress,completed,reassigned',
+            'role_in_task'     => 'sometimes|nullable|string|max:100',
+            'notes'            => 'nullable|string',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string',
         ]);
 
         if (isset($validated['status']) && $validated['status'] === 'in_progress' && !$assignment->started_at) {
@@ -184,11 +199,55 @@ class AssignmentController extends Controller
         }
 
         $assignment->fill($validated);
+
         if (!$assignment->isDirty()) {
             return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
         }
 
         $assignment->save();
+
+        if ($assignment->wasChanged('status')) {
+            $newStatus = $assignment->status;
+            
+            // Audit Log
+            $properties = [
+                'reviewer_id' => $user->id,
+                'review_date' => now()->toDateTimeString(),
+            ];
+            if ($newStatus === 'rejected') {
+                $properties['rejection_reason'] = $assignment->rejection_reason;
+            }
+            
+            \App\Models\ActivityLog::log(
+                "assignment_{$newStatus}",
+                "Instructor " . ($newStatus === 'accepted' ? 'accepted' : ($newStatus === 'rejected' ? 'rejected' : 'updated')) . " assignment {$assignment->id}",
+                $assignment,
+                $properties
+            );
+
+            // Notify Assigner
+            $assigner = $assignment->assignedBy;
+            if ($assigner) {
+                $title = $newStatus === 'accepted' ? 'Assignment Accepted' : ($newStatus === 'rejected' ? 'Assignment Rejected' : 'Assignment Updated');
+                
+                $message = "The assignment for request \"{$assignment->serviceRequest->title}\" was " . $newStatus . " by {$user->name}.";
+                if ($newStatus === 'rejected') {
+                    $message .= " Reason: " . ($assignment->rejection_reason ?? 'None');
+                }
+                
+                \App\Notifications\SystemNotification::sendUnique(
+                    $assigner,
+                    'Assignments',
+                    $title,
+                    $message,
+                    route('assignments.show', $assignment->id)
+                );
+            }
+        }
+
+        if ($assignment->status === 'completed' || $assignment->status === 'rejected') {
+            \App\Services\ReminderService::markAsCompleted(\App\Models\Assignment::class, $assignment->id);
+        }
 
         return redirect()->back()->with('success', 'Assignment updated.');
     }

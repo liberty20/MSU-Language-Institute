@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $start_date
+ * @property \Illuminate\Support\Carbon|null $end_date
+ */
 class CourseIntake extends Model
 {
     use HasFactory;
