@@ -77,9 +77,13 @@ class ServiceRequestController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(\Illuminate\Http\Request $request)
     {
         $user = Auth::user();
+        if (!$user->hasPermissionTo('create service requests') && !$user->hasAnyRole(['admin_assistant', 'secretary'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         if ($user->hasRole('client')) {
             $client = Client::where('email', $user->email)->first();
             if (!$client) {
@@ -99,13 +103,17 @@ class ServiceRequestController extends Controller
 
         return Inertia::render('ServiceRequests/Create', [
             'clients' => Client::where('status', 'active')->orderBy('contact_person')->get(),
-            'default_client_id' => null,
+            'default_client_id' => $request->query('client_id') ? (int) $request->query('client_id') : null,
         ]);
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
+        if (!$user->hasPermissionTo('create service requests') && !$user->hasAnyRole(['admin_assistant', 'secretary'])) {
+            abort(403, 'Unauthorized.');
+        }
+
         if ($user->hasRole('client')) {
             $client = Client::where('email', $user->email)->first();
             if (!$client) {

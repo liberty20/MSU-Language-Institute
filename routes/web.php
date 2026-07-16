@@ -48,8 +48,8 @@ Route::get('/', function () {
         ->orderBy('published_at', 'desc')
         ->get();
 
-    $documentaries = \App\Models\SystemSetting::get('short_courses_documentaries', []);
-    if (empty($documentaries)) {
+    $settingRecord = \App\Models\SystemSetting::where('key', 'short_courses_documentaries')->first();
+    if (!$settingRecord) {
         $documentaries = [
             [
                 'id' => 'doc1',
@@ -93,6 +93,8 @@ Route::get('/', function () {
             ]
         ];
         \App\Models\SystemSetting::set('short_courses_documentaries', $documentaries);
+    } else {
+        $documentaries = $settingRecord->value ?? [];
     }
 
     return Inertia::render('Welcome', [

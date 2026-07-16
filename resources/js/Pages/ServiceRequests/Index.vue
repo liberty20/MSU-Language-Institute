@@ -5,7 +5,7 @@
         <template #header>
             <div class="flex justify-between items-center">
                 <span>Service Requests</span>
-                <Link v-if="!['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" :href="route('service-requests.create')" class="bg-[#f5c242] text-[#0a1f44] hover:bg-yellow-500 px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
+                <Link v-if="$page.props.auth.permissions.includes('create service requests') || $page.props.auth.permissions.includes('manage system') || ['admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('service-requests.create')" class="bg-[#f5c242] text-[#0a1f44] hover:bg-yellow-500 px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm">
                     + New Request
                 </Link>
             </div>

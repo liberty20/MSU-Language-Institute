@@ -170,8 +170,8 @@ class DocumentariesTest extends TestCase
     /** @test */
     public function public_user_can_view_documentaries()
     {
-        // Clear setting first to trigger seeding
-        SystemSetting::set('short_courses_documentaries', []);
+        // Clear setting record completely first to trigger seeding
+        SystemSetting::where('key', 'short_courses_documentaries')->delete();
 
         $response = $this->get('/');
         $response->assertStatus(200);
@@ -180,6 +180,16 @@ class DocumentariesTest extends TestCase
         $docs = SystemSetting::get('short_courses_documentaries', []);
         $this->assertNotEmpty($docs);
         $this->assertCount(4, $docs);
+
+        // Now set setting value to empty array (user deleted all)
+        SystemSetting::set('short_courses_documentaries', []);
+
+        $response2 = $this->get('/');
+        $response2->assertStatus(200);
+
+        // Should not reseed because the record exists
+        $docs2 = SystemSetting::get('short_courses_documentaries', []);
+        $this->assertEmpty($docs2);
     }
 
     /** @test */

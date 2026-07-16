@@ -28,7 +28,7 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Dashboard</span>
                 </Link>
 
-                <Link v-if="can('view service requests')" :href="route('service-requests.index')" :class="navClass('service-requests.*')" title="Service Requests">
+                <Link v-if="can('view service requests') || ['admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('service-requests.index')" :class="navClass('service-requests.*')" title="Service Requests">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Service Requests</span>
                 </Link>

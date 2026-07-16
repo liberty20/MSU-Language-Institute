@@ -58,7 +58,7 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                         <h3 class="text-lg font-bold text-gray-900">Recent Service Requests</h3>
-                        <Link :href="route('service-requests.create')" class="text-sm bg-brand-blue hover:bg-brand-blue-light text-white px-3 py-1.5 rounded shadow transition font-medium">
+                        <Link v-if="$page.props.auth.permissions.includes('create service requests') || $page.props.auth.permissions.includes('manage system') || ['admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('service-requests.create', { client_id: client.id })" class="text-sm bg-brand-blue hover:bg-brand-blue-light text-white px-3 py-1.5 rounded shadow transition font-medium">
                             + New Request
                         </Link>
                     </div>

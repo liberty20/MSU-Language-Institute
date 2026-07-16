@@ -653,28 +653,30 @@ class ReminderService
             }
 
             // K. CC Reviews -> Specific CC Reviewers
-            $ccReviews = DB::table('cc_reviews')
-                ->where('reviewer_id', $user->id)
-                ->where('status', 'pending')
-                ->get();
+            if (\Illuminate\Support\Facades\Schema::hasTable('cc_reviews')) {
+                $ccReviews = DB::table('cc_reviews')
+                    ->where('reviewer_id', $user->id)
+                    ->where('status', 'pending')
+                    ->get();
 
-            foreach ($ccReviews as $review) {
-                $req = ServiceRequest::find($review->service_request_id);
-                if ($req) {
-                    $addTask([
-                        'id' => "cc-review-{$review->id}",
-                        'title' => "CC Review: " . $req->title,
-                        'module' => 'CC Reviews',
-                        'required_action' => 'Respond to CC Review',
-                        'due_date' => null,
-                        'days_diff' => null,
-                        'priority' => 'medium',
-                        'status' => 'Pending Review',
-                        'action_url' => route('service-requests.show', $req->id),
-                        'remindable_type' => ServiceRequest::class,
-                        'remindable_id' => $req->id,
-                        'description' => "Coordinator review has been requested for deliverable on Ref: {$req->reference_number}.",
-                    ]);
+                foreach ($ccReviews as $review) {
+                    $req = ServiceRequest::find($review->service_request_id);
+                    if ($req) {
+                        $addTask([
+                            'id' => "cc-review-{$review->id}",
+                            'title' => "CC Review: " . $req->title,
+                            'module' => 'CC Reviews',
+                            'required_action' => 'Respond to CC Review',
+                            'due_date' => null,
+                            'days_diff' => null,
+                            'priority' => 'medium',
+                            'status' => 'Pending Review',
+                            'action_url' => route('service-requests.show', $req->id),
+                            'remindable_type' => ServiceRequest::class,
+                            'remindable_id' => $req->id,
+                            'description' => "Coordinator review has been requested for deliverable on Ref: {$req->reference_number}.",
+                        ]);
+                    }
                 }
             }
         }

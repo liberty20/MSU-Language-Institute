@@ -261,11 +261,11 @@
                     <p class="text-gray-600 text-lg">Explore our library of language, accessibility, and cultural heritage video documentaries.</p>
                 </div>
 
-                <div v-if="!documentaries || documentaries.length === 0" class="bg-white rounded-2xl border border-gray-150 p-16 text-center text-gray-400 italic shadow-sm">
+                <div v-if="!documentaries || documentaries.filter(d => d.is_published).length === 0" class="bg-white rounded-2xl border border-gray-150 p-16 text-center text-gray-400 italic shadow-sm">
                     <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"/>
                     </svg>
-                    No documentaries are available at the moment.
+                    No documentaries have been posted yet.
                 </div>
 
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">

@@ -34,15 +34,15 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         $coordinatorPermissions = array_values(array_filter($permissions, function ($p) {
-            return !in_array($p, ['manage users', 'manage roles', 'manage system']);
+            return !in_array($p, ['manage users', 'manage roles', 'manage system', 'create service requests']);
         }));
 
         $roles = [
             'executive_director' => Permission::all(),
             'deputy_director'    => ['manage users', 'view service requests', 'approve quotations', 'view assignments', 'view reports', 'view quotations'],
-            'admin_assistant'    => ['view reports', 'manage clients', 'manage quotations', 'view quotations'],
+            'admin_assistant'    => ['view reports', 'manage clients', 'manage quotations', 'view quotations', 'view service requests', 'create service requests', 'manage service requests'],
             'secretary'          => [
-                'manage service requests', 'view reports', 'manage assignments', 'view assignments', 
+                'view service requests', 'create service requests', 'manage service requests', 'view reports', 'manage assignments', 'view assignments', 
                 'view tasks', 'view quotations', 'manage schedule', 'manage correspondence', 
                 'manage inquiries', 'manage executive communications', 'manage administrative documentation', 
                 'manage executive notifications'
