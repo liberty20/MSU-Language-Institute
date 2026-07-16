@@ -175,7 +175,7 @@ class DashboardController extends Controller
         }
 
         $recentActivities = collect();
-        if ($user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant'])) {
+        if ($user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant', 'coordinator'])) {
             $recentActivities = \App\Models\ActivityLog::orderBy('created_at', 'desc')
                 ->take(10)
                 ->get()
@@ -200,7 +200,7 @@ class DashboardController extends Controller
     public function auditTrail()
     {
         $user = Auth::user();
-        if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant'])) {
+        if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant', 'coordinator'])) {
             abort(403, 'Unauthorized access to Audit Trail.');
         }
 
@@ -544,7 +544,7 @@ class DashboardController extends Controller
             }
 
             $userRoles = $user->getRoleNames();
-            $adminRoles = ['ict_administrator', 'admin_assistant', 'deputy_director', 'executive_director'];
+            $adminRoles = ['ict_administrator', 'admin_assistant', 'deputy_director', 'executive_director', 'coordinator'];
 
             // Check authorization for the URL route
             try {
@@ -607,7 +607,7 @@ class DashboardController extends Controller
 
     private function userHasAccessToRecord($record, $user)
     {
-        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator', 'coordinator']);
         if ($isManagement) {
             return true;
         }

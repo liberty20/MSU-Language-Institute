@@ -27,13 +27,27 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class CourseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $user = Auth::user();
+            if ($user && $user->hasAnyRole(['executive_director', 'deputy_director'])) {
+                $action = $request->route() ? $request->route()->getActionMethod() : null;
+                if (!in_array($action, ['publicCatalog', 'publicPortal', 'liveConfig', 'submitApplication'])) {
+                    abort(403, 'Unauthorized.');
+                }
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * Display course management for admins and instructors.
      */
     public function index()
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -136,7 +150,7 @@ class CourseController extends Controller
     public function destroy(Course $course)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'coordinator'])) {
             abort(403, 'Unauthorized. Only directors and administrators can delete courses.');
         }
 
@@ -312,7 +326,7 @@ class CourseController extends Controller
     public function enrollments(Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -700,7 +714,7 @@ class CourseController extends Controller
     public function exportReport(Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -727,7 +741,7 @@ class CourseController extends Controller
     public function exportCourseStudents($intakeId, Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -1341,7 +1355,7 @@ class CourseController extends Controller
     public function applicationsList(Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator', 'secretary'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -1394,7 +1408,7 @@ class CourseController extends Controller
     public function applicationDetails($id)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'])) {
+        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator', 'secretary'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -1413,8 +1427,8 @@ class CourseController extends Controller
     public function verifyApplication(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user || !$user->hasAnyRole(['ict_administrator', 'admin_assistant'])) {
-            return redirect()->back()->with('error', 'Unauthorized. Only Administrative Assistant or ICT Administrator can verify applications.');
+        if (!$user || !$user->hasAnyRole(['ict_administrator', 'admin_assistant', 'secretary'])) {
+            return redirect()->back()->with('error', 'Unauthorized. Only Administrative Assistant, Secretary or ICT Administrator can verify applications.');
         }
 
         $request->validate([
@@ -1424,7 +1438,7 @@ class CourseController extends Controller
 
         try {
             $application = CourseApplication::findOrFail($id);
-            if ($application->status !== 'pending') {
+            if ($application->status !== 'pending' && $application->status !== 'returned') {
                 return redirect()->back()->with('error', 'This application cannot be verified as it is currently in status: ' . $application->status);
             }
 
@@ -1449,14 +1463,14 @@ class CourseController extends Controller
                 'action'        => 'verified_application',
                 'subject_type'  => CourseApplication::class,
                 'subject_id'    => $application->id,
-                'description'   => 'Verified application for ' . $application->full_name . ' and forwarded to Deputy Director.',
+                'description'   => 'Verified application for ' . $application->full_name . ' and forwarded to Coordinator.',
                 'ip_address'    => $request->ip(),
                 'user_agent'    => $request->userAgent()
             ]);
 
             \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
 
-            return redirect()->route('course-applications.index')->with('success', 'Application verified successfully and forwarded to the Deputy Director.');
+            return redirect()->route('course-applications.index')->with('success', 'Application verified successfully and forwarded to the Coordinator.');
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return redirect()->back()->with('error', 'Course application not found with ID: ' . $id);
@@ -1466,52 +1480,73 @@ class CourseController extends Controller
     }
 
     /**
-     * Step 2: Recommendation (Deputy Director)
+     * Return Application for Correction (Administrative Assistant / Secretary / ICT Admin)
      */
-    public function recommendApplication(Request $request, $id)
+    public function returnApplication(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->hasRole('deputy_director')) {
-            abort(403, 'Unauthorized. Only the Deputy Director can recommend applications.');
+        if (!$user || !$user->hasAnyRole(['ict_administrator', 'admin_assistant', 'secretary'])) {
+            abort(403, 'Unauthorized. Only Administrative Assistant, Secretary or ICT Administrator can return applications for correction.');
         }
 
         $request->validate([
-            'comment' => 'nullable|string',
+            'comment' => 'required|string|max:1000',
         ]);
 
-        $application = CourseApplication::findOrFail($id);
-        if ($application->status !== 'verified') {
-            return redirect()->back()->with('error', 'This application cannot be recommended as it is currently in status: ' . $application->status);
+        try {
+            $application = CourseApplication::findOrFail($id);
+            if ($application->status !== 'pending' && $application->status !== 'returned') {
+                return redirect()->back()->with('error', 'This application cannot be returned as it is currently in status: ' . $application->status);
+            }
+
+            $application->update([
+                'status' => 'returned',
+            ]);
+
+            CourseApplicationLog::create([
+                'course_application_id' => $application->id,
+                'user_id'               => $user->id,
+                'action'                => 'returned',
+                'comment'               => $request->comment,
+            ]);
+
+            // Add activity log
+            ActivityLog::create([
+                'user_id'       => $user->id,
+                'action'        => 'returned_application',
+                'subject_type'  => CourseApplication::class,
+                'subject_id'    => $application->id,
+                'description'   => 'Returned application for ' . $application->full_name . ' for correction.',
+                'ip_address'    => $request->ip(),
+                'user_agent'    => $request->userAgent()
+            ]);
+
+            $studentUser = User::where('email', $application->email)->first();
+            if ($studentUser) {
+                SystemNotification::sendUnique(
+                    $studentUser,
+                    'application_returned',
+                    'Application Returned for Correction',
+                    'Your application for ' . ($application->intake && $application->intake->course ? $application->intake->course->title : 'Short Course') . ' has been returned for correction. Reason: ' . $request->comment,
+                    route('student.courses')
+                );
+            }
+
+            return redirect()->route('course-applications.index')->with('success', 'Application successfully returned for correction.');
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()->with('error', 'Course application not found with ID: ' . $id);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to return application: ' . $e->getMessage());
         }
+    }
 
-        $application->update([
-            'status'                => 'recommended',
-            'recommendation_status' => 'recommended',
-            'recommended_by'        => $user->id,
-            'recommended_at'        => now(),
-        ]);
-
-        CourseApplicationLog::create([
-            'course_application_id' => $application->id,
-            'user_id'               => $user->id,
-            'action'                => 'recommended',
-            'comment'               => $request->comment ?? 'Application recommended for approval.',
-        ]);
-
-        ActivityLog::log(
-            'recommended_application',
-            'Recommended application for ' . $application->full_name . ' to Director.',
-            $application,
-            [
-                'old_value' => 'verified',
-                'new_value' => 'recommended',
-                'comment'   => $request->comment ?? ''
-            ]
-        );
-
-        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
-
-        return redirect()->back()->with('success', 'Application recommended successfully! Forwarded to the Director.');
+    /**
+     * Step 2: Recommendation (Deputy Director) - DEPRECATED
+     */
+    public function recommendApplication(Request $request, $id)
+    {
+        abort(403, 'Unauthorized. Recommendation step is deprecated under the new coordinator approval workflow.');
     }
 
     /**
@@ -1520,8 +1555,8 @@ class CourseController extends Controller
     public function approveApplication(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->hasRole('executive_director')) {
-            abort(403, 'Unauthorized. Only the Director can approve applications.');
+        if (!$user->hasRole('coordinator') && !$user->hasRole('ict_administrator')) {
+            abort(403, 'Unauthorized. Only the Coordinator can approve applications.');
         }
 
         $request->validate([
@@ -1535,13 +1570,14 @@ class CourseController extends Controller
             return redirect()->back()->with('success', 'This enrollment application has already been successfully approved and activated.');
         }
 
-        if ($application->status !== 'recommended') {
+        if ($application->status !== 'verified' && $application->status !== 'recommended') {
             return redirect()->back()->with('error', 'This application cannot be approved as it is currently in status: ' . $application->status);
         }
 
         try {
             // Ensure all workflow transitions are transaction-safe
             \DB::transaction(function () use ($application, $user, $request) {
+                $oldStatus = $application->status;
                 // 1. Update application status to 'approved'
                 $application->update([
                     'status'          => 'approved',
@@ -1555,7 +1591,7 @@ class CourseController extends Controller
                     'course_application_id' => $application->id,
                     'user_id'               => $user->id,
                     'action'                => 'approved',
-                    'comment'               => $request->comment ?? 'Application approved by Director.',
+                    'comment'               => $request->comment ?? 'Application approved by Coordinator.',
                 ]);
 
                 ActivityLog::log(
@@ -1563,7 +1599,7 @@ class CourseController extends Controller
                     'Approved application for ' . $application->full_name . ' and enrolled student.',
                     $application,
                     [
-                        'old_value' => 'recommended',
+                        'old_value' => $oldStatus,
                         'new_value' => 'approved',
                         'comment'   => $request->comment ?? ''
                     ]
@@ -1690,8 +1726,8 @@ class CourseController extends Controller
     public function rejectApplication(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'])) {
-            abort(403, 'Unauthorized.');
+        if (!$user->hasRole('coordinator') && !$user->hasRole('ict_administrator')) {
+            abort(403, 'Unauthorized. Only the Coordinator can reject applications.');
         }
 
         $request->validate([
@@ -1747,7 +1783,7 @@ class CourseController extends Controller
 
         // Authorize: Reviewers or the student owner themselves
         $isOwner = ($user->email === $application->email);
-        $isReviewer = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+        $isReviewer = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator', 'secretary']);
 
         if (!$isOwner && !$isReviewer) {
             abort(403, 'Unauthorized.');

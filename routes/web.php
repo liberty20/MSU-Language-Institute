@@ -10,7 +10,6 @@ use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\TaskController;
-use App\Http\Controllers\ProcurementRequestController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PaymentController;
@@ -49,12 +48,60 @@ Route::get('/', function () {
         ->orderBy('published_at', 'desc')
         ->get();
 
+    $documentaries = \App\Models\SystemSetting::get('short_courses_documentaries', []);
+    if (empty($documentaries)) {
+        $documentaries = [
+            [
+                'id' => 'doc1',
+                'title' => 'Preserving Zimbabwe\'s Linguistic Heritage',
+                'description' => 'A comprehensive look into the documentation, archiving, and preservation efforts of Zimbabwe\'s 16 official indigenous languages, featuring interviews with community elders and language experts at MSUNLI.',
+                'duration' => '12:45',
+                'thumbnail_path' => '/images/doc_linguistics.png',
+                'video_path' => 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+                'is_published' => true,
+                'created_at' => '2026-07-16 10:00:00'
+            ],
+            [
+                'id' => 'doc2',
+                'title' => 'Voices of Inclusivity: Zimbabwean Sign Language',
+                'description' => 'Exploring the impact of Zimbabwean Sign Language (ZSL) training and public translation services. Discover how MSUNLI bridges accessibility gaps in universities, courts, and media.',
+                'duration' => '15:20',
+                'thumbnail_path' => '/images/doc_sign.png',
+                'video_path' => 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+                'is_published' => true,
+                'created_at' => '2026-07-16 10:15:00'
+            ],
+            [
+                'id' => 'doc3',
+                'title' => 'Empowering the Visually Impaired: Braille Translation',
+                'description' => 'Go behind the scenes of MSUNLI\'s state-of-the-art Braille production facility. Learn how academic textbooks and national documents are converted into Unified English Braille (UEB).',
+                'duration' => '09:30',
+                'thumbnail_path' => '/images/doc_braille.png',
+                'video_path' => 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+                'is_published' => true,
+                'created_at' => '2026-07-16 10:30:00'
+            ],
+            [
+                'id' => 'doc4',
+                'title' => 'Bridging Borders: Swahili as a Pan-African Language',
+                'description' => 'How Kiswahili is becoming a vital language for continental trade, education, and cultural integration. An overview of MSUNLI\'s certified Swahili language courses and regional partners.',
+                'duration' => '18:10',
+                'thumbnail_path' => '/images/doc_swahili.png',
+                'video_path' => 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                'is_published' => true,
+                'created_at' => '2026-07-16 10:45:00'
+            ]
+        ];
+        \App\Models\SystemSetting::set('short_courses_documentaries', $documentaries);
+    }
+
     return Inertia::render('Welcome', [
         'courses' => $courses,
         'intakes' => $intakes,
         'contactInfo' => $contactInfo,
         'canLogin' => Route::has('login'),
         'notices' => $notices,
+        'documentaries' => $documentaries,
     ]);
 });
 
@@ -146,6 +193,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('course-applications/{id}', [CourseController::class, 'applicationDetails'])->name('course-applications.show');
     Route::get('course-applications/{id}/download/{type}', [CourseController::class, 'downloadApplicationFile'])->name('course-applications.download-file');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/verify', [CourseController::class, 'verifyApplication'])->name('course-applications.verify');
+    Route::match(['post', 'put', 'patch'], 'course-applications/{id}/return', [CourseController::class, 'returnApplication'])->name('course-applications.return');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/recommend', [CourseController::class, 'recommendApplication'])->name('course-applications.recommend');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/approve', [CourseController::class, 'approveApplication'])->name('course-applications.approve');
     Route::match(['post', 'put', 'patch'], 'course-applications/{id}/reject', [CourseController::class, 'rejectApplication'])->name('course-applications.reject');
@@ -194,8 +242,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('instructor')->group(function () {
         Route::get('instructor/enrollments', [\App\Http\Controllers\InstructorPortalController::class, 'enrollments'])->name('instructor.enrollments');
         Route::get('instructor/enrollments/export/{intakeId}', [\App\Http\Controllers\InstructorPortalController::class, 'exportEnrollments'])->name('instructor.enrollments.export');
+        Route::post('instructor/enrollments/{enrollment}/extend', [\App\Http\Controllers\InstructorPortalController::class, 'extendEnrollment'])->name('instructor.enrollments.extend');
         
         Route::get('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableIndex'])->name('instructor.timetable.index');
+        Route::get('instructor/attendance', [\App\Http\Controllers\InstructorPortalController::class, 'attendanceIndex'])->name('instructor.attendance.index');
+        Route::post('instructor/attendance/record', [\App\Http\Controllers\InstructorPortalController::class, 'recordAttendance'])->name('instructor.attendance.record');
+        Route::get('instructor/attendance/export/{intake}', [\App\Http\Controllers\InstructorPortalController::class, 'exportAttendance'])->name('instructor.attendance.export');
         Route::post('instructor/timetable', [\App\Http\Controllers\InstructorPortalController::class, 'timetableStore'])->name('instructor.timetable.store');
         Route::post('instructor/timetable/copy', [\App\Http\Controllers\InstructorPortalController::class, 'timetableCopy'])->name('instructor.timetable.copy');
         Route::put('instructor/timetable/{id}', [\App\Http\Controllers\InstructorPortalController::class, 'timetableUpdate'])->name('instructor.timetable.update');
@@ -244,10 +296,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('quotations/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotations.approve');
     Route::resource('assignments', AssignmentController::class);
     Route::post('assignments/{assignment}/complete', [AssignmentController::class, 'completeAssignment'])->name('assignments.complete');
-    Route::get('procurement-requests', function () {
-        return redirect()->away('https://procurementreq.msu.ac.zw/');
-    })->name('procurement-requests.index');
-    Route::resource('procurement-requests', ProcurementRequestController::class)->except(['index']);
+
+    // Deliverable workflow refactoring routes
+    Route::post('service-requests/{service_request}/cc-review', [ServiceRequestController::class, 'ccReview'])->name('service-requests.cc-review');
+    Route::post('cc-reviews/{cc_review}/respond', [ServiceRequestController::class, 'respondCcReview'])->name('cc-reviews.respond');
+    Route::post('service-requests/{service_request}/forward', [ServiceRequestController::class, 'forwardToDirector'])->name('service-requests.forward');
+    Route::post('service-requests/{service_request}/director-approve', [ServiceRequestController::class, 'directorApprove'])->name('service-requests.director-approve');
+    Route::post('service-requests/{service_request}/director-reject', [ServiceRequestController::class, 'directorReject'])->name('service-requests.director-reject');
+    Route::get('deliverable-approvals/{service_request}', [ServiceRequestController::class, 'directorApprovalView'])->name('deliverable-approvals.show');
+    Route::post('service-requests/{service_request}/coordinator-approve', [ServiceRequestController::class, 'coordinatorApprove'])->name('service-requests.coordinator-approve');
+
     
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
@@ -301,6 +359,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('testimonials/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('testimonials.destroy');
         Route::post('testimonials/update-active', [\App\Http\Controllers\Admin\SettingsController::class, 'updateActiveTestimonial'])->name('testimonials.update-active');
         Route::post('testimonials', [\App\Http\Controllers\Admin\SettingsController::class, 'storeTestimonial'])->name('testimonials.store');
+        
+        // Documentaries configuration routes
+        Route::post('settings/documentaries', [\App\Http\Controllers\Admin\SettingsController::class, 'storeDocumentary'])->name('settings.documentaries.store');
+        Route::post('settings/documentaries/{id}/update', [\App\Http\Controllers\Admin\SettingsController::class, 'updateDocumentary'])->name('settings.documentaries.update');
+        Route::delete('settings/documentaries/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyDocumentary'])->name('settings.documentaries.destroy');
     });
 
     Route::middleware('role:deputy_director')->group(function () {

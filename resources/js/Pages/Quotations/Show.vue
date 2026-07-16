@@ -192,8 +192,29 @@
                     </Link>
                 </div>
 
+                <!-- Coordinator Review -->
+                <div v-if="quotation.status === 'submitted' && $page.props.auth.roles.includes('coordinator')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Coordinator Review</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Review Notes / Comments</label>
+                            <textarea v-model="approvalComment" rows="3"
+                                      class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm resize-none"
+                                      placeholder="Optional remarks…"></textarea>
+                        </div>
+                        <button @click="submitApproval('approved')"
+                                class="w-full bg-green-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm shadow-green-100">
+                            ✓ Forward to Deputy Director
+                        </button>
+                        <button @click="submitApproval('review')"
+                                class="w-full bg-amber-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold hover:bg-amber-700 transition flex items-center justify-center gap-2 shadow-sm shadow-amber-100">
+                            ⟲ Return for Correction
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Deputy Director Recommendation -->
-                <div v-if="quotation.status === 'submitted' && $page.props.auth.roles.includes('deputy_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div v-if="quotation.status === 'reviewed' && $page.props.auth.roles.includes('deputy_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Deputy Director Recommendation</h3>
                     <div class="space-y-3">
                         <div>
@@ -214,7 +235,7 @@
                 </div>
 
                 <!-- Executive Director Final Approval -->
-                <div v-if="(quotation.status === 'pending_approval' || quotation.status === 'submitted') && $page.props.auth.roles.includes('executive_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div v-if="quotation.status === 'pending_approval' && $page.props.auth.roles.includes('executive_director')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Executive Director Final Approval</h3>
                     <div class="space-y-3">
                         <div>
@@ -275,7 +296,10 @@ const mappedStatus = computed(() => {
             : { label: 'Draft', class: 'bg-gray-100 text-gray-700' };
     }
     if (props.quotation.status === 'submitted') {
-        return { label: 'Pending Recommendation', class: 'bg-blue-100 text-blue-800' };
+        return { label: 'Awaiting Review', class: 'bg-blue-100 text-blue-800' };
+    }
+    if (props.quotation.status === 'reviewed') {
+        return { label: 'Pending Recommendation', class: 'bg-purple-100 text-purple-800' };
     }
     if (props.quotation.status === 'pending_approval') {
         return { label: 'Recommended', class: 'bg-yellow-100 text-yellow-800' };

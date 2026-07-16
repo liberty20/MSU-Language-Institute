@@ -5,7 +5,7 @@
         <template #header>
             <div class="flex justify-between items-center">
                 <span>Assignments Board</span>
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('assignments.create')" class="bg-[#0a1f44] text-white hover:bg-[#152a4d] px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm inline-block">
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'].some(r => $page.props.auth.roles.includes(r))" :href="route('assignments.create')" class="bg-[#0a1f44] text-white hover:bg-[#152a4d] px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm inline-block">
                     + New Assignment
                 </Link>
             </div>

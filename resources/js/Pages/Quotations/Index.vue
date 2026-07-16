@@ -5,7 +5,7 @@
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <span>Quotations Dashboard</span>
-                <Link v-if="($page.props.auth.permissions.includes('manage quotations') || $page.props.auth.permissions.includes('manage system')) && !$page.props.auth.roles.includes('executive_director') && !$page.props.auth.roles.includes('deputy_director')"
+                <Link v-if="['admin_assistant', 'ict_administrator', 'secretary'].some(role => $page.props.auth.roles.includes(role))"
                       :href="route('quotations.create')"
                       class="bg-brand-gold hover:bg-brand-gold-dark text-brand-blue font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center gap-1">
                     + Generate Quotation
@@ -135,7 +135,10 @@ const getQuotationStatus = (quotation) => {
             : { label: 'Draft', class: 'bg-gray-100 text-gray-700' };
     }
     if (quotation.status === 'submitted') {
-        return { label: 'Pending Recommendation', class: 'bg-blue-100 text-blue-800' };
+        return { label: 'Awaiting Review', class: 'bg-blue-100 text-blue-800' };
+    }
+    if (quotation.status === 'reviewed') {
+        return { label: 'Pending Recommendation', class: 'bg-purple-100 text-purple-800' };
     }
     if (quotation.status === 'pending_approval') {
         return { label: 'Recommended', class: 'bg-yellow-100 text-yellow-800' };

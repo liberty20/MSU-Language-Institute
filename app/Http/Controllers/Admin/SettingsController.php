@@ -22,7 +22,7 @@ class SettingsController extends Controller
     {
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'secretary', 'admin_assistant', 'coordinator'])) {
                 abort(403, 'Unauthorized. Access restricted to System Administrators, Directors, and Deputies.');
             }
             return $next($request);
@@ -82,6 +82,7 @@ class SettingsController extends Controller
             'max_upload_size'     => 10, // MB
             'maintenance_mode'    => false,
             'allow_registrations' => true,
+            'deliverable_direct_routing' => false,
         ]);
 
         $allTestimonials = SystemSetting::get('short_courses_testimonials', []);
@@ -124,6 +125,8 @@ class SettingsController extends Controller
         $activeTestimonials = array_values(array_filter($allTestimonials, fn($t) => isset($t['status']) && $t['status'] === 'approved'));
         $pendingTestimonials = array_values(array_filter($allTestimonials, fn($t) => isset($t['status']) && $t['status'] === 'pending'));
 
+        $documentaries = SystemSetting::get('short_courses_documentaries', []);
+
         return Inertia::render('Admin/Settings/Index', [
             'units' => $units,
             'sections' => $sections,
@@ -141,6 +144,7 @@ class SettingsController extends Controller
             'filters'   => $request->only(['status', 'search']),
             'activeResetRequest' => SystemSetting::get('database_reset_request'),
             'resetHistory' => SystemSetting::get('database_reset_history', []),
+            'documentaries' => $documentaries,
         ]);
     }
 
@@ -201,8 +205,17 @@ class SettingsController extends Controller
         return redirect()->back()->with('success', 'Short Courses Public Information Portal settings updated successfully.');
     }
 
+    private function checkRestrictedAccess()
+    {
+        $user = auth()->user();
+        if ($user->hasRole('secretary') || $user->hasRole('admin_assistant') || $user->hasRole('coordinator')) {
+            abort(403, 'Unauthorized. Access restricted to Administrators and Directors.');
+        }
+    }
+
     public function storeUnit(Request $request)
     {
+        $this->checkRestrictedAccess();
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:20|unique:departments,code',
@@ -218,6 +231,7 @@ class SettingsController extends Controller
 
     public function updateUnit(Request $request, $id)
     {
+        $this->checkRestrictedAccess();
         $unit = Department::findOrFail($id);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -240,6 +254,7 @@ class SettingsController extends Controller
 
     public function destroyUnit($id)
     {
+        $this->checkRestrictedAccess();
         $unit = Department::findOrFail($id);
         
         // Prevent deleting core units with active users
@@ -253,6 +268,7 @@ class SettingsController extends Controller
 
     public function storeSection(Request $request)
     {
+        $this->checkRestrictedAccess();
         $validated = $request->validate([
             'unit_id' => 'required|exists:departments,id',
             'name' => 'required|string|max:255',
@@ -270,6 +286,7 @@ class SettingsController extends Controller
 
     public function updateSection(Request $request, $id)
     {
+        $this->checkRestrictedAccess();
         $section = MsunliSection::findOrFail($id);
         $validated = $request->validate([
             'unit_id' => 'required|exists:departments,id',
@@ -294,6 +311,7 @@ class SettingsController extends Controller
 
     public function destroySection($id)
     {
+        $this->checkRestrictedAccess();
         $section = MsunliSection::findOrFail($id);
         if ($section->users()->exists()) {
             return redirect()->back()->with('error', 'Cannot delete Section. Active users are currently assigned to it.');
@@ -305,6 +323,7 @@ class SettingsController extends Controller
 
     public function storeRole(Request $request)
     {
+        $this->checkRestrictedAccess();
         $validated = $request->validate([
             'section_id' => 'required|exists:msunli_sections,id',
             'name' => 'required|string|max:255',
@@ -328,6 +347,7 @@ class SettingsController extends Controller
 
     public function destroyRole($id)
     {
+        $this->checkRestrictedAccess();
         $role = MsunliRole::findOrFail($id);
         if ($role->users()->exists()) {
             return redirect()->back()->with('error', 'Cannot delete Role. Active users are currently assigned to it.');
@@ -569,6 +589,7 @@ class SettingsController extends Controller
             'max_upload_size'     => 'required|integer|min:1|max:100',
             'maintenance_mode'    => 'required|boolean',
             'allow_registrations' => 'required|boolean',
+            'deliverable_direct_routing' => 'required|boolean',
         ]);
 
         $oldConfig = SystemSetting::get('deputy_system_config', []);
@@ -718,7 +739,6 @@ class SettingsController extends Controller
         DB::table('comments')->truncate();
         DB::table('service_requests')->truncate();
         DB::table('clients')->truncate();
-        DB::table('procurement_requests')->truncate();
 
         // Safely delete client user accounts from users table
         $clientUsers = User::role('client')->get();
@@ -790,6 +810,184 @@ class SettingsController extends Controller
         }
 
         return redirect()->back()->with('success', 'Testimonial created successfully.');
+    }
+
+    /**
+     * Store a new documentary.
+     */
+    public function storeDocumentary(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:10000',
+            'duration' => 'nullable|string|max:50',
+            'thumbnail' => 'required|image|max:10240',
+            'video' => 'required|file|max:102400',
+        ]);
+
+        try {
+            $thumbnailPath = null;
+            if ($request->hasFile('thumbnail')) {
+                $file = $request->file('thumbnail');
+                $path = $file->store('documentaries', 'public');
+                $thumbnailPath = '/storage/' . $path;
+            }
+
+            $videoPath = null;
+            if ($request->hasFile('video')) {
+                $file = $request->file('video');
+                $path = $file->store('documentaries', 'public');
+                $videoPath = '/storage/' . $path;
+            }
+
+            \DB::transaction(function() use ($validated, $thumbnailPath, $videoPath) {
+                $docs = SystemSetting::get('short_courses_documentaries', []);
+                $docs[] = [
+                    'id' => uniqid(),
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'duration' => $validated['duration'] ?? null,
+                    'thumbnail_path' => $thumbnailPath,
+                    'video_path' => $videoPath,
+                    'is_published' => true,
+                    'created_at' => now()->toDateTimeString(),
+                ];
+
+                SystemSetting::set('short_courses_documentaries', $docs);
+
+                ActivityLog::log(
+                    'create_documentary',
+                    'Administrator ' . \Auth::user()->name . ' created documentary: ' . $validated['title']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Documentary uploaded successfully.');
+    }
+
+    /**
+     * Update an existing documentary.
+     */
+    public function updateDocumentary(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:10000',
+            'duration' => 'nullable|string|max:50',
+            'thumbnail' => 'nullable|image|max:10240',
+            'video' => 'nullable|file|max:102400',
+            'is_published' => 'nullable',
+        ]);
+
+        try {
+            \DB::transaction(function() use ($validated, $request, $id) {
+                $docs = SystemSetting::get('short_courses_documentaries', []);
+                $foundIndex = -1;
+                foreach ($docs as $idx => $d) {
+                    if (isset($d['id']) && $d['id'] === $id) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === -1) {
+                    throw new \Exception('Documentary not found.');
+                }
+
+                $doc = $docs[$foundIndex];
+
+                if ($request->hasFile('thumbnail')) {
+                    // Delete old thumbnail if it exists and was uploaded
+                    if ($doc['thumbnail_path'] && str_starts_with($doc['thumbnail_path'], '/storage/')) {
+                        $oldPath = str_replace('/storage/', '', $doc['thumbnail_path']);
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                    }
+                    $file = $request->file('thumbnail');
+                    $path = $file->store('documentaries', 'public');
+                    $doc['thumbnail_path'] = '/storage/' . $path;
+                }
+
+                if ($request->hasFile('video')) {
+                    // Delete old video if it exists and was uploaded
+                    if ($doc['video_path'] && str_starts_with($doc['video_path'], '/storage/')) {
+                        $oldPath = str_replace('/storage/', '', $doc['video_path']);
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                    }
+                    $file = $request->file('video');
+                    $path = $file->store('documentaries', 'public');
+                    $doc['video_path'] = '/storage/' . $path;
+                }
+
+                $doc['title'] = $validated['title'];
+                $doc['description'] = $validated['description'];
+                $doc['duration'] = $validated['duration'];
+                if (isset($request->is_published)) {
+                    $doc['is_published'] = filter_var($request->is_published, FILTER_VALIDATE_BOOLEAN);
+                }
+
+                $docs[$foundIndex] = $doc;
+                SystemSetting::set('short_courses_documentaries', $docs);
+
+                ActivityLog::log(
+                    'update_documentary',
+                    'Administrator ' . \Auth::user()->name . ' updated documentary: ' . $validated['title']
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Documentary updated successfully.');
+    }
+
+    /**
+     * Delete a documentary.
+     */
+    public function destroyDocumentary($id)
+    {
+        try {
+            \DB::transaction(function() use ($id) {
+                $docs = SystemSetting::get('short_courses_documentaries', []);
+                $foundIndex = -1;
+                foreach ($docs as $idx => $d) {
+                    if (isset($d['id']) && $d['id'] === $id) {
+                        $foundIndex = $idx;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === -1) {
+                    throw new \Exception('Documentary not found.');
+                }
+
+                $doc = $docs[$foundIndex];
+
+                // Clean up files
+                if ($doc['thumbnail_path'] && str_starts_with($doc['thumbnail_path'], '/storage/')) {
+                    $oldPath = str_replace('/storage/', '', $doc['thumbnail_path']);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                }
+
+                if ($doc['video_path'] && str_starts_with($doc['video_path'], '/storage/')) {
+                    $oldPath = str_replace('/storage/', '', $doc['video_path']);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                }
+
+                array_splice($docs, $foundIndex, 1);
+                SystemSetting::set('short_courses_documentaries', $docs);
+
+                ActivityLog::log(
+                    'delete_documentary',
+                    'Administrator ' . \Auth::user()->name . ' deleted documentary: ' . ($doc['title'] ?? 'Unknown')
+                );
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Documentary deleted successfully.');
     }
 }
 

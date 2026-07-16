@@ -14,6 +14,18 @@
         </template>
 
         <div class="space-y-6 max-w-6xl mx-auto">
+            <!-- Warning banner for returned applications -->
+            <div v-if="application.status === 'returned'" class="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex items-start gap-4 text-amber-800">
+                <svg class="w-8 h-8 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                    <h4 class="font-extrabold text-sm uppercase tracking-wide text-amber-900">Application Returned for Correction</h4>
+                    <p class="text-xs text-amber-700 mt-1 leading-relaxed">
+                        This enrollment application has been returned to the applicant for corrections. Verification is suspended until corrections are submitted. 
+                        Review the audit trail logs below for comments.
+                    </p>
+                </div>
+            </div>
+
             <!-- Stepper showing application timeline progress -->
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="relative flex justify-between items-center max-w-3xl mx-auto py-4">
@@ -40,22 +52,13 @@
                         <span class="text-[10px] font-black uppercase mt-2" :class="stepTextClass(2)">Verified</span>
                     </div>
 
-                    <!-- Step 3: Recommendation -->
+                    <!-- Step 3: Final Approval -->
                     <div class="z-10 flex flex-col items-center">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition border-2"
                              :class="stepClass(3)">
                             3
                         </div>
-                        <span class="text-[10px] font-black uppercase mt-2" :class="stepTextClass(3)">Recommended</span>
-                    </div>
-
-                    <!-- Step 4: Final Approval -->
-                    <div class="z-10 flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition border-2"
-                             :class="stepClass(4)">
-                            4
-                        </div>
-                        <span class="text-[10px] font-black uppercase mt-2" :class="stepTextClass(4)">Approved</span>
+                        <span class="text-[10px] font-black uppercase mt-2" :class="stepTextClass(3)">Approved</span>
                     </div>
                 </div>
             </div>
@@ -172,11 +175,11 @@
                             <p class="text-[11px] text-gray-400">Current Pipeline Status: <strong class="text-brand-gold-dark uppercase">{{ application.status }}</strong></p>
                         </div>
 
-                        <!-- 1. Verification Section: Administrative Assistant or ICT Admin -->
-                        <div v-if="application.status === 'pending' && canVerify" class="space-y-4">
+                        <!-- 1. Verification Section: Administrative Assistant, Secretary or ICT Admin -->
+                        <div v-if="['pending', 'returned'].includes(application.status) && canVerify" class="space-y-4">
                             <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs text-amber-800 leading-relaxed">
                                 <strong>Step 1: Application Verification</strong><br>
-                                Verify ID numbers and check payment uploads. Set a temporary login password for the student.
+                                Verify ID numbers and check payment uploads. Set a temporary login password for the student or return for correction.
                             </div>
                             <div class="space-y-3">
                                 <div>
@@ -186,39 +189,27 @@
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-black text-gray-700 uppercase mb-1">Review Comments</label>
-                                    <textarea v-model="verifyForm.comment" rows="2" class="w-full rounded-xl text-xs border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="Add custom review notes..."></textarea>
+                                    <textarea v-model="verifyForm.comment" rows="2" class="w-full rounded-xl text-xs border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="Add custom review notes or correction reasons..."></textarea>
                                 </div>
-                                <button @click="submitVerification" :disabled="submitting" class="w-full bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold text-xs py-2.5 rounded-full transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50">
-                                    <svg v-if="!submitting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <span v-if="submitting">Processing verification...</span>
-                                    <span v-else>Verify & Forward</span>
-                                </button>
+                                <div class="flex gap-3">
+                                    <button @click="submitVerification" :disabled="submitting" class="flex-1 bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold text-xs py-2.5 rounded-full transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                        <svg v-if="!submitting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span v-if="submitting">Processing...</span>
+                                        <span v-else>Verify &amp; Forward</span>
+                                    </button>
+                                    <button @click="submitReturn" :disabled="submitting || !verifyForm.comment" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2.5 rounded-full transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                        <svg v-if="!submitting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                        <span v-if="submitting">Processing...</span>
+                                        <span v-else>Return for Correction</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 2. Recommendation Section: Deputy Director -->
-                        <div v-if="application.status === 'verified' && canRecommend" class="space-y-4">
-                            <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 text-xs text-purple-800 leading-relaxed">
-                                <strong>Step 2: Deputy Director Recommendation</strong><br>
-                                Review administrative logs and recommend this candidate for enrollment.
-                            </div>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-[10px] font-black text-gray-700 uppercase mb-1">Recommendation Comments</label>
-                                    <textarea v-model="recommendForm.comment" rows="2" class="w-full rounded-xl text-xs border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="Optional recommendation notes..."></textarea>
-                                </div>
-                                <button @click="submitRecommendation" :disabled="submitting" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded-full transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50">
-                                    <svg v-if="!submitting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <span v-if="submitting">Processing recommendation...</span>
-                                    <span v-else>Recommend to Director</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 3. Approval Section: Executive Director (Director) -->
-                        <div v-if="application.status === 'recommended' && canApprove" class="space-y-4">
+                        <!-- 2. Approval Section: Coordinator Approval -->
+                        <div v-if="(application.status === 'verified' || application.status === 'recommended') && canApprove" class="space-y-4">
                             <div class="bg-green-50 p-3 rounded-xl border border-green-200 text-xs text-green-800 leading-relaxed">
-                                <strong>Step 3: Executive Director Approval</strong><br>
+                                <strong>Step 3: Coordinator Approval</strong><br>
                                 Grants final validation. This automatically creates their student account, schedules active course intake, and sends their welcome credentials.
                             </div>
                             <div class="space-y-3">
@@ -391,15 +382,11 @@ const submitting = ref(false);
 const userRoles = computed(() => page.props.value.auth.roles || []);
 
 const canVerify = computed(() => {
-    return userRoles.value.includes('ict_administrator') || userRoles.value.includes('admin_assistant');
-});
-
-const canRecommend = computed(() => {
-    return userRoles.value.includes('deputy_director');
+    return userRoles.value.includes('ict_administrator') || userRoles.value.includes('admin_assistant') || userRoles.value.includes('secretary');
 });
 
 const canApprove = computed(() => {
-    return userRoles.value.includes('executive_director');
+    return userRoles.value.includes('coordinator');
 });
 
 // Rejection Drawer
@@ -408,10 +395,6 @@ const rejectionPanelOpen = ref(false);
 // Active forms reactive bindings
 const verifyForm = reactive({
     temporary_password: '',
-    comment: '',
-});
-
-const recommendForm = reactive({
     comment: '',
 });
 
@@ -429,11 +412,11 @@ const progressPercent = computed(() => {
         case 'approved':
         case 'enrolled':
             return 100;
-        case 'recommended':
-            return 66;
         case 'verified':
-            return 33;
+        case 'recommended':
+            return 50;
         case 'pending':
+        case 'returned':
         default:
             return 0;
     }
@@ -462,9 +445,15 @@ const submitVerification = () => {
     });
 };
 
-const submitRecommendation = () => {
+const submitReturn = () => {
+    if (!verifyForm.comment) {
+        alert('Please provide comments outlining corrections needed.');
+        return;
+    }
     submitting.value = true;
-    Inertia.post(route('course-applications.recommend', props.application.id), recommendForm, {
+    Inertia.post(route('course-applications.return', props.application.id), {
+        comment: verifyForm.comment
+    }, {
         onBefore: () => { submitting.value = true; },
         onFinish: () => { submitting.value = false; },
         onError: () => { submitting.value = false; }
@@ -501,16 +490,18 @@ const stepClass = (stepNum) => {
 
     if (stepNum === 1) isCompleted = true; // Always submitted
     if (stepNum === 2 && ['verified', 'recommended', 'approved', 'enrolled'].includes(status)) isCompleted = true;
-    if (stepNum === 3 && ['recommended', 'approved', 'enrolled'].includes(status)) isCompleted = true;
-    if (stepNum === 4 && ['approved', 'enrolled'].includes(status)) isCompleted = true;
+    if (stepNum === 3 && ['approved', 'enrolled'].includes(status)) isCompleted = true;
 
     if (stepNum === 1 && status === 'pending') isActive = true;
-    if (stepNum === 2 && status === 'verified') isActive = true;
-    if (stepNum === 3 && status === 'recommended') isActive = true;
-    if (stepNum === 4 && ['approved', 'enrolled'].includes(status)) isActive = true;
+    if (stepNum === 2 && ['verified', 'recommended'].includes(status)) isActive = true;
+    if (stepNum === 3 && ['approved', 'enrolled'].includes(status)) isActive = true;
 
     if (props.application.status === 'rejected') {
         return 'bg-red-50 text-red-600 border-red-300';
+    }
+
+    if (props.application.status === 'returned') {
+        return 'bg-amber-50 text-amber-600 border-amber-300';
     }
 
     if (isCompleted) {
@@ -528,10 +519,10 @@ const stepTextClass = (stepNum) => {
 
     if (stepNum === 1) isCompleted = true;
     if (stepNum === 2 && ['verified', 'recommended', 'approved', 'enrolled'].includes(status)) isCompleted = true;
-    if (stepNum === 3 && ['recommended', 'approved', 'enrolled'].includes(status)) isCompleted = true;
-    if (stepNum === 4 && ['approved', 'enrolled'].includes(status)) isCompleted = true;
+    if (stepNum === 3 && ['approved', 'enrolled'].includes(status)) isCompleted = true;
 
     if (status === 'rejected') return 'text-red-600';
+    if (status === 'returned') return 'text-amber-600';
     return isCompleted ? 'text-brand-blue font-black' : 'text-gray-400';
 };
 

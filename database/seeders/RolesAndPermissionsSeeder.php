@@ -22,7 +22,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage users', 'manage roles', 'manage clients', 'manage service requests',
             'create service requests', 'view service requests', 'manage quotations',
             'view quotations', 'approve quotations', 'manage assignments', 'view assignments',
-            'manage tasks', 'view tasks', 'manage procurement', 'approve procurement',
+            'manage tasks', 'view tasks',
             'view reports', 'manage system',
             'manage schedule', 'manage correspondence', 'manage inquiries',
             'manage executive communications', 'manage administrative documentation',
@@ -33,10 +33,14 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
+        $coordinatorPermissions = array_values(array_filter($permissions, function ($p) {
+            return !in_array($p, ['manage users', 'manage roles', 'manage system']);
+        }));
+
         $roles = [
             'executive_director' => Permission::all(),
-            'deputy_director'    => ['manage users', 'view service requests', 'approve quotations', 'view assignments', 'view reports', 'approve procurement', 'view quotations'],
-            'admin_assistant'    => ['manage procurement', 'view reports', 'manage clients', 'manage quotations', 'view quotations'],
+            'deputy_director'    => ['manage users', 'view service requests', 'approve quotations', 'view assignments', 'view reports', 'view quotations'],
+            'admin_assistant'    => ['view reports', 'manage clients', 'manage quotations', 'view quotations'],
             'secretary'          => [
                 'manage service requests', 'view reports', 'manage assignments', 'view assignments', 
                 'view tasks', 'view quotations', 'manage schedule', 'manage correspondence', 
@@ -47,6 +51,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'language_expert'    => ['view assignments', 'view tasks', 'manage tasks'],
             'part_time_staff'    => ['view assignments', 'view tasks', 'manage tasks'],
             'ict_administrator'  => Permission::all(),
+            'coordinator'        => $coordinatorPermissions,
             'client'             => ['create service requests', 'view service requests'],
             'student'            => [],
         ];
@@ -67,6 +72,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'ICT Administrator', 'email' => 'admin@msunli.edu', 'role' => 'ict_administrator'],
             ['name' => 'Test Client', 'email' => 'client@example.com', 'role' => 'client'],
             ['name' => 'Mapfumo L', 'email' => 'mapfumol@staff.msu.ac.zw', 'role' => 'language_expert'],
+            ['name' => 'AOS Coordinator', 'email' => 'coordinator@msunli.edu', 'role' => 'coordinator'],
         ];
 
         foreach ($users as $userData) {

@@ -138,20 +138,12 @@ class AppServiceProvider extends ServiceProvider
                 $user = \App\Models\User::whereEmail($app->email)->first();
                 
                 if ($app->status === 'verified') {
-                    $dDs = AppServiceProvider::getUsersByRole('deputy_director');
-                    foreach ($dDs as $dD) {
-                        $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'Application Verified', 'Application for "' . $app->name . '" has been verified and is awaiting recommendation.', route('course-applications.show', $app->id)));
+                    $coordinators = AppServiceProvider::getUsersByRole('coordinator');
+                    foreach ($coordinators as $coordinator) {
+                        $coordinator->notify(new \App\Notifications\SystemNotification('Approvals', 'Application Verified', 'Application for "' . $app->name . '" has been verified and is awaiting approval.', route('course-applications.show', $app->id)));
                     }
                     if ($user) {
                         $user->notify(new \App\Notifications\SystemNotification('Enrollment', 'Application Under Review', 'Your application for "' . ($app->course ? $app->course->title : 'Short Course') . '" has been verified and is now under review.', route('student.courses')));
-                    }
-                } elseif ($app->status === 'recommended') {
-                    $eDs = AppServiceProvider::getUsersByRole('executive_director');
-                    foreach ($eDs as $eD) {
-                        $eD->notify(new \App\Notifications\SystemNotification('Approvals', 'Application Recommended', 'Application for "' . $app->name . '" has been recommended and is awaiting final approval.', route('course-applications.show', $app->id)));
-                    }
-                    if ($user) {
-                        $user->notify(new \App\Notifications\SystemNotification('Enrollment', 'Application Recommended', 'Your application for "' . ($app->course ? $app->course->title : 'Short Course') . '" has been recommended for approval.', route('student.courses')));
                     }
                 } elseif ($app->status === 'approved') {
                     if ($user) {
@@ -163,9 +155,11 @@ class AppServiceProvider extends ServiceProvider
 
         // 3. Quotations Triggers
         \App\Models\Quotation::created(function ($q) {
-            $dDs = AppServiceProvider::getUsersByRole('deputy_director');
-            foreach ($dDs as $dD) {
-                $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'New Quotation Drafted', 'A new quotation Reference #' . $q->id . ' has been created and is awaiting recommendation.', route('quotations.show', $q->id)));
+            if ($q->status === 'submitted') {
+                $coords = AppServiceProvider::getUsersByRole('coordinator');
+                foreach ($coords as $coord) {
+                    $coord->notify(new \App\Notifications\SystemNotification('Approvals', 'Quotation Awaiting Review', 'A new quotation Reference #' . $q->id . ' has been created and is awaiting coordinator review.', route('quotations.show', $q->id)));
+                }
             }
             $creator = \App\Models\User::find($q->prepared_by);
             if ($creator) {
@@ -176,6 +170,11 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Quotation::updated(function ($q) {
             if ($q->isDirty('status')) {
                 if ($q->status === 'submitted') {
+                    $coords = AppServiceProvider::getUsersByRole('coordinator');
+                    foreach ($coords as $coord) {
+                        $coord->notify(new \App\Notifications\SystemNotification('Approvals', 'Quotation Awaiting Review', 'Quotation Ref #' . $q->id . ' is awaiting coordinator review.', route('quotations.show', $q->id)));
+                    }
+                } elseif ($q->status === 'reviewed') {
                     $dDs = AppServiceProvider::getUsersByRole('deputy_director');
                     foreach ($dDs as $dD) {
                         $dD->notify(new \App\Notifications\SystemNotification('Approvals', 'Quotation Awaiting Recommendation', 'Quotation Ref #' . $q->id . ' is awaiting recommendation.', route('quotations.show', $q->id)));
@@ -190,10 +189,21 @@ class AppServiceProvider extends ServiceProvider
                     if ($user) {
                         $user->notify(new \App\Notifications\SystemNotification('Quotations', 'Quotation Approved', 'Quotation Ref #' . $q->id . ' has been approved.', route('quotations.show', $q->id)));
                     }
+                    if ($q->serviceRequest && $q->serviceRequest->submitted_by) {
+                        $client = \App\Models\User::find($q->serviceRequest->submitted_by);
+                        if ($client) {
+                            $client->notify(new \App\Notifications\SystemNotification('Quotations', 'Quotation Approved and Ready', 'Your quotation Reference #' . $q->id . ' has been approved and is ready for payment.', route('quotations.show', $q->id)));
+                        }
+                    }
                 } elseif ($q->status === 'rejected') {
                     $user = \App\Models\User::find($q->prepared_by);
                     if ($user) {
                         $user->notify(new \App\Notifications\SystemNotification('Quotations', 'Quotation Rejected', 'Quotation Ref #' . $q->id . ' has been rejected.', route('quotations.show', $q->id)));
+                    }
+                } elseif ($q->status === 'draft') {
+                    $user = \App\Models\User::find($q->prepared_by);
+                    if ($user) {
+                        $user->notify(new \App\Notifications\SystemNotification('Quotations', 'Quotation Returned for Correction', 'Quotation Ref #' . $q->id . ' has been returned for corrections/amendments.', route('quotations.show', $q->id)));
                     }
                 }
             }
@@ -204,7 +214,7 @@ class AppServiceProvider extends ServiceProvider
             $user = $a->assignedTo;
             $by = $a->assignedBy;
             if ($user) {
-                $user->notify(new \App\Notifications\SystemNotification('Tasks', 'New Task Assignment', 'You have been assigned a new task: "' . $a->role_in_task . '"' . ($by ? ' by ' . $by->name : '') . '.', route('completed-tasks.index')));
+                $user->notify(new \App\Notifications\SystemNotification('Tasks', 'New Task Assignment', 'You have been assigned a new task: "' . $a->role_in_task . '"' . ($by ? ' by ' . $by->name : '') . '.', route('assignments.show', $a->id)));
             }
         });
 
@@ -219,7 +229,7 @@ class AppServiceProvider extends ServiceProvider
                         'Tasks',
                         'Task Assigned (Reassignment)',
                         'You have been assigned a task: "' . $a->role_in_task . '"' . ($by ? ' by ' . $by->name : '') . '.',
-                        route('completed-tasks.index')
+                        route('assignments.show', $a->id)
                     ));
                 }
                 
@@ -228,7 +238,7 @@ class AppServiceProvider extends ServiceProvider
                         'Tasks',
                         'Task Reassigned',
                         'The task "' . $a->role_in_task . '" previously assigned to you has been reassigned to someone else.',
-                        route('completed-tasks.index')
+                        route('assignments.index')
                     ));
                 }
             }
@@ -237,7 +247,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Task::created(function ($task) {
             $a = $task->assignment;
             if ($a && $a->assignedTo) {
-                $a->assignedTo->notify(new \App\Notifications\SystemNotification('Tasks', 'New Task Added', 'A new sub-task has been added to your assignment: "' . $task->title . '".', route('completed-tasks.index')));
+                $a->assignedTo->notify(new \App\Notifications\SystemNotification('Tasks', 'New Task Added', 'A new sub-task has been added to your assignment: "' . $task->title . '".', route('assignments.show', $a->id)));
             }
         });
 
@@ -249,7 +259,7 @@ class AppServiceProvider extends ServiceProvider
                         'Tasks',
                         'Task Status Updated',
                         'The status of task "' . $task->title . '" has been changed to ' . $task->status . '.',
-                        route('completed-tasks.index')
+                        route('assignments.show', $a->id)
                     ));
                 }
             }
@@ -567,7 +577,6 @@ class AppServiceProvider extends ServiceProvider
             \App\Models\CourseAssignment::class,
             \App\Models\CourseAssignmentSubmission::class,
             \App\Models\CourseCaMark::class,
-            \App\Models\ProcurementRequest::class,
             \App\Models\KpiRecord::class,
             \App\Models\StaffSchedule::class,
             \App\Models\Comment::class,

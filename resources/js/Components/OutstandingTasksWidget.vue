@@ -115,6 +115,10 @@ const getModuleIcon = (module) => {
         case 'notices':
         case 'announcements':
             return '📢';
+        case 'deliverables':
+            return '📦';
+        case 'cc reviews':
+            return '🔍';
         default:
             return '🔔';
     }
@@ -198,6 +202,24 @@ const getButtonText = (action) => {
             return 'Create Quote';
         case 'respond/process':
             return 'Process Request';
+        case 'review deliverable':
+            return 'Review Deliverable';
+        case 'approve deliverable':
+            return 'Approve Deliverable';
+        case 'submit to client':
+            return 'Submit to Client';
+        case 'respond to cc review':
+            return 'Respond to Review';
+        case 'upload payment proof':
+            return 'Upload Payment';
+        case 'read announcement':
+            return 'Read Now';
+        case 'accept/reject assignment':
+            return 'Review Assignment';
+        case 'complete assignment':
+            return 'Complete Now';
+        case 'complete task':
+            return 'Complete Task';
         default:
             return 'Complete Action';
     }

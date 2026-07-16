@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use App\Models\Client;
-use App\Models\ProcurementRequest;
 
 class RemoveDummyData extends Migration
 {
@@ -28,7 +27,9 @@ class RemoveDummyData extends Migration
         Client::whereIn('email', $dummyEmails)->delete();
 
         // Delete dummy procurement requests
-        ProcurementRequest::whereIn('reference_number', ['PR-20260520-001', 'PR-20260520-002'])->delete();
+        if (\Schema::hasTable('procurement_requests')) {
+            \DB::table('procurement_requests')->whereIn('reference_number', ['PR-20260520-001', 'PR-20260520-002'])->delete();
+        }
     }
 
     /**

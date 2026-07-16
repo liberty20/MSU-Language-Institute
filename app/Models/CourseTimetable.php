@@ -71,4 +71,9 @@ class CourseTimetable extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(CourseAttendance::class, 'course_timetable_id');
+    }
 }

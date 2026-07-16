@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\CourseIntake;
 use App\Models\CourseEnrollment;
 use App\Models\CourseTimetable;
+use App\Models\CourseAttendance;
 use App\Models\CourseAssignment;
 use App\Models\CourseAssignmentSubmission;
 use App\Models\CourseCaMark;
@@ -69,6 +70,8 @@ class InstructorPortalController extends Controller
                 'phone' => $e->user ? $e->user->phone : null,
                 'enrolled_at' => $e->created_at ? $e->created_at->format('Y-m-d') : 'N/A',
                 'status' => $e->enrollment_status,
+                'access_until' => $e->access_until ? $e->access_until->format('Y-m-d') : null,
+                'original_end_date' => $intake->end_date ? $intake->end_date->format('Y-m-d') : 'N/A',
             ])->values();
 
             $groupedEnrollments[] = [
@@ -89,6 +92,53 @@ class InstructorPortalController extends Controller
             'stats' => $stats,
             'filters' => $request->only(['search', 'intake_id']),
         ]);
+    }
+
+    /**
+     * Extend Enrollment Period for a Student.
+     */
+    public function extendEnrollment(Request $request, CourseEnrollment $enrollment)
+    {
+        $user = Auth::user();
+
+        // Ensure user is authorized: must be the instructor of this enrollment's intake
+        if ((int)$enrollment->intake->instructor_id !== (int)$user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $request->validate([
+            'new_expiry_date' => 'required|date|after_or_equal:today',
+            'reason'          => 'nullable|string|max:500',
+        ]);
+
+        $previousEndDate = $enrollment->access_until 
+            ? $enrollment->access_until->toDateString() 
+            : ($enrollment->intake->end_date ? $enrollment->intake->end_date->toDateString() : null);
+
+        $newEndDate = $request->new_expiry_date;
+
+        $enrollment->update([
+            'access_until' => $newEndDate,
+            'extension_reason' => $request->reason,
+        ]);
+
+        // Audit Trail
+        ActivityLog::log(
+            'enrollment_extended',
+            'Instructor ' . $user->name . ' extended course learning period for student ' . $enrollment->user->name . ' in course ' . $enrollment->intake->course->title . ' (Intake: ' . $enrollment->intake->name . ') from ' . ($previousEndDate ?? 'none') . ' to ' . $newEndDate,
+            $enrollment,
+            [
+                'student' => $enrollment->user->name,
+                'course' => $enrollment->intake->course->title,
+                'previous_end_date' => $previousEndDate,
+                'new_end_date' => $newEndDate,
+                'instructor' => $user->name,
+                'timestamp' => now()->toDateTimeString(),
+                'reason' => $request->reason,
+            ]
+        );
+
+        return redirect()->back()->with('success', 'Student access period extended successfully!');
     }
 
     /**
@@ -354,7 +404,7 @@ class InstructorPortalController extends Controller
         $timetable = CourseTimetable::findOrFail($id);
         $intake = CourseIntake::findOrFail($timetable->course_intake_id);
 
-        if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+        if ((int)$intake->instructor_id !== (int)$user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'coordinator'])) {
             abort(404, 'Unauthorized.');
         }
 
@@ -397,7 +447,7 @@ class InstructorPortalController extends Controller
         $timetable = CourseTimetable::findOrFail($id);
         $intake = CourseIntake::findOrFail($timetable->course_intake_id);
 
-        if ($intake->instructor_id !== $user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+        if ((int)$intake->instructor_id !== (int)$user->id && !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director', 'coordinator'])) {
             abort(404, 'Unauthorized.');
         }
 
@@ -1054,5 +1104,265 @@ class InstructorPortalController extends Controller
         $content->delete();
 
         return redirect()->back()->with('success', 'Learning content deleted successfully.');
+    }
+
+    /**
+     * View and Manage Attendance Register.
+     */
+    public function attendanceIndex(Request $request)
+    {
+        $user = Auth::user();
+
+        // Get instructor assigned intakes
+        $intakes = CourseIntake::where('instructor_id', $user->id)
+            ->with(['course'])
+            ->get();
+
+        $selectedIntakeId = $request->input('intake_id');
+        $selectedSessionId = $request->input('session_id');
+
+        $students = [];
+        $sessions = [];
+        $attendance = [];
+        $attendanceHistory = [];
+
+        if ($selectedIntakeId && $intakes->contains('id', $selectedIntakeId)) {
+            // Get all enrolled students for this intake
+            $students = CourseEnrollment::has('user')
+                ->with('user')
+                ->where('course_intake_id', $selectedIntakeId)
+                ->where('payment_status', 'verified')
+                ->get()
+                ->map(fn($e) => [
+                    'id' => $e->user->id,
+                    'name' => $e->user->name,
+                    'email' => $e->user->email,
+                    'status' => $e->enrollment_status,
+                ])->values()->toArray();
+
+            // Get scheduled sessions (timetable records)
+            $sessions = CourseTimetable::where('course_intake_id', $selectedIntakeId)
+                ->orderBy('date', 'desc')
+                ->orderBy('start_time', 'desc')
+                ->get()
+                ->map(fn($t) => [
+                    'id' => $t->id,
+                    'date' => $t->date ? $t->date->format('Y-m-d') : 'N/A',
+                    'start_time' => $t->start_time,
+                    'end_time' => $t->end_time,
+                    'venue' => $t->venue,
+                ])->values()->toArray();
+
+            // Get recorded attendance for the selected session
+            if ($selectedSessionId) {
+                $attendance = CourseAttendance::where('course_timetable_id', $selectedSessionId)
+                    ->get()
+                    ->keyBy('user_id')
+                    ->map(fn($a) => [
+                        'status' => $a->status,
+                        'remarks' => $a->remarks,
+                    ])->toArray();
+            }
+
+            // Compile attendance history summaries per student
+            $sessionIds = collect($sessions)->pluck('id');
+            $allRecorded = CourseAttendance::whereIn('course_timetable_id', $sessionIds)
+                ->get()
+                ->groupBy('user_id');
+
+            foreach ($students as $student) {
+                $studentRecords = $allRecorded->get($student['id'], collect());
+                
+                $total = count($sessions);
+                $present = $studentRecords->where('status', 'present')->count();
+                $absent = $studentRecords->where('status', 'absent')->count();
+                $late = $studentRecords->where('status', 'late')->count();
+                $excused = $studentRecords->where('status', 'excused')->count();
+                
+                $attended = $present + $late;
+                $rate = $total > 0 ? round(($attended / $total) * 100, 1) : 100.0;
+
+                // Expand history logs
+                $logs = [];
+                foreach ($sessions as $sess) {
+                    $rec = $studentRecords->where('course_timetable_id', $sess['id'])->first();
+                    $logs[] = [
+                        'session_id' => $sess['id'],
+                        'date' => $sess['date'],
+                        'time' => $sess['start_time'] . ' - ' . $sess['end_time'],
+                        'status' => $rec ? $rec->status : 'unrecorded',
+                        'remarks' => $rec ? $rec->remarks : null,
+                    ];
+                }
+
+                $attendanceHistory[] = [
+                    'student_id' => $student['id'],
+                    'name' => $student['name'],
+                    'email' => $student['email'],
+                    'total_classes' => $total,
+                    'present' => $present,
+                    'absent' => $absent,
+                    'late' => $late,
+                    'excused' => $excused,
+                    'attendance_rate' => $rate,
+                    'logs' => $logs,
+                ];
+            }
+        }
+
+        return Inertia::render('Courses/InstructorAttendance', [
+            'intakes' => $intakes,
+            'selectedIntakeId' => $selectedIntakeId ? (int)$selectedIntakeId : null,
+            'selectedSessionId' => $selectedSessionId ? (int)$selectedSessionId : null,
+            'students' => $students,
+            'sessions' => $sessions,
+            'attendance' => $attendance,
+            'attendanceHistory' => $attendanceHistory,
+        ]);
+    }
+
+    /**
+     * Record or Update Class Session Attendance.
+     */
+    public function recordAttendance(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'course_timetable_id' => 'required|exists:course_timetables,id',
+            'attendance' => 'required|array',
+            'attendance.*.student_id' => 'required|exists:users,id',
+            'attendance.*.status' => 'required|in:present,absent,late,excused',
+            'attendance.*.remarks' => 'nullable|string|max:255',
+        ]);
+
+        $timetable = CourseTimetable::findOrFail($request->course_timetable_id);
+        
+        $isAdminOrStaff = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator']);
+        $isAssignedInstructor = ($timetable->intake && (int)$timetable->intake->instructor_id === (int)$user->id);
+        if (!$isAdminOrStaff && !$isAssignedInstructor) {
+            abort(403, 'Unauthorized.');
+        }
+
+        \DB::transaction(function () use ($request, $timetable, $user) {
+            foreach ($request->attendance as $data) {
+                CourseAttendance::updateOrCreate(
+                    [
+                        'course_timetable_id' => $timetable->id,
+                        'user_id' => $data['student_id'],
+                    ],
+                    [
+                        'status' => $data['status'],
+                        'remarks' => $data['remarks'] ?? null,
+                        'recorded_by' => $user->id,
+                    ]
+                );
+            }
+        });
+
+        // Audit Trail
+        ActivityLog::log(
+            'record_attendance',
+            'Instructor ' . $user->name . ' recorded attendance for session on ' . ($timetable->date ? $timetable->date->format('Y-m-d') : 'N/A') . ' (' . $timetable->start_time . ' - ' . $timetable->end_time . ')',
+            $timetable
+        );
+
+        return redirect()->back()->with('success', 'Attendance recorded successfully!');
+    }
+
+    /**
+     * Export Course Attendance Register as CSV.
+     */
+    public function exportAttendance($intakeId)
+    {
+        $user = Auth::user();
+        $intake = CourseIntake::where('instructor_id', $user->id)
+            ->with(['course'])
+            ->findOrFail($intakeId);
+
+        $students = CourseEnrollment::has('user')
+            ->with('user')
+            ->where('course_intake_id', $intake->id)
+            ->where('payment_status', 'verified')
+            ->get();
+
+        $sessions = CourseTimetable::where('course_intake_id', $intake->id)
+            ->orderBy('date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        $allRecorded = CourseAttendance::whereIn('course_timetable_id', $sessions->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
+
+        $callback = function() use ($students, $sessions, $allRecorded, $intake) {
+            $file = fopen('php://output', 'w');
+            
+            fputcsv($file, ['MSU NATIONAL LANGUAGE INSTITUTE - COURSE ATTENDANCE REGISTER']);
+            fputcsv($file, ['Course Name', $intake->course->title . ' (' . $intake->course->code . ')']);
+            fputcsv($file, ['Batch Name', $intake->name]);
+            fputcsv($file, ['Instructor', $intake->instructor ? $intake->instructor->name : 'N/A']);
+            fputcsv($file, ['Report Export Date', now()->format('Y-m-d H:i')]);
+            fputcsv($file, []);
+
+            $header = ['Student Name', 'Email Address'];
+            foreach ($sessions as $sess) {
+                $header[] = ($sess->date ? $sess->date->format('Y-m-d') : 'Session') . ' (' . $sess->start_time . ')';
+            }
+            $header[] = 'Total Classes';
+            $header[] = 'Present';
+            $header[] = 'Absent';
+            $header[] = 'Late';
+            $header[] = 'Excused';
+            $header[] = 'Attendance Rate (%)';
+            fputcsv($file, $header);
+
+            foreach ($students as $enrollment) {
+                $student = $enrollment->user;
+                $studentRecords = $allRecorded->get($student->id, collect());
+                
+                $row = [$student->name, $student->email];
+                
+                $total = count($sessions);
+                $present = 0;
+                $absent = 0;
+                $late = 0;
+                $excused = 0;
+
+                foreach ($sessions as $sess) {
+                    $rec = $studentRecords->where('course_timetable_id', $sess->id)->first();
+                    if ($rec) {
+                        $row[] = ucfirst($rec->status);
+                        if ($rec->status === 'present') $present++;
+                        elseif ($rec->status === 'absent') $absent++;
+                        elseif ($rec->status === 'late') $late++;
+                        elseif ($rec->status === 'excused') $excused++;
+                    } else {
+                        $row[] = 'Unrecorded';
+                    }
+                }
+
+                $attended = $present + $late;
+                $rate = $total > 0 ? round(($attended / $total) * 100, 1) : 100.0;
+
+                $row[] = $total;
+                $row[] = $present;
+                $row[] = $absent;
+                $row[] = $late;
+                $row[] = $excused;
+                $row[] = $rate . '%';
+                
+                fputcsv($file, $row);
+            }
+
+            fclose($file);
+        };
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="attendance_register_' . strtolower(str_replace(' ', '_', $intake->name)) . '.csv"',
+        ];
+
+        return response()->stream($callback, 200, $headers);
     }
 }

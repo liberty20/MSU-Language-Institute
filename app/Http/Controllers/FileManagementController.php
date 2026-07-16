@@ -53,7 +53,7 @@ class FileManagementController extends Controller
             case 'course_application':
                 $application = CourseApplication::findOrFail($id);
                 $isOwner = ($user->email === $application->email);
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
 
                 if (!$isOwner && !$isAdmin) {
                     abort(403, 'Unauthorized access to this application document.');
@@ -74,7 +74,7 @@ class FileManagementController extends Controller
                 $enrollment = CourseEnrollment::findOrFail($id);
                 $isStudentOwner = ($user->id === $enrollment->user_id);
                 $isInstructor = ($enrollment->intake && $user->id === $enrollment->intake->instructor_id);
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
 
                 if (!$isStudentOwner && !$isInstructor && !$isAdmin) {
                     abort(403, 'Unauthorized access to this enrollment document.');
@@ -87,7 +87,7 @@ class FileManagementController extends Controller
             case 'uploaded_document':
                 $document = UploadedDocument::findOrFail($id);
                 $parent = $document->documentable;
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
                 $hasAccess = false;
 
                 if ($isAdmin) {
@@ -138,7 +138,7 @@ class FileManagementController extends Controller
 
             case 'announcement':
                 $announcement = \App\Models\Announcement::findOrFail($id);
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
                 $isInstructor = ($user->id === $announcement->instructor_id);
                 $isStudent = CourseEnrollment::where('user_id', $user->id)
                     ->where('enrollment_status', 'active')
@@ -160,7 +160,7 @@ class FileManagementController extends Controller
             case 'payment':
                 $payment = Payment::findOrFail($id);
                 $isClientOwner = ($user->id === $payment->client_id);
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
 
                 if (!$isClientOwner && !$isAdmin) {
                     abort(403, 'Unauthorized access to this payment proof.');
@@ -177,7 +177,7 @@ class FileManagementController extends Controller
                     ->where('user_id', $user->id)
                     ->where('enrollment_status', 'active')
                     ->exists();
-                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant']);
+                $isAdmin = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'coordinator']);
 
                 if (!$isInstructor && !$isStudent && !$isAdmin) {
                     abort(403, 'Unauthorized access to this learning content.');

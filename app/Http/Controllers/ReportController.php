@@ -44,7 +44,7 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator', 'coordinator']);
 
         // Base Queries for Filtering
         $query = ServiceRequest::query();
@@ -731,7 +731,7 @@ class ReportController extends Controller
         if (!$user) {
             abort(401, 'Unauthenticated.');
         }
-        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator', 'coordinator']);
         if (!$isManagement) {
             abort(403, 'Unauthorized. You do not have report permissions.');
         }
@@ -1606,7 +1606,7 @@ class ReportController extends Controller
     private function aggregateReportData($filters = [], $reportType = 'client_services')
     {
         $user = Auth::user();
-        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator']);
+        $isManagement = $user->hasAnyRole(['executive_director', 'deputy_director', 'admin_assistant', 'secretary', 'ict_administrator', 'coordinator']);
 
         $query = ServiceRequest::with(['client', 'assignedTo']);
         $taskQuery = Task::query();

@@ -84,6 +84,9 @@ class CertificateCollectionTest extends TestCase
     {
         $this->actingAs($this->adminUser);
 
+        // Clear pre-existing registration notifications
+        $this->studentUser->notifications()->delete();
+
         $response = $this->post(route('course-enrollments.certificate', $this->enrollment->id));
 
         $response->assertRedirect();
@@ -149,6 +152,8 @@ class CertificateCollectionTest extends TestCase
         ]);
 
         // 2. Student submits testimony
+        $this->adminUser->notifications()->delete();
+
         $this->actingAs($this->studentUser);
         $response = $this->post(route('student.testimonials.store'), [
             'enrollment_id' => $this->enrollment->id,
@@ -159,7 +164,8 @@ class CertificateCollectionTest extends TestCase
         $response->assertSessionHas('success', 'Your testimony has successfully sent.');
 
         // Verify it is placed in pending list
-        $pending = SystemSetting::get('short_courses_pending_testimonials', []);
+        $testimonials = SystemSetting::get('short_courses_testimonials', []);
+        $pending = array_values(array_filter($testimonials, fn($t) => $t['status'] === 'pending'));
         $this->assertCount(1, $pending);
         $testimonyId = $pending[0]['id'];
         $this->assertEquals('This course changed my life!', $pending[0]['text']);

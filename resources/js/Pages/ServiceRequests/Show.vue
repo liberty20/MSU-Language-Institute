@@ -228,6 +228,49 @@
                     </div>
                     <p v-else class="text-gray-500 text-sm">No quotations created yet.</p>
                 </div>
+
+                <!-- CC Reviews History Timeline -->
+                <div v-if="!$page.props.auth.roles.includes('client') && serviceRequest.cc_reviews && serviceRequest.cc_reviews.length > 0" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-[#0a1f44]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Internal Review History (CC)
+                    </h2>
+                    <div class="flow-root">
+                        <ul role="list" class="-mb-8">
+                            <li v-for="(review, rIdx) in serviceRequest.cc_reviews" :key="review.id">
+                                <div class="relative pb-8">
+                                    <span v-if="rIdx !== serviceRequest.cc_reviews.length - 1" class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white" :class="review.status === 'reviewed' ? 'bg-green-100 text-green-700' : (review.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500')">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" v-if="review.status === 'reviewed'"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" v-else-if="review.status === 'rejected'"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3" v-else/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                                            <div>
+                                                <p class="text-xs text-gray-500">
+                                                    CC Review requested to <span class="font-semibold text-gray-900">{{ review.reviewer?.name }}</span> by <span class="font-semibold text-gray-900">{{ review.sender?.name }}</span>
+                                                </p>
+                                                <p v-if="review.comments" class="text-xs text-gray-700 italic mt-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                                    "{{ review.comments }}"
+                                                </p>
+                                            </div>
+                                            <div class="text-right text-[10px] whitespace-nowrap text-gray-400">
+                                                <span class="px-2 py-0.5 rounded-full capitalize font-semibold" :class="review.status === 'reviewed' ? 'bg-green-50 text-green-600 border border-green-100' : (review.status === 'rejected' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-yellow-50 text-yellow-600 border border-yellow-100')">
+                                                    {{ review.status }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <!-- Sidebar -->
@@ -271,16 +314,16 @@
                     </div>
                 </div>
 
-                <!-- Director Delivery Card -->
-                <div v-if="serviceRequest.status === 'review' && ['executive_director', 'deputy_director'].some(r => $page.props.auth.roles.includes(r))" class="bg-gradient-to-br from-amber-50 to-yellow-100/50 border border-yellow-200 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wider flex items-center gap-2">
-                        <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- 1. Admin Assistant Client Delivery Card -->
+                <div v-if="serviceRequest.status === 'admin_submission' && $page.props.auth.roles.includes('admin_assistant')" class="bg-gradient-to-br from-green-50 to-emerald-100/50 border border-green-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                         </svg>
-                        Deliver Completed Task
+                        Submit Deliverable to Client
                     </h3>
                     <p class="text-xs text-gray-700 leading-relaxed">
-                        The assigned staff members have uploaded the final deliverables and completed their task. Review the files on the left and click below to send them to the client.
+                        The Director/Deputy Director has approved this deliverable. Review the files on the left and submit them to the client.
                     </p>
 
                     <!-- Lock Warning if payment is not verified yet -->
@@ -296,11 +339,150 @@
 
                     <form @submit.prevent="deliverCompletedTask" class="space-y-3">
                         <textarea v-model="deliveryForm.notes" placeholder="Optional delivery notes for the client..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue" :disabled="!hasVerifiedPayment"></textarea>
-                        <button type="submit" :disabled="deliveryForm.processing || !hasVerifiedPayment" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
+                        <button type="submit" :disabled="deliveryForm.processing || !hasVerifiedPayment" class="w-full bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2">
                             <span v-if="deliveryForm.processing" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            <span>Approve & Send to Client</span>
+                            <span>Deliver to Client</span>
                         </button>
                     </form>
+                </div>
+
+                <!-- 2. Director Approval Card -->
+                <div v-if="serviceRequest.status === 'director_approval' && (['executive_director', 'deputy_director'].some(r => $page.props.auth.roles.includes(r)) || isDirectorApprovalView)" class="bg-gradient-to-br from-blue-50 to-indigo-100/50 border border-blue-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-blue-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Review and Approve Deliverable
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        A Coordinator has submitted this deliverable for your final approval. Review the document and approve to route it to the Administrative Assistant for client delivery, or reject to send it back.
+                    </p>
+
+                    <div class="space-y-3">
+                        <textarea v-model="directorNotes" placeholder="Optional approval notes or comments..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                        <div class="flex gap-2">
+                            <button @click="submitDirectorApprove" :disabled="submittingAction" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Approve Deliverable
+                            </button>
+                            <button @click="showDirectorRejectModal = true" :disabled="submittingAction" class="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                                Reject & Send Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Coordinator/Admin Assistant CC Review Request Card -->
+                <div v-if="((serviceRequest.status === 'review' && $page.props.auth.roles.includes('coordinator')) || (serviceRequest.status === 'admin_submission' && $page.props.auth.roles.includes('admin_assistant'))) && coordinators.length > 0" class="bg-gradient-to-br from-purple-50 to-indigo-100/50 border border-purple-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Request CC Review
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        Send this deliverable to Coordinators for optional internal review.
+                    </p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Select Coordinators (CC)</label>
+                            <select v-model="selectedReviewers" multiple class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue h-20">
+                                <option v-for="coord in coordinators" :key="coord.id" :value="coord.id">{{ coord.name }}</option>
+                            </select>
+                        </div>
+                        <textarea v-model="ccNotes" placeholder="Optional notes for reviewers..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                        <button @click="submitCcReview" :disabled="submittingAction || selectedReviewers.length === 0" class="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                            Send CC Review Request
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Coordinator CC Response Card -->
+                <div v-if="(serviceRequest.status === 'review' || serviceRequest.status === 'admin_submission') && $page.props.auth.roles.includes('coordinator') && pendingCcReview" class="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-orange-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                        Pending CC Review Response
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        Another user has requested your review on this deliverable. Leave your comments and submit.
+                    </p>
+
+                    <div class="space-y-3">
+                        <textarea v-model="ccResponseComments" placeholder="Enter your review comments..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                        <div class="flex gap-2">
+                            <button @click="submitCcResponse('approved')" :disabled="submittingAction || !ccResponseComments" class="flex-1 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+                                Approve Review
+                            </button>
+                            <button @click="submitCcResponse('rejected')" :disabled="submittingAction || !ccResponseComments" class="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+                                Reject Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Coordinator Forward to Director Card -->
+                <div v-if="serviceRequest.status === 'review' && $page.props.auth.roles.includes('coordinator') && directors.length > 0" class="bg-gradient-to-br from-yellow-50 to-amber-100/50 border border-yellow-250 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        Forward for Final Approval
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        Once you have completed your review, forward this deliverable to the Director or Deputy Director for final approval.
+                    </p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Select Director/Deputy Director</label>
+                            <select v-model="selectedDirector" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue">
+                                <option value="">-- Choose Director --</option>
+                                <option v-for="dir in directors" :key="dir.id" :value="dir.id">{{ dir.name }}</option>
+                            </select>
+                        </div>
+                        <textarea v-model="forwardNotes" placeholder="Optional notes for the Director..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                        <button @click="submitForwardToDirector" :disabled="submittingAction || !selectedDirector" class="w-full bg-[#0a1f44] text-white hover:bg-[#152a4d] disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                            Forward to Director
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5b. Coordinator Direct Approval (Bypass Director) Card -->
+                <div v-if="serviceRequest.status === 'review' && $page.props.auth.roles.includes('coordinator') && directRoutingEnabled" class="bg-gradient-to-br from-green-50 to-emerald-100/50 border border-green-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Direct Deliverable Approval
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        The system configuration allows you to bypass the Directorate approval. Approve this deliverable to route it directly to the Administrative Assistant for client submission.
+                    </p>
+
+                    <div class="space-y-3">
+                        <textarea v-model="coordinatorNotes" placeholder="Optional approval notes or comments..." rows="2" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                        <button @click="submitCoordinatorApprove" :disabled="submittingAction" class="w-full bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                            Approve &amp; Route to Admin Assistant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Director Rejection Modal -->
+                <div v-if="showDirectorRejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
+                        <h3 class="text-lg font-bold text-red-700 uppercase tracking-wide">Confirm Rejection</h3>
+                        <p class="text-xs text-gray-500">Provide the reason for rejecting the deliverable. This will return the request to the Coordinator Review stage.</p>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-700 uppercase mb-1">Rejection Reason *</label>
+                            <textarea v-model="rejectionReason" rows="3" class="w-full rounded-xl text-xs border-gray-300 focus:border-red-500 focus:ring-red-500 shadow-sm" placeholder="Why is this deliverable being rejected?..."></textarea>
+                        </div>
+                        <div class="flex gap-2 justify-end">
+                            <button @click="showDirectorRejectModal = false" class="px-4 py-2 bg-gray-150 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="submitDirectorReject" :disabled="!rejectionReason || submittingAction" class="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition disabled:opacity-50">Confirm Rejection</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Status Actions -->
@@ -323,11 +505,18 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
 import { ref, computed } from 'vue';
 
+import { Inertia } from '@inertiajs/inertia';
+
 const props = defineProps({
     serviceRequest: Object,
+    coordinators: Array,
+    directors: Array,
+    isDirectorApprovalView: Boolean,
+    directRoutingEnabled: Boolean,
 });
 
 const page = usePage();
+const submittingAction = ref(false);
 
 const attachForm = useForm({
     file: null,
@@ -337,6 +526,29 @@ const attachForm = useForm({
 const deliveryForm = useForm({
     notes: '',
 });
+
+// Coordinator CC Review Form
+const selectedReviewers = ref([]);
+const ccNotes = ref('');
+
+// Coordinator CC Response Form
+const ccResponseComments = ref('');
+
+const pendingCcReview = computed(() => {
+    if (!props.serviceRequest.cc_reviews) return null;
+    const currentUserId = page.props.value.auth.user.id;
+    return props.serviceRequest.cc_reviews.find(r => parseInt(r.reviewer_id) === parseInt(currentUserId) && r.status === 'pending');
+});
+
+// Coordinator Forward Form
+const selectedDirector = ref('');
+const forwardNotes = ref('');
+const coordinatorNotes = ref('');
+
+// Director Approval Forms
+const directorNotes = ref('');
+const showDirectorRejectModal = ref(false);
+const rejectionReason = ref('');
 
 const handleAttachFileChange = (e) => {
     attachForm.file = e.target.files[0];
@@ -355,6 +567,94 @@ const deliverCompletedTask = () => {
         onSuccess: () => {
             deliveryForm.reset();
         }
+    });
+};
+
+const submitCcReview = () => {
+    if (selectedReviewers.value.length === 0) return;
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.cc-review', props.serviceRequest.id), {
+        reviewer_ids: selectedReviewers.value,
+        notes: ccNotes.value,
+    }, {
+        onSuccess: () => {
+            selectedReviewers.value = [];
+            ccNotes.value = '';
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
+    });
+};
+
+const submitCcResponse = (status) => {
+    if (!pendingCcReview.value) return;
+    submittingAction.value = true;
+    Inertia.post(route('cc-reviews.respond', pendingCcReview.value.id), {
+        comments: ccResponseComments.value,
+        status: status,
+    }, {
+        onSuccess: () => {
+            ccResponseComments.value = '';
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
+    });
+};
+
+const submitForwardToDirector = () => {
+    if (!selectedDirector.value) return;
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.forward', props.serviceRequest.id), {
+        director_id: selectedDirector.value,
+        notes: forwardNotes.value,
+    }, {
+        onSuccess: () => {
+            selectedDirector.value = '';
+            forwardNotes.value = '';
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
+    });
+};
+
+const submitDirectorApprove = () => {
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.director-approve', props.serviceRequest.id), {
+        notes: directorNotes.value,
+    }, {
+        onSuccess: () => {
+            directorNotes.value = '';
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
+    });
+};
+
+const submitCoordinatorApprove = () => {
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.coordinator-approve', props.serviceRequest.id), {
+        notes: coordinatorNotes.value,
+    }, {
+        onSuccess: () => {
+            coordinatorNotes.value = '';
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
+    });
+};
+
+const submitDirectorReject = () => {
+    if (!rejectionReason.value) return;
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.director-reject', props.serviceRequest.id), {
+        reason: rejectionReason.value,
+    }, {
+        onSuccess: () => {
+            rejectionReason.value = '';
+            showDirectorRejectModal.value = false;
+            submittingAction.value = false;
+        },
+        onFinish: () => { submittingAction.value = false; }
     });
 };
 
@@ -378,10 +678,7 @@ const canManage = computed(() => {
 
 const canCreateQuotation = computed(() => {
     const roles = page.props.value.auth.roles || [];
-    const perms = page.props.value.auth.permissions || [];
-    return (perms.includes('manage quotations') || perms.includes('manage system')) &&
-           !roles.includes('executive_director') &&
-           !roles.includes('deputy_director');
+    return roles.includes('admin_assistant') || roles.includes('ict_administrator') || roles.includes('secretary');
 });
 
 const getQuotationStatus = (quotation) => {
@@ -391,7 +688,10 @@ const getQuotationStatus = (quotation) => {
             : { label: 'Draft', class: 'bg-gray-100 text-gray-700' };
     }
     if (quotation.status === 'submitted') {
-        return { label: 'Pending Recommendation', class: 'bg-blue-100 text-blue-800' };
+        return { label: 'Awaiting Review', class: 'bg-blue-100 text-blue-800' };
+    }
+    if (quotation.status === 'reviewed') {
+        return { label: 'Pending Recommendation', class: 'bg-purple-100 text-purple-800' };
     }
     if (quotation.status === 'pending_approval') {
         return { label: 'Recommended', class: 'bg-yellow-100 text-yellow-800' };

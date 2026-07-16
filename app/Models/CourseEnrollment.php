@@ -12,14 +12,29 @@ class CourseEnrollment extends Model
     protected $fillable = [
         'course_intake_id', 'user_id', 'payment_status', 'payment_proof_path',
         'amount_paid', 'enrollment_status', 'certificate_code', 'certificate_issued_at',
-        'certificate_collected_at', 'certificate_collected_by',
+        'certificate_collected_at', 'certificate_collected_by', 'access_until', 'extension_reason',
     ];
 
     protected $casts = [
         'certificate_issued_at' => 'datetime',
         'certificate_collected_at' => 'datetime',
         'amount_paid' => 'decimal:2',
+        'access_until' => 'date',
     ];
+
+    protected $appends = ['is_expired'];
+
+    public function getIsExpiredAttribute()
+    {
+        if ($this->enrollment_status !== 'active') {
+            return false;
+        }
+        $today = now()->toDateString();
+        if ($this->access_until) {
+            return $this->access_until->toDateString() < $today;
+        }
+        return $this->intake && $this->intake->end_date && $this->intake->end_date->toDateString() < $today;
+    }
 
     protected static function boot()
     {

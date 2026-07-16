@@ -76,6 +76,8 @@
                                     <th class="px-6 py-4">Phone Number</th>
                                     <th class="px-6 py-4">Enrolled Date</th>
                                     <th class="px-6 py-4">Registration Status</th>
+                                    <th class="px-6 py-4">Access Period</th>
+                                    <th class="px-6 py-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-xs">
@@ -95,14 +97,53 @@
                                             {{ student.status }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4 font-medium">
+                                        <span v-if="student.access_until" class="text-brand-gold-dark font-bold">
+                                            Extended to: {{ formatDate(student.access_until) }}
+                                        </span>
+                                        <span v-else class="text-gray-550">
+                                            Ends: {{ formatDate(student.original_end_date) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <button v-if="student.status === 'active'" @click="openExtendModal(student)" class="bg-[#0a1f44] hover:bg-[#0c2859] text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full transition shadow">
+                                            Extend Access
+                                        </button>
+                                    </td>
                                 </tr>
                                 <tr v-if="group.students.length === 0">
-                                    <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-400 italic">
                                         No matching student records found in this course intake.
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extend Access Modal -->
+            <div v-if="extendModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeExtendModal">
+                <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 text-xs">
+                    <div class="border-b border-gray-100 pb-3">
+                        <h3 class="text-sm font-black text-[#0a1f44] uppercase tracking-wider">Extend Student Access Period</h3>
+                        <p class="text-[10px] text-gray-500 mt-0.5">Extend learning access for {{ selectedStudent?.name }}</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">New Completion / Expiry Date *</label>
+                            <input v-model="extendForm.new_expiry_date" type="date" class="w-full rounded-xl text-xs border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" required />
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Reason for Extension</label>
+                            <textarea v-model="extendForm.reason" rows="3" class="w-full rounded-xl text-xs border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm" placeholder="e.g. Student requested more time to complete assignment 3 due to medical reasons."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button @click="closeExtendModal" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition">Cancel</button>
+                        <button @click="submitExtension" :disabled="submitting || !extendForm.new_expiry_date" class="px-4 py-2 bg-[#0a1f44] hover:bg-[#0c2859] text-white font-bold rounded-xl transition disabled:opacity-50">Extend Access</button>
                     </div>
                 </div>
             </div>
@@ -112,7 +153,8 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
     groupedEnrollments: Array,
@@ -143,4 +185,45 @@ const filteredGroupedEnrollments = computed(() => {
         return matchesIntake && group.students.length > 0;
     });
 });
+
+// Access Extension Modal State & Submission
+const extendModalOpen = ref(false);
+const selectedStudent = ref(null);
+const submitting = ref(false);
+
+const extendForm = reactive({
+    new_expiry_date: '',
+    reason: '',
+});
+
+const openExtendModal = (student) => {
+    selectedStudent.value = student;
+    extendForm.new_expiry_date = student.access_until || student.original_end_date;
+    extendForm.reason = '';
+    extendModalOpen.value = true;
+};
+
+const closeExtendModal = () => {
+    extendModalOpen.value = false;
+    selectedStudent.value = null;
+};
+
+const submitExtension = () => {
+    submitting.value = true;
+    Inertia.post(route('instructor.enrollments.extend', selectedStudent.value.enrollment_id), extendForm, {
+        onBefore: () => { submitting.value = true; },
+        onSuccess: () => {
+            closeExtendModal();
+            submitting.value = false;
+        },
+        onFinish: () => { submitting.value = false; },
+        onError: () => { submitting.value = false; }
+    });
+};
+
+const formatDate = (dateString) => {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
 </script>

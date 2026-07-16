@@ -29,8 +29,17 @@ class ReminderService
     public function getOutstandingTasks(User $user)
     {
         $tasks = [];
+        $seenIds = [];
         $tz = config('app.timezone') ?: 'UTC';
         $today = Carbon::now($tz)->startOfDay();
+
+        // Helper to add task and prevent duplicates
+        $addTask = function ($task) use (&$tasks, &$seenIds) {
+            if (!in_array($task['id'], $seenIds)) {
+                $tasks[] = $task;
+                $seenIds[] = $task['id'];
+            }
+        };
 
         // 1. STUDENT MODULES
         if ($user->primary_category === 'Student') {
@@ -60,7 +69,7 @@ class ReminderService
                         $priority = 'high';
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "assignment-{$asg->id}",
                         'title' => "Incomplete Coursework: {$asg->title}",
                         'module' => 'Assignments',
@@ -73,7 +82,7 @@ class ReminderService
                         'remindable_type' => CourseAssignment::class,
                         'remindable_id' => $asg->id,
                         'description' => "You have not submitted the coursework assignment for course: " . ($asg->intake->course->title ?? 'N/A'),
-                    ];
+                    ]);
                 }
             }
 
@@ -85,7 +94,7 @@ class ReminderService
                 ->get();
 
             foreach ($unpaidEnrollments as $enrollment) {
-                $tasks[] = [
+                $addTask([
                     'id' => "enrollment-pay-{$enrollment->id}",
                     'title' => "Unpaid Course Fees: " . ($enrollment->intake->course->title ?? 'N/A'),
                     'module' => 'Finance',
@@ -98,7 +107,7 @@ class ReminderService
                     'remindable_type' => CourseEnrollment::class,
                     'remindable_id' => $enrollment->id,
                     'description' => "Please upload the payment proof to activate your enrollment in course: " . ($enrollment->intake->course->title ?? 'N/A'),
-                ];
+                ]);
             }
 
             // C. Unread Announcements
@@ -118,7 +127,7 @@ class ReminderService
                     ->exists();
 
                 if (!$hasRead) {
-                    $tasks[] = [
+                    $addTask([
                         'id' => "announcement-unread-{$ann->id}",
                         'title' => "Unread Notice: {$ann->title}",
                         'module' => 'Notices',
@@ -131,7 +140,7 @@ class ReminderService
                         'remindable_type' => Announcement::class,
                         'remindable_id' => $ann->id,
                         'description' => "New course notice published in: " . ($ann->course->title ?? 'N/A'),
-                    ];
+                    ]);
                 }
             }
         }
@@ -150,7 +159,7 @@ class ReminderService
                     $daysDiff = $today->diffInDays($due, false);
                 }
 
-                $tasks[] = [
+                $addTask([
                     'id' => "request-pending-{$req->id}",
                     'title' => "Request Awaiting Response: {$req->title}",
                     'module' => 'Service Requests',
@@ -163,7 +172,7 @@ class ReminderService
                     'remindable_type' => ServiceRequest::class,
                     'remindable_id' => $req->id,
                     'description' => "Your language service request Ref: {$req->reference_number} is pending administrative review.",
-                ];
+                ]);
             }
 
             // B. Quotations Awaiting Signature / Payment
@@ -184,7 +193,7 @@ class ReminderService
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "quotation-client-{$quot->id}",
                         'title' => "Quotation Action Needed: Ref #{$quot->id}",
                         'module' => 'Quotations',
@@ -197,7 +206,7 @@ class ReminderService
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
                         'description' => "Quotation for \"{$quot->serviceRequest->title}\" is ready. Please review, approve and upload payment proof.",
-                    ];
+                    ]);
                 }
             }
         }
@@ -206,9 +215,9 @@ class ReminderService
         if ($user->primary_category === 'Staff') {
             $userRoles = $user->getRoleNames();
 
-            // A. Quotation Recommendation & Approvals
-            if ($user->hasRole('deputy_director')) {
-                // Recommendations (Stage 1)
+            // A. Quotation Review, Recommendation & Approvals
+            if ($user->hasRole('coordinator')) {
+                // Reviews (Stage 1)
                 $submittedQuots = Quotation::with('serviceRequest')
                     ->where('status', 'submitted')
                     ->get();
@@ -220,7 +229,37 @@ class ReminderService
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
+                        'id' => "quotation-review-{$quot->id}",
+                        'title' => "Review Quotation: Ref #{$quot->id}",
+                        'module' => 'Approvals',
+                        'required_action' => 'Review',
+                        'due_date' => $quot->valid_until ? $quot->valid_until->format('Y-m-d') : null,
+                        'days_diff' => $daysDiff,
+                        'priority' => 'high',
+                        'status' => 'Awaiting Review',
+                        'action_url' => route('quotations.show', $quot->id),
+                        'remindable_type' => Quotation::class,
+                        'remindable_id' => $quot->id,
+                        'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires coordinator review.",
+                    ]);
+                }
+            }
+
+            if ($user->hasRole('deputy_director')) {
+                // Recommendations (Stage 2)
+                $submittedQuots = Quotation::with('serviceRequest')
+                    ->where('status', 'reviewed')
+                    ->get();
+
+                foreach ($submittedQuots as $quot) {
+                    $daysDiff = null;
+                    if ($quot->valid_until) {
+                        $due = Carbon::parse($quot->valid_until, $tz)->startOfDay();
+                        $daysDiff = $today->diffInDays($due, false);
+                    }
+
+                    $addTask([
                         'id' => "quotation-recommend-{$quot->id}",
                         'title' => "Recommend Quotation: Ref #{$quot->id}",
                         'module' => 'Approvals',
@@ -233,12 +272,12 @@ class ReminderService
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
                         'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires recommendation.",
-                    ];
+                    ]);
                 }
             }
 
             if ($user->hasRole('executive_director')) {
-                // Final Approvals (Stage 2)
+                // Final Approvals (Stage 3)
                 $pendingQuots = Quotation::with('serviceRequest')
                     ->where('status', 'pending_approval')
                     ->get();
@@ -250,7 +289,7 @@ class ReminderService
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "quotation-approve-{$quot->id}",
                         'title' => "Approve Quotation: Ref #{$quot->id}",
                         'module' => 'Approvals',
@@ -263,7 +302,7 @@ class ReminderService
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
                         'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires final approval.",
-                    ];
+                    ]);
                 }
             }
 
@@ -271,7 +310,7 @@ class ReminderService
             if ($user->hasAnyRole(['admin_assistant', 'ict_administrator'])) {
                 $pendingApps = CourseApplication::where('status', 'pending')->get();
                 foreach ($pendingApps as $app) {
-                    $tasks[] = [
+                    $addTask([
                         'id' => "course-app-verify-{$app->id}",
                         'title' => "Verify Course Application: {$app->full_name}",
                         'module' => 'Approvals',
@@ -284,34 +323,14 @@ class ReminderService
                         'remindable_type' => CourseApplication::class,
                         'remindable_id' => $app->id,
                         'description' => "New enrollment application from {$app->full_name} needs verification.",
-                    ];
+                    ]);
                 }
             }
 
-            if ($user->hasRole('deputy_director')) {
-                $verifiedApps = CourseApplication::where('status', 'verified')->get();
+            if ($user->hasRole('coordinator')) {
+                $verifiedApps = CourseApplication::whereIn('status', ['verified', 'recommended'])->get();
                 foreach ($verifiedApps as $app) {
-                    $tasks[] = [
-                        'id' => "course-app-recommend-{$app->id}",
-                        'title' => "Recommend Course Application: {$app->full_name}",
-                        'module' => 'Approvals',
-                        'required_action' => 'Recommend',
-                        'due_date' => null,
-                        'days_diff' => null,
-                        'priority' => 'medium',
-                        'status' => 'Awaiting Recommendation',
-                        'action_url' => route('course-applications.show', $app->id),
-                        'remindable_type' => CourseApplication::class,
-                        'remindable_id' => $app->id,
-                        'description' => "Verified enrollment application from {$app->full_name} needs recommendation.",
-                    ];
-                }
-            }
-
-            if ($user->hasRole('executive_director')) {
-                $recApps = CourseApplication::where('status', 'recommended')->get();
-                foreach ($recApps as $app) {
-                    $tasks[] = [
+                    $addTask([
                         'id' => "course-app-approve-{$app->id}",
                         'title' => "Approve Course Application: {$app->full_name}",
                         'module' => 'Approvals',
@@ -323,8 +342,8 @@ class ReminderService
                         'action_url' => route('course-applications.show', $app->id),
                         'remindable_type' => CourseApplication::class,
                         'remindable_id' => $app->id,
-                        'description' => "Recommended enrollment application from {$app->full_name} needs final approval.",
-                    ];
+                        'description' => "Verified enrollment application from {$app->full_name} needs final approval.",
+                    ]);
                 }
             }
 
@@ -332,7 +351,7 @@ class ReminderService
             if ($user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator'])) {
                 $pendingPayments = Payment::where('status', 'pending')->get();
                 foreach ($pendingPayments as $pay) {
-                    $tasks[] = [
+                    $addTask([
                         'id' => "payment-verify-{$pay->id}",
                         'title' => "Verify Client Payment: Ref #{$pay->id}",
                         'module' => 'Finance',
@@ -345,7 +364,7 @@ class ReminderService
                         'remindable_type' => Payment::class,
                         'remindable_id' => $pay->id,
                         'description' => "Client uploaded proof of payment. Please verify funds received.",
-                    ];
+                    ]);
                 }
             }
 
@@ -358,7 +377,7 @@ class ReminderService
 
                 foreach ($pendingEnrollments as $e) {
                     if ($e->user) {
-                        $tasks[] = [
+                        $addTask([
                             'id' => "enrollment-verify-{$e->id}",
                             'title' => "Verify Enrollment Payment: {$e->user->name}",
                             'module' => 'Finance',
@@ -371,26 +390,33 @@ class ReminderService
                             'remindable_type' => CourseEnrollment::class,
                             'remindable_id' => $e->id,
                             'description' => "Student {$e->user->name} uploaded proof of course payment. Please verify.",
-                        ];
+                        ]);
                     }
                 }
             }
 
             // E. Quotations that have not yet been created (Quotations module)
-            if ($user->hasAnyRole(['admin_assistant', 'ict_administrator'])) {
+            if ($user->hasAnyRole(['admin_assistant', 'ict_administrator', 'secretary'])) {
                 // ServiceRequests pending with no quotation
                 $unquotedRequests = ServiceRequest::where('status', 'pending')
                     ->whereDoesntHave('quotations')
                     ->get();
 
                 foreach ($unquotedRequests as $req) {
+                    $assignee = $req->assigned_to ? User::find($req->assigned_to) : null;
+                    if ($assignee && $assignee->hasAnyRole(['admin_assistant', 'ict_administrator', 'secretary'])) {
+                        if ($user->id !== $assignee->id) {
+                            continue;
+                        }
+                    }
+
                     $daysDiff = null;
                     if ($req->deadline) {
                         $due = Carbon::parse($req->deadline, $tz)->startOfDay();
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "quotation-create-{$req->id}",
                         'title' => "Create Quotation for Request Ref: {$req->reference_number}",
                         'module' => 'Quotations',
@@ -403,21 +429,28 @@ class ReminderService
                         'remindable_type' => ServiceRequest::class,
                         'remindable_id' => $req->id,
                         'description' => "Service Request \"{$req->title}\" is pending quotation preparation.",
-                    ];
+                    ]);
                 }
             }
 
             // F. Service requests that have not yet been responded to (Service Requests module)
-            if ($user->hasAnyRole(['secretary', 'receptionist', 'admin_assistant', 'ict_administrator', 'executive_director', 'deputy_director'])) {
+            if ($user->hasAnyRole(['secretary', 'receptionist', 'admin_assistant', 'ict_administrator'])) {
                 $unrespondedRequests = ServiceRequest::where('status', 'pending')->get();
                 foreach ($unrespondedRequests as $req) {
+                    $assignee = $req->assigned_to ? User::find($req->assigned_to) : null;
+                    if ($assignee && $assignee->hasAnyRole(['secretary', 'receptionist', 'admin_assistant', 'ict_administrator'])) {
+                        if ($user->id !== $assignee->id) {
+                            continue;
+                        }
+                    }
+
                     $daysDiff = null;
                     if ($req->deadline) {
                         $due = Carbon::parse($req->deadline, $tz)->startOfDay();
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "request-respond-{$req->id}",
                         'title' => "Respond to Request Ref: {$req->reference_number}",
                         'module' => 'Service Requests',
@@ -430,7 +463,7 @@ class ReminderService
                         'remindable_type' => ServiceRequest::class,
                         'remindable_id' => $req->id,
                         'description' => "New language service request: \"{$req->title}\" has not yet been processed.",
-                    ];
+                    ]);
                 }
             }
 
@@ -451,7 +484,7 @@ class ReminderService
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "submission-grade-{$sub->id}",
                         'title' => "Grade Coursework: {$sub->student->name} - {$sub->assignment->title}",
                         'module' => 'Assignments',
@@ -464,7 +497,7 @@ class ReminderService
                         'remindable_type' => CourseAssignmentSubmission::class,
                         'remindable_id' => $sub->id,
                         'description' => "Student coursework submission requires grading: " . ($sub->assignment->title ?? 'N/A'),
-                    ];
+                    ]);
                 }
             }
 
@@ -482,7 +515,7 @@ class ReminderService
                         $daysDiff = $today->diffInDays($due, false);
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "assignment-{$asg->id}",
                         'title' => ($asg->status === 'assigned' ? "Review Assignment Request" : "In Progress Assignment") . ": " . ($asg->serviceRequest->title ?? 'N/A'),
                         'module' => 'Assignments',
@@ -495,7 +528,7 @@ class ReminderService
                         'remindable_type' => Assignment::class,
                         'remindable_id' => $asg->id,
                         'description' => "Specialist work allocated: Role in task \"{$asg->role_in_task}\" for service Ref " . ($asg->serviceRequest->reference_number ?? 'N/A'),
-                    ];
+                    ]);
                 }
             }
 
@@ -521,7 +554,7 @@ class ReminderService
                         $priority = 'high';
                     }
 
-                    $tasks[] = [
+                    $addTask([
                         'id' => "task-staff-{$t->id}",
                         'title' => "Incomplete Task: {$t->title}",
                         'module' => 'Assignments',
@@ -534,7 +567,114 @@ class ReminderService
                         'remindable_type' => Task::class,
                         'remindable_id' => $t->id,
                         'description' => "Sub-task for assigned language service program: {$t->description}",
-                    ];
+                    ]);
+                }
+            }
+
+            // J. Deliverables Workflow (review, director_approval, admin_submission)
+            // 1. Review (Stage 1) -> Coordinators
+            if ($user->hasRole('coordinator')) {
+                $reviewRequests = ServiceRequest::where('status', 'review')->get();
+
+                foreach ($reviewRequests as $req) {
+                    $assignee = $req->assigned_to ? User::find($req->assigned_to) : null;
+                    if ($assignee && $assignee->hasRole('coordinator')) {
+                        if ($user->id !== $assignee->id) {
+                            continue;
+                        }
+                    }
+
+                    $addTask([
+                        'id' => "deliverable-review-{$req->id}",
+                        'title' => "Review Deliverable for Request Ref: {$req->reference_number}",
+                        'module' => 'Deliverables',
+                        'required_action' => 'Review Deliverable',
+                        'due_date' => null,
+                        'days_diff' => null,
+                        'priority' => 'high',
+                        'status' => 'Pending Review',
+                        'action_url' => route('service-requests.show', $req->id),
+                        'remindable_type' => ServiceRequest::class,
+                        'remindable_id' => $req->id,
+                        'description' => "A specialist has uploaded a deliverable for \"{$req->title}\" which needs your review.",
+                    ]);
+                }
+            }
+
+            // 2. Director Approval (Stage 2) -> Directors
+            if ($user->hasAnyRole(['executive_director', 'deputy_director'])) {
+                $approvalRequests = ServiceRequest::where('status', 'director_approval')->get();
+
+                foreach ($approvalRequests as $req) {
+                    $addTask([
+                        'id' => "deliverable-approve-{$req->id}",
+                        'title' => "Approve Deliverable for Request Ref: {$req->reference_number}",
+                        'module' => 'Deliverables',
+                        'required_action' => 'Approve Deliverable',
+                        'due_date' => null,
+                        'days_diff' => null,
+                        'priority' => 'high',
+                        'status' => 'Pending Approval',
+                        'action_url' => route('service-requests.show', $req->id),
+                        'remindable_type' => ServiceRequest::class,
+                        'remindable_id' => $req->id,
+                        'description' => "A deliverable for \"{$req->title}\" has been forwarded for final director approval.",
+                    ]);
+                }
+            }
+
+            // 3. Admin Submission (Stage 3) -> Admin Assistants
+            if ($user->hasRole('admin_assistant')) {
+                $submissionRequests = ServiceRequest::where('status', 'admin_submission')->get();
+
+                foreach ($submissionRequests as $req) {
+                    $assignee = $req->assigned_to ? User::find($req->assigned_to) : null;
+                    if ($assignee && $assignee->hasRole('admin_assistant')) {
+                        if ($user->id !== $assignee->id) {
+                            continue;
+                        }
+                    }
+
+                    $addTask([
+                        'id' => "deliverable-submit-{$req->id}",
+                        'title' => "Submit Deliverable to Client: Ref {$req->reference_number}",
+                        'module' => 'Deliverables',
+                        'required_action' => 'Submit to Client',
+                        'due_date' => null,
+                        'days_diff' => null,
+                        'priority' => 'high',
+                        'status' => 'Pending Submission',
+                        'action_url' => route('service-requests.show', $req->id),
+                        'remindable_type' => ServiceRequest::class,
+                        'remindable_id' => $req->id,
+                        'description' => "The approved deliverable for \"{$req->title}\" is ready to be sent to the client.",
+                    ]);
+                }
+            }
+
+            // K. CC Reviews -> Specific CC Reviewers
+            $ccReviews = DB::table('cc_reviews')
+                ->where('reviewer_id', $user->id)
+                ->where('status', 'pending')
+                ->get();
+
+            foreach ($ccReviews as $review) {
+                $req = ServiceRequest::find($review->service_request_id);
+                if ($req) {
+                    $addTask([
+                        'id' => "cc-review-{$review->id}",
+                        'title' => "CC Review: " . $req->title,
+                        'module' => 'CC Reviews',
+                        'required_action' => 'Respond to CC Review',
+                        'due_date' => null,
+                        'days_diff' => null,
+                        'priority' => 'medium',
+                        'status' => 'Pending Review',
+                        'action_url' => route('service-requests.show', $req->id),
+                        'remindable_type' => ServiceRequest::class,
+                        'remindable_id' => $req->id,
+                        'description' => "Coordinator review has been requested for deliverable on Ref: {$req->reference_number}.",
+                    ]);
                 }
             }
         }

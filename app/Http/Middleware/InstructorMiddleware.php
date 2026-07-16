@@ -22,6 +22,7 @@ class InstructorMiddleware
             abort(401);
         }
 
+
         // Allow access if the user has specific spatie roles OR is assigned to at least one intake as instructor OR belongs to a non-AOS unit
         if (
             $user->primary_category === 'Staff' &&

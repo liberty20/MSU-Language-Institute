@@ -22,7 +22,7 @@ class ProfileController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        $canEditEmail = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator']);
+        $canEditEmail = $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'coordinator']);
 
         if (!$canEditEmail && $request->has('email') && $request->input('email') !== $user->email) {
             return redirect()->back()->withErrors(['email' => 'Only the Executive Director, Deputy Director, or ICT Administrator can update the email address.']);

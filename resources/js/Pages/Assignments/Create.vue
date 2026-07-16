@@ -34,21 +34,31 @@
                     </div>
                 </div>
 
-                <!-- Staff Selection -->
+                <!-- Recipient Selection -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h2 class="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                         <span class="w-6 h-6 bg-[#0a1f44] text-white text-xs rounded-full flex items-center justify-center font-bold">2</span>
-                        Staff Member
+                        Recipient Assignment
                     </h2>
                     <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Assign To Type <span class="text-red-500">*</span></label>
+                            <select v-model="form.assign_to_type" required
+                                    class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
+                                <option value="staff">Staff Member</option>
+                                <option value="coordinator">Coordinator</option>
+                            </select>
+                            <p v-if="form.errors.assign_to_type" class="text-red-500 text-xs mt-1">{{ form.errors.assign_to_type }}</p>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Assign To <span class="text-red-500">*</span></label>
                             <select v-model="form.assigned_to" required
                                     class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
-                                <option value="">Choose a staff member…</option>
+                                <option value="">Choose a recipient…</option>
                                 <optgroup v-for="group in staffGroups" :key="group.label" :label="group.label">
-                                    <option v-for="staff in group.members" :key="staff.id" :value="staff.id">
-                                        {{ staff.name }} {{ staff.email ? `(${staff.email})` : '' }}
+                                    <option v-for="recipient in group.members" :key="recipient.id" :value="recipient.id">
+                                        {{ recipient.name }} {{ recipient.email ? `(${recipient.email})` : '' }}
                                     </option>
                                 </optgroup>
                             </select>
@@ -109,25 +119,40 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 const props = defineProps({
     serviceRequests: Array,
     staff: Array,
+    coordinators: Array,
     preselectedServiceRequestId: [String, Number],
 });
 
 const form = useForm({
     service_request_id: props.preselectedServiceRequestId || '',
+    assign_to_type: 'staff',
     assigned_to: '',
     role_in_task: '',
     notes: '',
 });
 
-// Group staff by their roles for better UX
+// Watch type selection and reset selected user
+watch(() => form.assign_to_type, () => {
+    form.assigned_to = '';
+});
+
+// Compute active list of members depending on selection type
+const eligibleRecipients = computed(() => {
+    if (form.assign_to_type === 'coordinator') {
+        return props.coordinators || [];
+    }
+    return props.staff || [];
+});
+
+// Group recipients for optgroup formatting
 const staffGroups = computed(() => {
-    const all = props.staff || [];
-    return [{ label: 'All Staff', members: all }];
+    const label = form.assign_to_type === 'coordinator' ? 'All Coordinators' : 'All Staff';
+    return [{ label: label, members: eligibleRecipients.value }];
 });
 
 const submit = () => {

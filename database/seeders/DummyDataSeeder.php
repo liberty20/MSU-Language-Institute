@@ -26,7 +26,6 @@ class DummyDataSeeder extends Seeder
         try {
             // Truncate existing data to avoid duplicates
             \Schema::disableForeignKeyConstraints();
-            \DB::table('procurement_requests')->truncate();
             \DB::table('tasks')->truncate();
             \DB::table('assignments')->truncate();
             \DB::table('quotations')->truncate();
@@ -71,9 +70,6 @@ class DummyDataSeeder extends Seeder
 
             Task::create(['assignment_id' => 1, 'title' => 'Translate Chapters 1-5', 'description' => 'First batch of translation.', 'status' => 'completed', 'priority' => 'high', 'due_date' => Carbon::now()->subDay(), 'completed_at' => Carbon::now()->subDay()]);
             Task::create(['assignment_id' => 1, 'title' => 'Translate Chapters 6-10', 'description' => 'Second batch of translation.', 'status' => 'in_progress', 'priority' => 'high', 'due_date' => Carbon::now()->addDays(2)]);
-
-            ProcurementRequest::create(['reference_number' => 'PR-20260520-001', 'title' => 'Braille Paper', 'description' => 'Box of 500 sheets', 'estimated_cost' => 150.00, 'justification' => 'Low stock in brailling unit', 'priority' => 'high', 'status' => 'approved', 'requested_by' => $adminUser->id]);
-            ProcurementRequest::create(['reference_number' => 'PR-20260520-002', 'title' => 'New Laptops', 'description' => 'For Editorial Team', 'estimated_cost' => 2400.00, 'justification' => 'Old machines failing', 'priority' => 'medium', 'status' => 'pending_approval', 'requested_by' => $adminUser->id]);
         } finally {
             \App\Services\UserBackupService::$shouldBackup = $temp;
         }

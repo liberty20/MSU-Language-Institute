@@ -20,6 +20,8 @@ class ChatController extends Controller
         if ($userA->id === $userB->id) return false;
         // Students cannot use messaging at all
         if ($this->isStudent($userA) || $this->isStudent($userB)) return false;
+        // Clients cannot message other clients
+        if ($userA->hasRole('client') && $userB->hasRole('client')) return false;
         // All other authenticated users can message each other freely
         return true;
     }

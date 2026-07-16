@@ -119,6 +119,7 @@ class PaymentController extends Controller
         if ($user->hasRole('executive_director') || 
             $user->hasRole('deputy_director') || 
             $user->hasRole('ict_administrator') || 
+            $user->hasRole('coordinator') || 
             $user->hasRole('admin_assistant')) {
             // Authorized
         } else if ($user->hasRole('client')) {

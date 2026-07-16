@@ -96,6 +96,13 @@
                                 <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Max Upload Size (MB)</label>
                                 <input v-model="configForm.max_upload_size" type="number" min="1" max="100" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-gold focus:ring-brand-gold text-sm" required />
                             </div>
+                            <div class="col-span-1 md:col-span-2 flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-150">
+                                <input id="deliverable_direct_routing" type="checkbox" v-model="configForm.deliverable_direct_routing" class="rounded text-[#0a1f44] focus:ring-[#0a1f44] h-4.5 w-4.5 border-gray-300" />
+                                <div>
+                                    <label for="deliverable_direct_routing" class="block text-xs font-bold text-gray-800 uppercase tracking-wider cursor-pointer">Enable Direct Routing of Deliverables (Option B)</label>
+                                    <p class="text-[10px] text-gray-500 mt-0.5">When enabled, Coordinators can approve and submit deliverables directly to Administrative Assistants, bypassing Directorate approval.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="pt-4 border-t border-gray-100 flex justify-end">
@@ -606,6 +613,66 @@
                 </div>
             </div>
 
+            <!-- TAB: Documentaries Management -->
+            <div v-show="activeTab === 'documentaries'" class="space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-[#0a1f44] mb-1">MSUNLI Public Documentaries</h3>
+                            <p class="text-xs text-gray-550">Manage the educational and promotional video documentaries displayed on the institute landing page.</p>
+                        </div>
+                        <button @click="openCreateDocModal" class="px-4 py-2 rounded-xl bg-[#0a1f44] hover:bg-[#0c2859] text-[#f5c242] font-black text-xs uppercase tracking-wider transition shadow-sm">
+                            + Add Documentary
+                        </button>
+                    </div>
+
+                    <div v-if="documentaries && documentaries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-for="doc in documentaries" :key="doc.id" class="bg-slate-50/50 rounded-2xl border border-gray-150 overflow-hidden flex flex-col justify-between shadow-xs">
+                            <div class="relative aspect-video bg-gray-900 group">
+                                <img :src="doc.thumbnail_path" :alt="doc.title" class="w-full h-full object-cover opacity-80" />
+                                <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <span class="w-12 h-12 rounded-full bg-[#f5c242] text-[#0a1f44] flex items-center justify-center shadow-lg font-black text-sm">Play</span>
+                                </div>
+                                <span v-if="doc.duration" class="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded">{{ doc.duration }}</span>
+                            </div>
+                            
+                            <div class="p-6 flex-grow flex flex-col justify-between space-y-4">
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <h4 class="font-extrabold text-[#0a1f44] text-base leading-tight">{{ doc.title }}</h4>
+                                        <span class="px-2 py-0.5 text-[9px] rounded-full font-bold uppercase tracking-wider whitespace-nowrap"
+                                              :class="doc.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'">
+                                            {{ doc.is_published ? 'Published' : 'Draft' }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-550 leading-relaxed transition-all duration-300"
+                                       :class="expandedDocs[doc.id] ? '' : 'line-clamp-3'">
+                                        {{ doc.description }}
+                                    </p>
+                                    <button v-if="doc.description && doc.description.length > 150" 
+                                            @click="toggleExpandDoc(doc.id)"
+                                            class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline mt-1 focus:outline-none block text-left">
+                                        {{ expandedDocs[doc.id] ? 'Read Less' : 'Read More' }}
+                                    </button>
+                                </div>
+
+                                <div class="border-t border-gray-200/60 pt-4 flex justify-end gap-2">
+                                    <button @click="openEditDocModal(doc)" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Edit Details
+                                    </button>
+                                    <button @click="deleteDoc(doc.id)" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider transition shadow-sm">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs font-semibold">
+                        No documentaries have been added yet. Click "+ Add Documentary" to upload your first video.
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB 7: Danger Zone (Database Reset) -->
             <div v-if="$page.props.auth.roles.includes('ict_administrator') && activeTab === 'reset'" class="space-y-6">
                 <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -776,6 +843,73 @@
                 </form>
             </div>
         </div>
+
+        <!-- Create/Edit Documentary Modal -->
+        <div v-if="isDocModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeDocModal">
+            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border-4 border-brand-gold relative">
+                <div class="absolute inset-1.5 border border-brand-blue/30 pointer-events-none rounded-2xl"></div>
+
+                <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-brand-gold/25 relative z-10">
+                    <div>
+                        <span class="px-2 py-0.5 text-[0.55rem] bg-brand-gold/15 text-brand-gold border border-brand-gold/30 rounded font-black uppercase tracking-widest">Administrator Tool</span>
+                        <h3 class="text-sm font-black mt-0.5 uppercase tracking-wider">{{ editingDocId ? 'Edit Documentary' : 'Add Documentary' }}</h3>
+                    </div>
+                    <button @click="closeDocModal" class="text-gray-300 hover:text-white transition text-lg p-1">&times;</button>
+                </div>
+                
+                <form @submit.prevent="submitDoc" class="p-6 space-y-4 text-xs relative z-10">
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Documentary Title *</label>
+                        <input v-model="docForm.title" type="text" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-bold" placeholder="e.g. Preserving Zimbabwe's Linguistic Heritage" />
+                        <span v-if="docFormErrors.title" class="text-red-500 text-[10px] mt-1 block">{{ docFormErrors.title }}</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Description / Overview *</label>
+                        <textarea v-model="docForm.description" rows="3" required class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-medium" placeholder="Write a brief overview of the documentary content..."></textarea>
+                        <span v-if="docFormErrors.description" class="text-red-500 text-[10px] mt-1 block">{{ docFormErrors.description }}</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">Duration (e.g. 12:45) (Optional)</label>
+                            <input v-model="docForm.duration" type="text" class="w-full text-xs rounded-xl border-gray-300 focus:border-brand-gold focus:ring-brand-gold shadow-sm font-semibold" placeholder="e.g. 15:30" />
+                            <span v-if="docFormErrors.duration" class="text-red-500 text-[10px] mt-1 block">{{ docFormErrors.duration }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 pt-5">
+                            <input id="doc_is_published" type="checkbox" v-model="docForm.is_published" class="rounded text-[#0a1f44] focus:ring-[#0a1f44] h-4.5 w-4.5 border-gray-300" />
+                            <label for="doc_is_published" class="text-[10px] font-bold text-gray-700 uppercase tracking-wider cursor-pointer">Publish Immediately</label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">
+                                Thumbnail Image File {{ editingDocId ? '(Optional)' : '*' }}
+                            </label>
+                            <input type="file" @change="handleDocThumbnailUpload" :required="!editingDocId" accept="image/*" class="w-full text-xs" />
+                            <span v-if="docFormErrors.thumbnail" class="text-red-500 text-[10px] mt-1 block">{{ docFormErrors.thumbnail }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-black text-gray-700 uppercase mb-1.5 tracking-wide">
+                                Video File {{ editingDocId ? '(Optional)' : '*' }}
+                            </label>
+                            <input type="file" @change="handleDocVideoUpload" :required="!editingDocId" accept="video/*,.mp4,.webm,.ogg,.mov,.avi,.mkv,.wmv,.flv" class="w-full text-xs" />
+                            <span v-if="docFormErrors.video" class="text-red-500 text-[10px] mt-1 block">{{ docFormErrors.video }}</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-150 flex justify-end gap-3">
+                        <button type="button" @click="closeDocModal" class="px-4 py-2 border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition text-[10px] uppercase tracking-wider">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition shadow text-[10px] uppercase tracking-wider">
+                            {{ editingDocId ? 'Save Changes' : 'Upload Documentary' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
@@ -802,22 +936,34 @@ const props = defineProps({
     filters: Object,
     activeResetRequest: Object,
     resetHistory: Array,
+    documentaries: Array,
 });
 
 const urlParams = new URLSearchParams(window.location.search);
-const activeTab = ref(urlParams.get('tab') || 'config');
+const isRestricted = computed(() => {
+    return ['secretary', 'admin_assistant', 'coordinator'].some(role => usePage().props.value.auth.roles.includes(role));
+});
+let initialTab = urlParams.get('tab') || 'config';
+if (isRestricted.value && ['units', 'sections', 'roles', 'reset'].includes(initialTab)) {
+    initialTab = 'config';
+}
+const activeTab = ref(initialTab);
 const confirmReset = ref(false);
 
 const tabsList = computed(() => {
-    const list = [
+    let list = [
         { value: 'config', label: 'System Configuration', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' },
         { value: 'mail', label: 'Mail Delivery Monitor', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>' },
         { value: 'units', label: 'MSUNLI Units', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>' },
         { value: 'sections', label: 'Departments & Sections', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>' },
         { value: 'roles', label: 'Institutional Roles', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
         { value: 'short-courses', label: 'Short Courses Portal', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>' },
-        { value: 'testimonies', label: 'Testimonies Review', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' }
+        { value: 'testimonies', label: 'Testimonies Review', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' },
+        { value: 'documentaries', label: 'Documentaries', icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"/></svg>' }
     ];
+    if (isRestricted.value) {
+        list = list.filter(tab => !['units', 'sections', 'roles'].includes(tab.value));
+    }
     if (usePage().props.value.auth.roles.includes('ict_administrator')) {
         list.push({ value: 'reset', label: 'Danger Zone', icon: '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' });
     }
@@ -830,8 +976,9 @@ const configForm = ref({
     admin_email: props.config.admin_email || '',
     support_phone: props.config.support_phone || '',
     max_upload_size: props.config.max_upload_size || 10,
-    maintenance_mode: false,
-    allow_registrations: false,
+    maintenance_mode: props.config.maintenance_mode || false,
+    allow_registrations: props.config.allow_registrations || false,
+    deliverable_direct_routing: props.config.deliverable_direct_routing || false,
 });
 
 const searchQuery = ref(props.filters.search || '');
@@ -1101,5 +1248,93 @@ const submitManualTestimonial = () => {
             closeCreateModal();
         }
     });
+};
+
+// Documentaries Management
+const isDocModalOpen = ref(false);
+const editingDocId = ref(null);
+const docForm = reactive({
+    title: '',
+    description: '',
+    duration: '',
+    thumbnail: null,
+    video: null,
+    is_published: true,
+});
+
+const docFormErrors = ref({});
+
+const openCreateDocModal = () => {
+    editingDocId.value = null;
+    docForm.title = '';
+    docForm.description = '';
+    docForm.duration = '';
+    docForm.thumbnail = null;
+    docForm.video = null;
+    docForm.is_published = true;
+    docFormErrors.value = {};
+    isDocModalOpen.value = true;
+};
+
+const openEditDocModal = (doc) => {
+    editingDocId.value = doc.id;
+    docForm.title = doc.title;
+    docForm.description = doc.description;
+    docForm.duration = doc.duration;
+    docForm.thumbnail = null;
+    docForm.video = null;
+    docForm.is_published = doc.is_published;
+    docFormErrors.value = {};
+    isDocModalOpen.value = true;
+};
+
+const closeDocModal = () => {
+    isDocModalOpen.value = false;
+};
+
+const handleDocThumbnailUpload = (e) => {
+    docForm.thumbnail = e.target.files[0];
+};
+
+const handleDocVideoUpload = (e) => {
+    docForm.video = e.target.files[0];
+};
+
+const submitDoc = () => {
+    const formData = new FormData();
+    formData.append('title', docForm.title);
+    formData.append('description', docForm.description);
+    formData.append('duration', docForm.duration);
+    formData.append('is_published', docForm.is_published ? '1' : '0');
+    if (docForm.thumbnail) {
+        formData.append('thumbnail', docForm.thumbnail);
+    }
+    if (docForm.video) {
+        formData.append('video', docForm.video);
+    }
+
+    const url = editingDocId.value 
+        ? route('admin.settings.documentaries.update', editingDocId.value)
+        : route('admin.settings.documentaries.store');
+
+    Inertia.post(url, formData, {
+        onSuccess: () => {
+            closeDocModal();
+        },
+        onError: (errors) => {
+            docFormErrors.value = errors;
+        }
+    });
+};
+
+const deleteDoc = (id) => {
+    if (confirm('Are you sure you want to delete this documentary?')) {
+        Inertia.delete(route('admin.settings.documentaries.destroy', id));
+    }
+};
+
+const expandedDocs = ref({});
+const toggleExpandDoc = (id) => {
+    expandedDocs.value[id] = !expandedDocs.value[id];
 };
 </script>

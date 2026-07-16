@@ -31,15 +31,15 @@ class QuotationController extends Controller
             $query->whereHas('serviceRequest', function ($q) use ($user) {
                 $q->where('submitted_by', $user->id);
             })->where('status', 'approved');
-        } elseif ($user->hasRole('secretary')) {
-            $query->whereIn('status', ['approved', 'rejected']);
-        } elseif ($user->hasRole('admin_assistant')) {
+        } elseif ($user->hasRole('secretary') || $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator')) {
             $query->where(function ($q) use ($user) {
                 $q->where('prepared_by', $user->id)
                   ->orWhereIn('status', ['approved', 'rejected']);
             });
+        } elseif ($user->hasRole('coordinator')) {
+            $query->whereIn('status', ['submitted', 'reviewed', 'pending_approval', 'approved', 'rejected']);
         } elseif ($user->hasRole('deputy_director')) {
-            $query->whereIn('status', ['submitted', 'pending_approval', 'approved', 'rejected']);
+            $query->whereIn('status', ['reviewed', 'pending_approval', 'approved', 'rejected']);
         } elseif ($user->hasRole('executive_director')) {
             $query->whereIn('status', ['pending_approval', 'approved', 'rejected']);
         }
@@ -76,8 +76,8 @@ class QuotationController extends Controller
     public function create()
     {
         $user = Auth::user();
-        if (!$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator')) {
-            abort(403, 'Only Admin Assistants and ICT Administrators can generate quotations.');
+        if (!$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
+            abort(403, 'Only Admin Assistants, Secretaries, and ICT Administrators can generate quotations.');
         }
 
         return Inertia::render('Quotations/Create', [
@@ -90,8 +90,8 @@ class QuotationController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator')) {
-            abort(403, 'Only Admin Assistants and ICT Administrators can generate quotations.');
+        if (!$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
+            abort(403, 'Only Admin Assistants, Secretaries, and ICT Administrators can generate quotations.');
         }
 
         $validated = $request->validate([
@@ -141,16 +141,16 @@ class QuotationController extends Controller
             if ($quotation->serviceRequest->submitted_by !== $user->id || $quotation->status !== 'approved') {
                 abort(403, 'Unauthorized.');
             }
-        } elseif ($user->hasRole('secretary')) {
-            if (!in_array($quotation->status, ['approved', 'rejected'])) {
-                abort(403, 'Unauthorized.');
-            }
-        } elseif ($user->hasRole('admin_assistant')) {
+        } elseif ($user->hasRole('secretary') || $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator')) {
             if ($quotation->prepared_by !== $user->id && !in_array($quotation->status, ['approved', 'rejected'])) {
                 abort(403, 'Unauthorized.');
             }
+        } elseif ($user->hasRole('coordinator')) {
+            if (!in_array($quotation->status, ['submitted', 'reviewed', 'pending_approval', 'approved', 'rejected'])) {
+                abort(403, 'Unauthorized.');
+            }
         } elseif ($user->hasRole('deputy_director')) {
-            if (!in_array($quotation->status, ['submitted', 'pending_approval', 'approved', 'rejected'])) {
+            if (!in_array($quotation->status, ['reviewed', 'pending_approval', 'approved', 'rejected'])) {
                 abort(403, 'Unauthorized.');
             }
         } elseif ($user->hasRole('executive_director')) {
@@ -171,21 +171,24 @@ class QuotationController extends Controller
         ]);
 
         $user = Auth::user();
+        $isCoordinator = $user->hasRole('coordinator');
         $isDeputy = $user->hasRole('deputy_director');
         $isExecutive = $user->hasRole('executive_director');
 
-        if (!$isDeputy && !$isExecutive) {
+        if (!$isCoordinator && !$isDeputy && !$isExecutive) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Deputy Director Recommendation (Stage 1)
-        if ($isDeputy) {
+        $msg = '';
+
+        // Coordinator Review (Stage 1)
+        if ($isCoordinator) {
             if ($quotation->status !== 'submitted') {
-                return redirect()->back()->with('error', 'Only submitted quotations can be recommended.');
+                return redirect()->back()->with('error', 'Only submitted quotations can be reviewed.');
             }
 
             if ($validated['status'] === 'approved') {
-                $quotation->update(['status' => 'pending_approval']);
+                $quotation->update(['status' => 'reviewed']);
                 $quotation->approvals()->create([
                     'stage'       => 1,
                     'approver_id' => $user->id,
@@ -193,12 +196,12 @@ class QuotationController extends Controller
                     'comments'    => $validated['comments'],
                     'approved_at' => now(),
                 ]);
-                ActivityLog::log('quotation_approved', 'Quotation Reference #' . $quotation->id . ' recommended for approval by Deputy Director.', $quotation, [
+                ActivityLog::log('quotation_approved', 'Quotation Reference #' . $quotation->id . ' reviewed and forwarded by Coordinator.', $quotation, [
                     'old_value' => 'submitted',
-                    'new_value' => 'pending_approval',
+                    'new_value' => 'reviewed',
                     'comments'  => $validated['comments']
                 ]);
-                $msg = 'Quotation recommended and pushed to the Executive Director.';
+                $msg = 'Quotation reviewed and forwarded to the Deputy Director.';
             } elseif ($validated['status'] === 'review') {
                 $quotation->update(['status' => 'draft']);
                 $quotation->approvals()->create([
@@ -208,23 +211,64 @@ class QuotationController extends Controller
                     'comments'    => '[Revision Requested] ' . $validated['comments'],
                     'approved_at' => now(),
                 ]);
-                ActivityLog::log('quotation_updated', 'Quotation Reference #' . $quotation->id . ' returned for revision by Deputy Director.', $quotation, [
+                ActivityLog::log('quotation_updated', 'Quotation Reference #' . $quotation->id . ' returned for correction by Coordinator.', $quotation, [
                     'old_value' => 'submitted',
                     'new_value' => 'draft',
                     'comments'  => $validated['comments']
                 ]);
-                $msg = 'Quotation returned to creator for revision.';
+                $msg = 'Quotation returned to creator for correction.';
+            } else {
+                return redirect()->back()->with('error', 'Invalid action for Coordinator.');
+            }
+        }
+
+        // Deputy Director Recommendation (Stage 2)
+        if ($isDeputy) {
+            if ($quotation->status !== 'reviewed') {
+                return redirect()->back()->with('error', 'Only reviewed quotations can be recommended.');
+            }
+
+            if ($validated['status'] === 'approved') {
+                $quotation->update(['status' => 'pending_approval']);
+                $quotation->approvals()->create([
+                    'stage'       => 2,
+                    'approver_id' => $user->id,
+                    'status'      => 'approved',
+                    'comments'    => $validated['comments'],
+                    'approved_at' => now(),
+                ]);
+                ActivityLog::log('quotation_approved', 'Quotation Reference #' . $quotation->id . ' recommended for approval by Deputy Director.', $quotation, [
+                    'old_value' => 'reviewed',
+                    'new_value' => 'pending_approval',
+                    'comments'  => $validated['comments']
+                ]);
+                $msg = 'Quotation recommended and pushed to the Executive Director.';
+            } elseif ($validated['status'] === 'review') {
+                $quotation->update(['status' => 'draft']);
+                $quotation->approvals()->create([
+                    'stage'       => 2,
+                    'approver_id' => $user->id,
+                    'status'      => 'rejected',
+                    'comments'    => '[Revision Requested] ' . $validated['comments'],
+                    'approved_at' => now(),
+                ]);
+                ActivityLog::log('quotation_updated', 'Quotation Reference #' . $quotation->id . ' returned for revision by Deputy Director.', $quotation, [
+                    'old_value' => 'reviewed',
+                    'new_value' => 'draft',
+                    'comments'  => $validated['comments']
+                ]);
+                $msg = 'Quotation returned for revision.';
             } else {
                 $quotation->update(['status' => 'rejected']);
                 $quotation->approvals()->create([
-                    'stage'       => 1,
+                    'stage'       => 2,
                     'approver_id' => $user->id,
                     'status'      => 'rejected',
                     'comments'    => $validated['comments'],
                     'approved_at' => now(),
                 ]);
                 ActivityLog::log('quotation_rejected', 'Quotation Reference #' . $quotation->id . ' rejected by Deputy Director.', $quotation, [
-                    'old_value' => 'submitted',
+                    'old_value' => 'reviewed',
                     'new_value' => 'rejected',
                     'comments'  => $validated['comments']
                 ]);
@@ -232,16 +276,16 @@ class QuotationController extends Controller
             }
         }
 
-        // Executive Director Final Approval (Stage 2)
+        // Executive Director Final Approval (Stage 3)
         if ($isExecutive) {
-            if ($quotation->status !== 'pending_approval' && $quotation->status !== 'submitted') {
+            if ($quotation->status !== 'pending_approval') {
                 return redirect()->back()->with('error', 'Invalid quotation state for final approval.');
             }
 
             if ($validated['status'] === 'approved') {
                 $quotation->update(['status' => 'approved']);
                 $quotation->approvals()->create([
-                    'stage'       => 2,
+                    'stage'       => 3,
                     'approver_id' => $user->id,
                     'status'      => 'approved',
                     'comments'    => $validated['comments'],
@@ -262,7 +306,7 @@ class QuotationController extends Controller
             } else {
                 $quotation->update(['status' => 'rejected']);
                 $quotation->approvals()->create([
-                    'stage'       => 2,
+                    'stage'       => 3,
                     'approver_id' => $user->id,
                     'status'      => 'rejected',
                     'comments'    => $validated['comments'],
@@ -284,6 +328,15 @@ class QuotationController extends Controller
 
     public function edit(Quotation $quotation)
     {
+        $user = Auth::user();
+        if ($quotation->prepared_by !== $user->id && !$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($quotation->status !== 'draft') {
+            return redirect()->route('quotations.show', $quotation->id)->with('error', 'Only quotations in draft/returned status can be edited.');
+        }
+
         return Inertia::render('Quotations/Edit', [
             'quotation'       => $quotation,
             'serviceRequests' => ServiceRequest::with('client')->get(),
@@ -293,8 +346,12 @@ class QuotationController extends Controller
     public function update(Request $request, Quotation $quotation)
     {
         $user = Auth::user();
-        if ($quotation->prepared_by !== $user->id && !$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator')) {
+        if ($quotation->prepared_by !== $user->id && !$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
             abort(403, 'Unauthorized.');
+        }
+
+        if ($quotation->status !== 'draft') {
+            return redirect()->route('quotations.show', $quotation->id)->with('error', 'Only quotations in draft/returned status can be edited.');
         }
 
         $validated = $request->validate([

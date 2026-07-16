@@ -53,7 +53,7 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Assignments</span>
                 </Link>
 
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'client'].some(r => $page.props.auth.roles.includes(r))" :href="route('completed-tasks.index')" :class="navClass('completed-tasks.*')" title="Completed Tasks">
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'client', 'coordinator', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('completed-tasks.index')" :class="navClass('completed-tasks.*')" title="Completed Tasks">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Completed Tasks</span>
                 </Link>
@@ -63,17 +63,12 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Payment Details</span>
                 </Link>
 
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator'].some(r => $page.props.auth.roles.includes(r))" :href="route('finance.index')" :class="navClass('finance.*')" title="Finance">
+                <Link v-if="['ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('finance.index')" :class="navClass('finance.*')" title="Finance">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Finance</span>
                 </Link>
 
-                <a v-if="can('manage procurement') || can('approve procurement')" href="https://procurementreq.msu.ac.zw/" :class="navClass('procurement-requests.*')" title="Procurement">
-                    <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Procurement</span>
-                </a>
-
-                <a v-if="can('manage procurement') || can('approve procurement')" href="https://storesreq.msu.ac.zw/" :class="navClass('stores-requisition.*')" title="Stores Requisition">
+                <a v-if="['ict_administrator', 'secretary'].some(r => $page.props.auth.roles.includes(r))" href="https://storesreq.msu.ac.zw/" :class="navClass('stores-requisition.*')" title="Stores Requisition">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Stores Requisition</span>
                 </a>
@@ -95,24 +90,24 @@
                 </Link>
 
                 <!-- Short Courses (Admin / Staff) -->
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('courses.index')" :class="navClass('courses.*')" title="Short Courses">
+                <Link v-if="['ict_administrator', 'admin_assistant', 'secretary', 'coordinator'].some(r => $page.props.auth.roles.includes(r))" :href="route('courses.index')" :class="navClass('courses.*')" title="Short Courses">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Short Courses</span>
                 </Link>
 
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('course-enrollments.index')" :class="navClass('course-enrollments.*')" title="Course Enrollments">
+                <Link v-if="['ict_administrator', 'admin_assistant', 'secretary', 'coordinator'].some(r => $page.props.auth.roles.includes(r))" :href="route('course-enrollments.index')" :class="navClass('course-enrollments.*')" title="Course Enrollments">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Course Enrollments</span>
                 </Link>
 
                 <!-- Course Applications (Admin / Staff Review Panel) -->
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" :href="route('course-applications.index')" :class="navClass('course-applications.*')" title="Course Applications">
+                <Link v-if="['ict_administrator', 'admin_assistant', 'coordinator', 'secretary'].some(r => $page.props.auth.roles.includes(r))" :href="route('course-applications.index')" :class="navClass('course-applications.*')" title="Course Applications">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Course Applications</span>
                 </Link>
 
                 <!-- Notices & Announcements (Admin + Students) -->
-                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'].some(r => $page.props.auth.roles.includes(r)) || $page.props.auth.roles.includes('student')" :href="route('notices.index')" :class="navClass('notices.*')" title="Notices &amp; Announcements">
+                <Link v-if="['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator'].some(r => $page.props.auth.roles.includes(r)) || $page.props.auth.roles.includes('student')" :href="route('notices.index')" :class="navClass('notices.*')" title="Notices &amp; Announcements">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Notices</span>
                 </Link>
@@ -160,6 +155,11 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Course Enrollments</span>
                 </Link>
 
+                <Link v-if="$page.props.auth.is_instructor" :href="route('instructor.attendance.index')" :class="navClass('instructor.attendance.*')" title="Attendance Register">
+                    <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Attendance Register</span>
+                </Link>
+
                 <Link v-if="$page.props.auth.is_instructor" :href="route('instructor.announcements.index')" :class="navClass('instructor.announcements.*')" title="Announcements Manager">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Announcements Manager</span>
@@ -200,12 +200,12 @@
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Users</span>
                 </Link>
 
-                <Link v-if="['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant'].some(r => $page.props.auth.roles.includes(r))" :href="route('admin.audit-trail')" :class="navClass('admin.audit-trail')" title="Audit Trail">
+                <Link v-if="['ict_administrator', 'executive_director', 'deputy_director', 'admin_assistant', 'coordinator'].some(r => $page.props.auth.roles.includes(r))" :href="route('admin.audit-trail')" :class="navClass('admin.audit-trail')" title="Audit Trail">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">Audit Trail</span>
                 </Link>
 
-                <Link v-if="['ict_administrator', 'executive_director', 'deputy_director'].some(r => $page.props.auth.roles.includes(r))" :href="route('admin.settings.index')" :class="navClass('admin.settings.*')" title="System Settings">
+                <Link v-if="['ict_administrator', 'executive_director', 'deputy_director', 'secretary', 'admin_assistant', 'coordinator'].some(r => $page.props.auth.roles.includes(r))" :href="route('admin.settings.index')" :class="navClass('admin.settings.*')" title="System Settings">
                     <svg :class="['w-5 h-5 transition-all duration-300', sidebarCollapsed ? 'md:mr-0 mr-3' : 'mr-3']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <span :class="[sidebarCollapsed ? 'md:hidden' : '']">System Settings</span>
                 </Link>

@@ -22,7 +22,7 @@ class NoticeController extends Controller
 
     private function isAdmin($user)
     {
-        return $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary']);
+        return $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'coordinator']);
     }
 
     public function index()

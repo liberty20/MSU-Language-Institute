@@ -32,14 +32,16 @@ class AssignmentController extends Controller
             $isStaffOutsideAos = true;
         }
 
-        $canView = $isStaffOutsideAos || $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'language_expert', 'part_time_staff']);
+        $canView = $isStaffOutsideAos || $user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary', 'language_expert', 'part_time_staff', 'coordinator']);
         if (!$canView) {
             abort(403, 'Unauthorized.');
         }
 
         $query = Assignment::with(['serviceRequest.client', 'assignedTo', 'assignedBy', 'tasks']);
 
-        if ($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
+        if ($user->hasRole('coordinator')) {
+            $query->where('assigned_by', $user->id);
+        } elseif ($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) {
             $query->where('assigned_to', $user->id);
         }
 
@@ -66,12 +68,35 @@ class AssignmentController extends Controller
 
     public function create()
     {
+        $user = Auth::user();
+        
+        // Fetch active regular staff
+        $staffQuery = User::where('is_active', true)
+            ->whereHas('roles', fn($q) =>
+                $q->whereIn('name', ['language_expert', 'part_time_staff', 'secretary'])
+            );
+        if ($user->hasRole('coordinator')) {
+            $staffQuery->whereDoesntHave('department', fn($q) => $q->where('code', 'AOS'))
+                       ->where('id', '!=', $user->id);
+        }
+        $staff = $staffQuery->orderBy('name')->get(['id', 'name', 'email']);
+
+        // Fetch active coordinators
+        $coordinatorQuery = User::where('is_active', true)
+            ->whereHas('roles', fn($q) =>
+                $q->where('name', 'coordinator')
+            );
+        if ($user->hasRole('coordinator')) {
+            $coordinatorQuery->whereDoesntHave('department', fn($q) => $q->where('code', 'AOS'))
+                             ->where('id', '!=', $user->id);
+        }
+        $coordinators = $coordinatorQuery->orderBy('name')->get(['id', 'name', 'email']);
+
         return Inertia::render('Assignments/Create', [
             'serviceRequests' => ServiceRequest::with('client')
                 ->whereNotIn('status', ['completed', 'cancelled'])->get(),
-            'staff' => User::whereHas('roles', fn($q) =>
-                $q->whereIn('name', ['language_expert', 'part_time_staff', 'secretary'])
-            )->orderBy('name')->get(['id', 'name', 'email']),
+            'staff' => $staff,
+            'coordinators' => $coordinators,
         ]);
     }
 
@@ -79,11 +104,43 @@ class AssignmentController extends Controller
     {
         $validated = $request->validate([
             'service_request_id' => 'required|exists:service_requests,id',
+            'assign_to_type'     => 'required|in:staff,coordinator',
             'assigned_to'        => 'required|exists:users,id',
             'role_in_task'       => 'nullable|string|max:100',
             'notes'              => 'nullable|string',
         ]);
 
+        $assignedToUser = User::findOrFail($request->assigned_to);
+
+        // Validation for active status
+        if (!$assignedToUser->is_active) {
+            return redirect()->back()->withErrors(['assigned_to' => 'The selected recipient is inactive.']);
+        }
+
+        // Exclude department if assigning user is coordinator
+        $user = Auth::user();
+        if ($user->hasRole('coordinator')) {
+            if ($assignedToUser->id === $user->id) {
+                return redirect()->back()->withErrors(['assigned_to' => 'Cannot assign tasks to yourself.']);
+            }
+            if ($assignedToUser->department && $assignedToUser->department->code === 'AOS') {
+                return redirect()->back()->withErrors(['assigned_to' => 'Cannot assign tasks to staff members belonging to the AOS Unit.']);
+            }
+        }
+
+        // Role-based recipient type validation
+        if ($request->assign_to_type === 'coordinator') {
+            if (!$assignedToUser->hasRole('coordinator')) {
+                return redirect()->back()->withErrors(['assigned_to' => 'The selected recipient is not a Coordinator.']);
+            }
+        } else {
+            // Must be regular staff member. Exclude coordinator, deputy director, executive director
+            if ($assignedToUser->hasAnyRole(['coordinator', 'deputy_director', 'executive_director'])) {
+                return redirect()->back()->withErrors(['assigned_to' => 'The selected recipient is not a valid regular staff member.']);
+            }
+        }
+
+        unset($validated['assign_to_type']);
         $validated['assigned_by'] = Auth::id();
         $validated['status']      = 'assigned';
 
@@ -103,6 +160,10 @@ class AssignmentController extends Controller
         }
 
         if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && (int) $assignment->assigned_to !== (int) $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->hasRole('coordinator') && (int) $assignment->assigned_by !== (int) $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -163,10 +224,21 @@ class AssignmentController extends Controller
 
     public function edit(Assignment $assignment)
     {
+        $user = Auth::user();
+        if ($user->hasRole('coordinator') && (int) $assignment->assigned_by !== (int) $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $staffQuery = User::orderBy('name');
+        if ($user->hasRole('coordinator')) {
+            $staffQuery->whereDoesntHave('department', fn($q) => $q->where('code', 'AOS'));
+        }
+        $staff = $staffQuery->get(['id', 'name', 'email']);
+
         return Inertia::render('Assignments/Edit', [
             'assignment'      => $assignment,
             'serviceRequests' => ServiceRequest::with('client')->get(),
-            'staff'           => User::orderBy('name')->get(['id', 'name', 'email']),
+            'staff'           => $staff,
         ]);
     }
 
@@ -181,6 +253,10 @@ class AssignmentController extends Controller
         }
 
         if (($isStaffOutsideAos || $user->hasRole('language_expert') || $user->hasRole('part_time_staff')) && (int) $assignment->assigned_to !== (int) $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->hasRole('coordinator') && (int) $assignment->assigned_by !== (int) $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -254,6 +330,11 @@ class AssignmentController extends Controller
 
     public function destroy(Assignment $assignment)
     {
+        $user = Auth::user();
+        if ($user->hasRole('coordinator') && (int) $assignment->assigned_by !== (int) $user->id) {
+            abort(403, 'Unauthorized.');
+        }
+
         $assignment->delete();
         return redirect()->route('assignments.index')->with('success', 'Assignment deleted.');
     }

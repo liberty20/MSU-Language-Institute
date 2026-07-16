@@ -98,4 +98,9 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(Department::class, 'department_id');
     }
+
+    public function ccReviews()
+    {
+        return $this->hasMany(CcReview::class);
+    }
 }

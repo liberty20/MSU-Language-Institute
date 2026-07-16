@@ -18,7 +18,7 @@ class CreateServiceRequestsTable extends Migration
             $table->string('source_language', 100)->nullable();
             $table->text('target_language')->nullable();
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
-            $table->enum('status', ['pending', 'quoted', 'approved', 'in_progress', 'review', 'completed', 'cancelled'])->default('pending');
+            $table->string('status', 50)->default('pending');
             $table->date('deadline')->nullable();
             $table->foreignId('submitted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();

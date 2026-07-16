@@ -85,7 +85,7 @@ class MsunliHierarchySeeder extends Seeder
                     'Secretary', 'Receptionist'
                 ],
                 'Operations and Systems' => [
-                    'Administrative Assistant', 'ICT Administrator', 'Executive Director', 'Deputy Director'
+                    'Administrative Assistant', 'ICT Administrator', 'Executive Director', 'Deputy Director', 'Coordinator'
                 ]
             ];
             $this->seedSectionsAndRoles($aos->id, $sections);
@@ -100,6 +100,7 @@ class MsunliHierarchySeeder extends Seeder
             'admin.assistant@msunli.edu' => ['section' => 'Operations and Systems', 'role' => 'Administrative Assistant'],
             'admin@msunli.edu' => ['section' => 'Operations and Systems', 'role' => 'ICT Administrator'],
             'parttime@msunli.edu' => ['section' => 'Regional Languages', 'role' => 'Part-Time Staff'],
+            'coordinator@msunli.edu' => ['section' => 'Operations and Systems', 'role' => 'Coordinator'],
         ];
 
         foreach ($map as $email => $info) {

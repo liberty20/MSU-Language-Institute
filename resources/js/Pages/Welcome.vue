@@ -14,9 +14,10 @@
                     </div>
                 </div>
                 <div class="hidden md:flex items-center gap-8">
-                    <a href="#services" @click.prevent="toggleServices" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Services</a>
+                    <a href="#services" @click.prevent="toggleServices" class="text-sm font-semibold transition cursor-pointer" :class="showServices ? 'text-[#f5c242]' : 'text-gray-200 hover:text-[#f5c242]'">Services</a>
                     <Link :href="route('courses.public')" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
-                    <a href="#announcements" @click.prevent="toggleAnnouncements" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
+                    <a href="#announcements" @click.prevent="toggleAnnouncements" class="text-sm font-semibold transition cursor-pointer" :class="showAnnouncements ? 'text-[#f5c242]' : 'text-gray-200 hover:text-[#f5c242]'">Announcements</a>
+                    <a href="#documentaries" @click.prevent="toggleDocumentaries" class="text-sm font-semibold transition cursor-pointer" :class="showDocumentaries ? 'text-[#f5c242]' : 'text-gray-200 hover:text-[#f5c242]'">Documentaries</a>
                     <button @click="showAbout = true" class="text-sm font-semibold text-gray-200 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
                     
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')" 
@@ -40,9 +41,10 @@
 
             <!-- Mobile Navigation Menu -->
             <div v-show="mobileMenuOpen" class="md:hidden bg-[#0a1f44] border-t border-white/10 shadow-xl px-6 py-4 space-y-4">
-                <a href="#services" @click="mobileMenuOpen = false; toggleServices()" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Services</a>
+                <a href="#services" @click="mobileMenuOpen = false; toggleServices()" class="block text-sm font-semibold transition cursor-pointer" :class="showServices ? 'text-[#f5c242]' : 'text-gray-255 hover:text-[#f5c242]'">Services</a>
                 <Link :href="route('courses.public')" @click="mobileMenuOpen = false" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Short Courses</Link>
-                <a href="#announcements" @click="mobileMenuOpen = false; toggleAnnouncements()" class="block text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">Announcements</a>
+                <a href="#announcements" @click="mobileMenuOpen = false; toggleAnnouncements()" class="block text-sm font-semibold transition cursor-pointer" :class="showAnnouncements ? 'text-[#f5c242]' : 'text-gray-255 hover:text-[#f5c242]'">Announcements</a>
+                <a href="#documentaries" @click="mobileMenuOpen = false; toggleDocumentaries()" class="block text-sm font-semibold transition cursor-pointer" :class="showDocumentaries ? 'text-[#f5c242]' : 'text-gray-255 hover:text-[#f5c242]'">Documentaries</a>
                 <button @click="mobileMenuOpen = false; showAbout = true" class="block w-full text-left text-sm font-semibold text-gray-255 hover:text-[#f5c242] transition cursor-pointer">About Us</button>
                 <div class="border-t border-white/10 pt-4">
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')" @click="mobileMenuOpen = false"
@@ -241,6 +243,81 @@
                                         </svg>
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentaries Section -->
+        <section id="documentaries" v-show="showDocumentaries" class="py-24 bg-white transition-all duration-500 border-t border-gray-200/50">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <span class="inline-block py-1.5 px-4 rounded-full bg-[#f5c242]/10 text-[#b5891a] text-xs font-black tracking-widest uppercase mb-2 border border-[#f5c242]/15">
+                        Video Gallery
+                    </span>
+                    <h3 class="text-[#0a1f44] font-black text-3xl md:text-4xl mb-4">Featured Documentaries</h3>
+                    <p class="text-gray-600 text-lg">Explore our library of language, accessibility, and cultural heritage video documentaries.</p>
+                </div>
+
+                <div v-if="!documentaries || documentaries.length === 0" class="bg-white rounded-2xl border border-gray-150 p-16 text-center text-gray-400 italic shadow-sm">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"/>
+                    </svg>
+                    No documentaries are available at the moment.
+                </div>
+
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <div v-for="doc in documentaries.filter(d => d.is_published)" :key="doc.id" 
+                         class="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group">
+                        
+                        <!-- Thumbnail Area with Play Button Overlay -->
+                        <div class="relative aspect-video bg-gray-900 overflow-hidden cursor-pointer" @click="playVideo(doc.video_path)">
+                            <img :src="doc.thumbnail_path" :alt="doc.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90" />
+                            
+                            <!-- Dark Overlay -->
+                            <div class="absolute inset-0 bg-black/30 group-hover:bg-black/45 transition-colors duration-300 flex items-center justify-center">
+                                <!-- Glowing Play Button -->
+                                <button class="w-16 h-16 rounded-full bg-[#f5c242] text-[#0a1f44] flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300 focus:outline-none">
+                                    <svg class="w-8 h-8 fill-current ml-1" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Duration Badge -->
+                            <span v-if="doc.duration" class="absolute bottom-4 right-4 bg-black/75 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-md backdrop-blur-xs">
+                                {{ doc.duration }}
+                            </span>
+                        </div>
+
+                        <!-- Info Area -->
+                        <div class="p-6 flex-grow flex flex-col justify-between space-y-4">
+                            <div class="space-y-2">
+                                <h4 class="text-xl font-extrabold text-[#0a1f44] hover:text-blue-700 transition cursor-pointer leading-snug" @click="playVideo(doc.video_path)">
+                                    {{ doc.title }}
+                                </h4>
+                                <p class="text-xs text-gray-500 leading-relaxed font-medium transition-all duration-300"
+                                   :class="expandedDocs[doc.id] ? '' : 'line-clamp-3'">
+                                    {{ doc.description }}
+                                </p>
+                                <button v-if="doc.description && doc.description.length > 150" 
+                                        @click="toggleExpandDoc(doc.id)"
+                                        class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline mt-1 focus:outline-none block text-left">
+                                    {{ expandedDocs[doc.id] ? 'Read Less' : 'Read More' }}
+                                </button>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100 flex justify-end">
+                                <button @click="playVideo(doc.video_path)" 
+                                        class="text-xs font-black text-[#0a1f44] hover:underline transition uppercase tracking-wider flex items-center gap-1.5 focus:outline-none">
+                                    <span>Watch Documentary</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -461,6 +538,50 @@
             </div>
         </div>
 
+        <!-- Dynamic Video Player Modal -->
+        <Teleport to="body">
+            <div v-if="isVideoPlayerOpen" class="modal fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" @click.self="closeVideoPlayer">
+                <div class="relative bg-black rounded-3xl overflow-hidden w-full max-w-4xl shadow-2xl border border-white/10 flex flex-col">
+                    
+                    <!-- Modal Header -->
+                    <div class="bg-[#0a1f44] text-white px-6 py-4 flex justify-between items-center border-b border-white/10">
+                        <span class="text-xs font-black uppercase tracking-widest text-[#f5c242]">MSUNLI Documentary Player</span>
+                        <button @click="closeVideoPlayer" class="text-gray-300 hover:text-white transition focus:outline-none p-1">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Video Tag -->
+                    <div class="aspect-video w-full bg-black flex flex-col justify-center items-center relative">
+                        <video v-if="!videoHasError" :key="activeVideoUrl" controls autoplay class="w-full h-full object-contain" @error="handleVideoError">
+                            <source :src="activeVideoUrl" :type="getVideoMimeType(activeVideoUrl)" />
+                            Your browser does not support the video tag.
+                        </video>
+                        <div v-else class="p-8 text-center text-gray-300 space-y-4 flex flex-col items-center">
+                            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2-2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Browser Playback Not Supported</h4>
+                                <p class="text-xs text-gray-400 mt-1 max-w-md">
+                                    This video format ({{ getFileExtension(activeVideoUrl).toUpperCase() }}) cannot be played natively in this web browser. 
+                                    You can download it to play locally on your device.
+                                </p>
+                            </div>
+                            <a :href="activeVideoUrl" download class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#f5c242] hover:bg-yellow-400 text-[#0a1f44] font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg mt-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Download Video
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
     </div>
 </template>
 
@@ -473,6 +594,7 @@ const scrolled = ref(false);
 const mobileMenuOpen = ref(false);
 const showServices = ref(false);
 const showAnnouncements = ref(false);
+const showDocumentaries = ref(false);
 const showAbout = ref(false);
 const showTerms = ref(false);
 const showPrivacy = ref(false);
@@ -482,6 +604,7 @@ const props = defineProps({
     intakes: Array,
     contactInfo: Object,
     notices: Array,
+    documentaries: Array,
 });
 
 const zimbabweanLanguages = [
@@ -621,9 +744,77 @@ const toggleAnnouncements = () => {
     }
 };
 
+const toggleDocumentaries = () => {
+    showDocumentaries.value = !showDocumentaries.value;
+    if (showDocumentaries.value) {
+        window.history.pushState(null, null, '#documentaries');
+        nextTick(() => {
+            document.getElementById('documentaries')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    } else {
+        window.history.pushState(null, null, ' ');
+    }
+};
+
 const detailModalOpen = ref(false);
 const selectedNotice = ref(null);
 const liveNotices = ref(props.notices || []);
+
+const expandedDocs = ref({});
+const toggleExpandDoc = (id) => {
+    expandedDocs.value[id] = !expandedDocs.value[id];
+};
+
+const activeVideoUrl = ref(null);
+const isVideoPlayerOpen = ref(false);
+const videoHasError = ref(false);
+
+const getFileExtension = (url) => {
+    if (!url) return '';
+    try {
+        const parts = url.split('?')[0].split('/');
+        const filename = parts[parts.length - 1];
+        return filename.split('.').pop().toLowerCase();
+    } catch (e) {
+        return '';
+    }
+};
+
+const isSupportedNatively = (url) => {
+    const ext = getFileExtension(url);
+    return ['mp4', 'webm', 'ogg'].includes(ext);
+};
+
+const getVideoMimeType = (url) => {
+    const ext = getFileExtension(url);
+    switch (ext) {
+        case 'mp4': return 'video/mp4';
+        case 'webm': return 'video/webm';
+        case 'ogg': return 'video/ogg';
+        case 'mov': return 'video/quicktime';
+        case 'avi': return 'video/x-msvideo';
+        case 'mkv': return 'video/x-matroska';
+        case 'wmv': return 'video/x-ms-wmv';
+        case 'flv': return 'video/x-flv';
+        default: return 'video/mp4';
+    }
+};
+
+const playVideo = (videoUrl) => {
+    activeVideoUrl.value = videoUrl;
+    videoHasError.value = !isSupportedNatively(videoUrl);
+    isVideoPlayerOpen.value = true;
+};
+
+const closeVideoPlayer = () => {
+    isVideoPlayerOpen.value = false;
+    activeVideoUrl.value = null;
+    videoHasError.value = false;
+};
+
+const handleVideoError = () => {
+    videoHasError.value = true;
+};
 
 const viewNoticeDetails = (notice) => {
     selectedNotice.value = notice;
@@ -631,6 +822,14 @@ const viewNoticeDetails = (notice) => {
 };
 
 watch(detailModalOpen, (newVal) => {
+    if (newVal) {
+        document.body.classList.add('overflow-hidden');
+    } else {
+        document.body.classList.remove('overflow-hidden');
+    }
+});
+
+watch(isVideoPlayerOpen, (newVal) => {
     if (newVal) {
         document.body.classList.add('overflow-hidden');
     } else {
@@ -676,6 +875,11 @@ onMounted(() => {
         showServices.value = true;
         nextTick(() => {
             document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    } else if (window.location.hash === '#documentaries') {
+        showDocumentaries.value = true;
+        nextTick(() => {
+            document.getElementById('documentaries')?.scrollIntoView({ behavior: 'smooth' });
         });
     }
 });

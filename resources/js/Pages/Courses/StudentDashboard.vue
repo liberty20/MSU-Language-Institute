@@ -43,7 +43,10 @@
                                 <span class="px-2.5 py-1 text-[0.65rem] font-bold bg-amber-50 text-amber-700 rounded-full uppercase tracking-wider">
                                     {{ enrollment.intake.course.category }}
                                 </span>
-                                <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider"
+                                <span v-if="enrollment.is_expired" class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider bg-red-50 text-red-700">
+                                    Registration: Expired
+                                </span>
+                                <span v-else class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider"
                                     :class="{
                                         'bg-green-50 text-green-700': enrollment.enrollment_status === 'active',
                                         'bg-blue-50 text-blue-700': enrollment.enrollment_status === 'completed',
@@ -67,7 +70,12 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-400">Class Schedule:</span>
-                                    <span class="text-gray-700">{{ formatDate(enrollment.intake.start_date) }} to {{ formatDate(enrollment.intake.end_date) }}</span>
+                                    <span class="text-gray-700" v-if="enrollment.access_until">
+                                        {{ formatDate(enrollment.intake.start_date) }} to {{ formatDate(enrollment.access_until) }} (Extended)
+                                    </span>
+                                    <span class="text-gray-700" v-else>
+                                        {{ formatDate(enrollment.intake.start_date) }} to {{ formatDate(enrollment.intake.end_date) }}
+                                    </span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-400">Assigned Instructor:</span>

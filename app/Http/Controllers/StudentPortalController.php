@@ -214,8 +214,16 @@ class StudentPortalController extends Controller
         $user = Auth::user();
         
         // Find enrolled intakes
-        $intakeIds = CourseEnrollment::where(['user_id' => $user->id])
+        $intakeIds = CourseEnrollment::with('intake')
+            ->where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
+            ->get()
+            ->filter(function ($e) {
+                if ($e->enrollment_status === 'completed') {
+                    return true;
+                }
+                return !$e->is_expired;
+            })
             ->pluck('course_intake_id');
 
         $timetables = CourseTimetable::with(['intake.course', 'intake.instructor'])
@@ -238,8 +246,16 @@ class StudentPortalController extends Controller
         $user = Auth::user();
 
         // Enrolled intakes
-        $intakeIds = CourseEnrollment::where(['user_id' => $user->id])
+        $intakeIds = CourseEnrollment::with('intake')
+            ->where(['user_id' => $user->id])
             ->whereIn('enrollment_status', ['active', 'completed'])
+            ->get()
+            ->filter(function ($e) {
+                if ($e->enrollment_status === 'completed') {
+                    return true;
+                }
+                return !$e->is_expired;
+            })
             ->pluck('course_intake_id');
 
         $assignments = CourseAssignment::with(['intake.course'])
@@ -417,7 +433,10 @@ class StudentPortalController extends Controller
         $enrollments = CourseEnrollment::with(['intake.course', 'intake.instructor'])
             ->where(['user_id' => $user->id])
             ->where(['enrollment_status' => 'active'])
-            ->get();
+            ->get()
+            ->filter(function ($e) {
+                return !$e->is_expired;
+            });
 
         $intakeIds = $enrollments->pluck('course_intake_id')->toArray();
 
