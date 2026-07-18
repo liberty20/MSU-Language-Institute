@@ -285,6 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('service-requests', ServiceRequestController::class);
     Route::post('service-requests/{service_request}/attach', [ServiceRequestController::class, 'attachDocument'])->name('service-requests.attach');
     Route::post('service-requests/{service_request}/deliver', [ServiceRequestController::class, 'deliverRequest'])->name('service-requests.deliver');
+    Route::post('service-requests/{service_request}/perform', [ServiceRequestController::class, 'performTask'])->name('service-requests.perform');
+    Route::post('service-requests/{service_request}/delegate', [ServiceRequestController::class, 'delegateTask'])->name('service-requests.delegate');
     Route::get('documents/{document}/download', [ServiceRequestController::class, 'downloadDocument'])->name('documents.download');
     
     // Centralized Secure File Preview and Download
@@ -352,9 +354,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('settings/roles/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyRole'])->name('settings.roles.destroy');
         Route::post('settings/short-courses', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShortCoursesPortal'])->name('settings.short-courses.update');
         Route::post('settings/config', [\App\Http\Controllers\Admin\SettingsController::class, 'updateConfig'])->name('settings.config.update');
-        Route::post('settings/reset/request', [\App\Http\Controllers\Admin\SettingsController::class, 'initiateResetRequest'])->name('settings.reset.request');
-        Route::post('settings/reset/action', [\App\Http\Controllers\Admin\SettingsController::class, 'actionResetRequest'])->name('settings.reset.action');
-        Route::post('settings/reset', [\App\Http\Controllers\Admin\SettingsController::class, 'resetData'])->name('settings.reset');
         Route::post('testimonials/approve', [\App\Http\Controllers\Admin\SettingsController::class, 'approveTestimonial'])->name('testimonials.approve');
         Route::post('testimonials/reject', [\App\Http\Controllers\Admin\SettingsController::class, 'rejectTestimonial'])->name('testimonials.reject');
         Route::post('testimonials/moderate', [\App\Http\Controllers\Admin\SettingsController::class, 'moderateTestimonial'])->name('testimonials.moderate');

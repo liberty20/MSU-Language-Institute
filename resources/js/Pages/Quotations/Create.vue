@@ -20,15 +20,48 @@
                     <span class="w-6 h-6 bg-[#0a1f44] text-white text-xs rounded-full flex items-center justify-center font-bold">1</span>
                     Service Request
                 </h2>
-                <div>
+                <div class="relative" ref="srDropdownRef">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Linked Service Request <span class="text-red-500">*</span></label>
-                    <select v-model="form.service_request_id" required
-                            class="w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm">
-                        <option value="">Select a service request…</option>
-                        <option v-for="sr in serviceRequests" :key="sr.id" :value="sr.id">
-                            {{ sr.reference_number }} — {{ sr.title }} ({{ sr.client?.organization || sr.client?.contact_person }})
-                        </option>
-                    </select>
+                    <div class="relative">
+                        <input
+                            type="text"
+                            v-model="srSearch"
+                            @focus="srDropdownOpen = true"
+                            @input="srDropdownOpen = true"
+                            :placeholder="selectedSrLabel || 'Search by reference number, title, or client…'"
+                            :class="[
+                                'w-full border-gray-300 rounded-xl shadow-sm focus:border-[#0a1f44] focus:ring-[#0a1f44] text-sm pr-10',
+                                form.service_request_id && !srSearch ? 'text-gray-900' : ''
+                            ]"
+                        />
+                        <!-- Clear / Chevron icon -->
+                        <button v-if="form.service_request_id" type="button" @click.stop="clearSrSelection"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-red-500 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none" v-else>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </span>
+                    </div>
+                    <!-- Dropdown list -->
+                    <div v-if="srDropdownOpen" class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        <div v-if="filteredServiceRequests.length === 0" class="px-4 py-3 text-sm text-gray-500 italic">
+                            No matching requests found.
+                        </div>
+                        <button
+                            v-for="sr in filteredServiceRequests"
+                            :key="sr.id"
+                            type="button"
+                            @mousedown.prevent="selectSr(sr)"
+                            :class="[
+                                'w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition flex items-center gap-2',
+                                form.service_request_id === sr.id ? 'bg-indigo-50 font-semibold text-[#0a1f44]' : 'text-gray-700'
+                            ]"
+                        >
+                            <svg v-if="form.service_request_id === sr.id" class="w-4 h-4 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>{{ sr.reference_number }} — {{ sr.title }} ({{ sr.client?.organization || sr.client?.contact_person }})</span>
+                        </button>
+                    </div>
                     <p v-if="form.errors.service_request_id" class="text-red-500 text-xs mt-1">{{ form.errors.service_request_id }}</p>
                 </div>
             </div>
@@ -217,12 +250,54 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
     serviceRequests: Array,
     preselectedServiceRequestId: [String, Number],
 });
+
+// ── Searchable Service Request Dropdown ──
+const srSearch = ref('');
+const srDropdownOpen = ref(false);
+const srDropdownRef = ref(null);
+
+const filteredServiceRequests = computed(() => {
+    const query = srSearch.value.toLowerCase().trim();
+    if (!query) return props.serviceRequests || [];
+    return (props.serviceRequests || []).filter(sr => {
+        const refNum = (sr.reference_number || '').toLowerCase();
+        const title = (sr.title || '').toLowerCase();
+        const clientName = (sr.client?.organization || sr.client?.contact_person || '').toLowerCase();
+        return refNum.includes(query) || title.includes(query) || clientName.includes(query);
+    });
+});
+
+const selectedSrLabel = computed(() => {
+    if (!form.service_request_id) return '';
+    const sr = (props.serviceRequests || []).find(s => s.id === form.service_request_id);
+    return sr ? `${sr.reference_number} — ${sr.title} (${sr.client?.organization || sr.client?.contact_person})` : '';
+});
+
+const selectSr = (sr) => {
+    form.service_request_id = sr.id;
+    srSearch.value = '';
+    srDropdownOpen.value = false;
+};
+
+const clearSrSelection = () => {
+    form.service_request_id = '';
+    srSearch.value = '';
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (e) => {
+    if (srDropdownRef.value && !srDropdownRef.value.contains(e.target)) {
+        srDropdownOpen.value = false;
+    }
+};
+onMounted(() => document.addEventListener('mousedown', handleClickOutside));
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutside));
 
 const lineItems = ref([
     { description: '', qty: 1, unit_price: 0 }

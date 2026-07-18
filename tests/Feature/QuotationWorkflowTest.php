@@ -223,4 +223,79 @@ class QuotationWorkflowTest extends TestCase
         $quotation->refresh();
         $this->assertEquals(1800, (int)$quotation->amount);
     }
+
+    /** @test */
+    public function deputy_and_executive_directors_can_view_quotations_awaiting_review()
+    {
+        $quotation = Quotation::create([
+            'service_request_id' => $this->serviceRequest->id,
+            'prepared_by' => $this->assistant->id,
+            'description' => 'Awaiting review quotation description',
+            'amount' => 1500,
+            'currency' => 'USD',
+            'valid_until' => now()->addDays(10),
+            'status' => 'submitted',
+        ]);
+
+        // Deputy Director can view it
+        $response = $this->actingAs($this->deputy)->get(route('quotations.show', $quotation->id));
+        $response->assertStatus(200);
+
+        // Executive Director can view it
+        $response2 = $this->actingAs($this->executive)->get(route('quotations.show', $quotation->id));
+        $response2->assertStatus(200);
+    }
+
+    /** @test */
+    public function coordinator_and_directors_can_view_draft_returned_quotations()
+    {
+        $quotation = Quotation::create([
+            'service_request_id' => $this->serviceRequest->id,
+            'prepared_by' => $this->assistant->id,
+            'description' => 'Draft/returned quotation description',
+            'amount' => 1500,
+            'currency' => 'USD',
+            'valid_until' => now()->addDays(10),
+            'status' => 'draft', // Draft status (either initial or returned)
+        ]);
+
+        // Coordinator can view it
+        $response = $this->actingAs($this->coordinator)->get(route('quotations.show', $quotation->id));
+        $response->assertStatus(200);
+
+        // Deputy Director can view it
+        $response2 = $this->actingAs($this->deputy)->get(route('quotations.show', $quotation->id));
+        $response2->assertStatus(200);
+
+        // Executive Director can view it
+        $response3 = $this->actingAs($this->executive)->get(route('quotations.show', $quotation->id));
+        $response3->assertStatus(200);
+    }
+
+    /** @test */
+    public function secretary_and_assistant_returned_revision_access()
+    {
+        // 1. Create a quotation prepared by Secretary A
+        $quotation = Quotation::create([
+            'service_request_id' => $this->serviceRequest->id,
+            'prepared_by' => $this->secretary->id,
+            'description' => 'Quotation to revise',
+            'amount' => 1200,
+            'currency' => 'USD',
+            'valid_until' => now()->addDays(10),
+            'status' => 'draft',
+        ]);
+
+        // Secretary A (owner) can view and edit
+        $response = $this->actingAs($this->secretary)->get(route('quotations.show', $quotation->id));
+        $response->assertStatus(200);
+        $response = $this->actingAs($this->secretary)->get(route('quotations.edit', $quotation->id));
+        $response->assertStatus(200);
+
+        // Assistant can also view and edit (relaxed staff restriction)
+        $response = $this->actingAs($this->assistant)->get(route('quotations.show', $quotation->id));
+        $response->assertStatus(200);
+        $response = $this->actingAs($this->assistant)->get(route('quotations.edit', $quotation->id));
+        $response->assertStatus(200);
+    }
 }

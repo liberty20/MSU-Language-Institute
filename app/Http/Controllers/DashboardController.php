@@ -59,13 +59,13 @@ class DashboardController extends Controller
             $stats['active_requests'] = ServiceRequest::where('submitted_by', $user->id)
                 ->whereNotIn('status', ['completed'])->count();
             
-            // Pending requests: client's service requests that are pending
+            // Pending requests: requests awaiting action before work begins
             $stats['pending_tasks'] = ServiceRequest::where('submitted_by', $user->id)
-                ->where('status', 'pending')->count();
+                ->whereIn('status', ['pending', 'quoted', 'approved', 'assigned', 'pending_coordinator_action'])->count();
             
-            // In progress requests: client's service requests that are in progress
+            // In progress requests: only requests where staff has accepted and work is actively happening
             $stats['in_progress_requests'] = ServiceRequest::where('submitted_by', $user->id)
-                ->where('status', 'in_progress')->count();
+                ->whereIn('status', ['in_progress', 'review'])->count();
 
             // "the approved value should match with total amount of her or his verified proof of payment please do separate the currency as it is."
             $stats['total_revenue'] = Payment::where('payments.client_id', $user->id)
@@ -97,10 +97,10 @@ class DashboardController extends Controller
                     $stats['department_code'] = $expert->department ? $expert->department->code : 'N/A';
                 }
                 
-                $stats['active_requests'] = $activeReqsQuery->whereHas('assignments', fn($q) => $q->where('assigned_to', $user->id))->count();
+                $stats['active_requests'] = $activeReqsQuery->whereHas('assignments', fn($q) => $q->where('assigned_to', $user->id)->where('status', '!=', 'completed'))->count();
                 $stats['pending_tasks']   = $pendingTasksQuery->whereHas('assignment', fn($q) => $q->where('assigned_to', $user->id))->count();
                 $stats['total_revenue']   = 0;
-                $stats['assigned_tasks']  = \App\Models\Assignment::whereNotIn('status', ['completed'])->count();
+                $stats['assigned_tasks']  = \App\Models\Assignment::where('assigned_to', $user->id)->whereNotIn('status', ['completed'])->count();
 
                 if ($isStaffOutsideAos) {
                     $stats['total_assigned_tasks'] = \App\Models\Assignment::where('assigned_to', $user->id)->count();
@@ -796,6 +796,10 @@ class DashboardController extends Controller
 
         $data = $notification->data;
         $actionUrl = $data['action_url'] ?? null;
+
+        if ($actionUrl && strpos($actionUrl, '/payments') !== false && !$user->hasRole('client')) {
+            $actionUrl = route('finance.index');
+        }
 
         if (!$actionUrl || $actionUrl === '#') {
             return redirect()->route('dashboard');

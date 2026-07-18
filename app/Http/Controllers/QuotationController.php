@@ -32,10 +32,7 @@ class QuotationController extends Controller
                 $q->where('submitted_by', $user->id);
             })->where('status', 'approved');
         } elseif ($user->hasRole('secretary') || $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator')) {
-            $query->where(function ($q) use ($user) {
-                $q->where('prepared_by', $user->id)
-                  ->orWhereIn('status', ['approved', 'rejected']);
-            });
+            // No constraint, can view all quotations
         } elseif ($user->hasRole('coordinator')) {
             $query->whereIn('status', ['submitted', 'reviewed', 'pending_approval', 'approved', 'rejected']);
         } elseif ($user->hasRole('deputy_director')) {
@@ -142,19 +139,17 @@ class QuotationController extends Controller
                 abort(403, 'Unauthorized.');
             }
         } elseif ($user->hasRole('secretary') || $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator')) {
-            if ($quotation->prepared_by !== $user->id && !in_array($quotation->status, ['approved', 'rejected'])) {
-                abort(403, 'Unauthorized.');
-            }
+            // Can view details of any quotation
         } elseif ($user->hasRole('coordinator')) {
-            if (!in_array($quotation->status, ['submitted', 'reviewed', 'pending_approval', 'approved', 'rejected'])) {
+            if (!in_array($quotation->status, ['draft', 'submitted', 'reviewed', 'pending_approval', 'approved', 'rejected'])) {
                 abort(403, 'Unauthorized.');
             }
         } elseif ($user->hasRole('deputy_director')) {
-            if (!in_array($quotation->status, ['reviewed', 'pending_approval', 'approved', 'rejected'])) {
+            if (!in_array($quotation->status, ['draft', 'submitted', 'reviewed', 'pending_approval', 'approved', 'rejected'])) {
                 abort(403, 'Unauthorized.');
             }
         } elseif ($user->hasRole('executive_director')) {
-            if (!in_array($quotation->status, ['pending_approval', 'approved', 'rejected'])) {
+            if (!in_array($quotation->status, ['draft', 'submitted', 'reviewed', 'pending_approval', 'approved', 'rejected'])) {
                 abort(403, 'Unauthorized.');
             }
         }
@@ -329,7 +324,9 @@ class QuotationController extends Controller
     public function edit(Quotation $quotation)
     {
         $user = Auth::user();
-        if ($quotation->prepared_by !== $user->id && !$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
+        $hasRole = $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator') || $user->hasRole('secretary');
+
+        if (!$hasRole) {
             abort(403, 'Unauthorized.');
         }
 
@@ -346,7 +343,9 @@ class QuotationController extends Controller
     public function update(Request $request, Quotation $quotation)
     {
         $user = Auth::user();
-        if ($quotation->prepared_by !== $user->id && !$user->hasRole('admin_assistant') && !$user->hasRole('ict_administrator') && !$user->hasRole('secretary')) {
+        $hasRole = $user->hasRole('admin_assistant') || $user->hasRole('ict_administrator') || $user->hasRole('secretary');
+
+        if (!$hasRole) {
             abort(403, 'Unauthorized.');
         }
 

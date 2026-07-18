@@ -63,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\CourseIntake::updated(function ($intake) {
-            if ($intake->isDirty('instructor_id') && $intake->instructor_id && $intake->instructor) {
+            if ($intake->wasChanged('instructor_id') && $intake->instructor_id && $intake->instructor) {
                 $intake->instructor->notify(new \App\Notifications\SystemNotification(
                     'Courses',
                     'Assigned to Course Intake',
@@ -96,7 +96,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\CourseEnrollment::updated(function ($enrollment) {
-            if ($enrollment->isDirty('payment_status') && $enrollment->payment_status === 'verified') {
+            if ($enrollment->wasChanged('payment_status') && $enrollment->payment_status === 'verified') {
                 $intake = $enrollment->intake;
                 $course = $intake ? $intake->course : null;
                 $student = $enrollment->user;
@@ -134,7 +134,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\CourseApplication::updated(function ($app) {
-            if ($app->isDirty('status')) {
+            if ($app->wasChanged('status')) {
                 $user = \App\Models\User::whereEmail($app->email)->first();
                 
                 if ($app->status === 'verified') {
@@ -168,7 +168,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\Quotation::updated(function ($q) {
-            if ($q->isDirty('status')) {
+            if ($q->wasChanged('status')) {
                 if ($q->status === 'submitted') {
                     $coords = AppServiceProvider::getUsersByRole('coordinator');
                     foreach ($coords as $coord) {
@@ -216,10 +216,28 @@ class AppServiceProvider extends ServiceProvider
             if ($user) {
                 $user->notify(new \App\Notifications\SystemNotification('Tasks', 'New Task Assignment', 'You have been assigned a new task: "' . $a->role_in_task . '"' . ($by ? ' by ' . $by->name : '') . '.', route('assignments.show', $a->id)));
             }
+            if ($user && $user->hasRole('coordinator')) {
+                $sr = $a->serviceRequest;
+                if ($sr) {
+                    $sr->update([
+                        'status' => 'pending_coordinator_action',
+                        'assigned_to' => $user->id,
+                    ]);
+                }
+            }
         });
 
         \App\Models\Assignment::updated(function ($a) {
-            if ($a->isDirty('assigned_to')) {
+            // When an assignment's status changes to accepted or in_progress, propagate to parent ServiceRequest
+            // NOTE: Must use wasChanged() not isDirty() — isDirty() returns false in 'updated' events (post-save)
+            if ($a->wasChanged('status') && in_array($a->status, ['accepted', 'in_progress'])) {
+                $sr = $a->serviceRequest;
+                if ($sr && !in_array($sr->status, ['completed', 'delivered', 'cancelled'])) {
+                    $sr->update(['status' => 'in_progress']);
+                }
+            }
+
+            if ($a->wasChanged('assigned_to')) {
                 $newAssignee = \App\Models\User::find($a->assigned_to);
                 $oldAssignee = \App\Models\User::find($a->getOriginal('assigned_to'));
                 $by = $a->assignedBy;
@@ -241,6 +259,16 @@ class AppServiceProvider extends ServiceProvider
                         route('assignments.index')
                     ));
                 }
+
+                if ($newAssignee && $newAssignee->hasRole('coordinator')) {
+                    $sr = $a->serviceRequest;
+                    if ($sr) {
+                        $sr->update([
+                            'status' => 'pending_coordinator_action',
+                            'assigned_to' => $newAssignee->id,
+                        ]);
+                    }
+                }
             }
         });
 
@@ -252,7 +280,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\Task::updated(function ($task) {
-            if ($task->isDirty('status')) {
+            if ($task->wasChanged('status')) {
                 $a = $task->assignment;
                 if ($a && $a->assignedBy) {
                     $a->assignedBy->notify(new \App\Notifications\SystemNotification(
@@ -261,6 +289,30 @@ class AppServiceProvider extends ServiceProvider
                         'The status of task "' . $task->title . '" has been changed to ' . $task->status . '.',
                         route('assignments.show', $a->id)
                     ));
+                }
+            }
+        });
+
+        // 4b. ServiceRequest & Assignment Status Sync
+        \App\Models\ServiceRequest::saving(function ($sr) {
+            if (!in_array($sr->status, ['review', 'completed', 'delivered', 'cancelled'])) {
+                $hasInProgress = \App\Models\Assignment::where('service_request_id', $sr->id)
+                    ->whereIn('status', ['accepted', 'in_progress'])
+                    ->exists();
+                if ($hasInProgress) {
+                    $sr->status = 'in_progress';
+                }
+            }
+        });
+
+        \App\Models\Assignment::saved(function ($a) {
+            $sr = $a->serviceRequest;
+            if ($sr && !in_array($sr->status, ['review', 'completed', 'delivered', 'cancelled'])) {
+                $hasInProgress = \App\Models\Assignment::where('service_request_id', $sr->id)
+                    ->whereIn('status', ['accepted', 'in_progress'])
+                    ->exists();
+                if ($hasInProgress && $sr->status !== 'in_progress') {
+                    $sr->update(['status' => 'in_progress']);
                 }
             }
         });
@@ -366,7 +418,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\ServiceRequest::updated(function ($sr) {
-            if ($sr->isDirty('status')) {
+            if ($sr->wasChanged('status')) {
                 if ($sr->submittedBy) {
                     $sr->submittedBy->notify(new \App\Notifications\SystemNotification(
                         'System Alerts',
@@ -377,7 +429,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            if ($sr->isDirty('assigned_to') && $sr->assigned_to) {
+            if ($sr->wasChanged('assigned_to') && $sr->assigned_to) {
                 if ($sr->assignedTo) {
                     $sr->assignedTo->notify(new \App\Notifications\SystemNotification(
                         'System Alerts',
@@ -405,18 +457,20 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
-        // 9. Payment / Proof of Payment Triggers (for Administrative Assistant / Secretaries)
+        // 9. Payment / Proof of Payment Triggers (for Administrative Assistant / Secretaries / ICT Admin)
         \App\Models\Payment::created(function ($payment) {
-            if (\Spatie\Permission\Models\Role::whereName('admin_assistant')->exists()) {
-                $admins = \App\Models\User::role('admin_assistant')->get();
-                foreach ($admins as $admin) {
-                    $admin->notify(new \App\Notifications\SystemNotification(
-                        'Approvals',
-                        'Payment Verification Required',
-                        'A new proof of payment has been uploaded for Quotation Ref #' . $payment->quotation_id . ' and requires verification.',
-                        route('payments.index')
-                    ));
-                }
+            $roles = ['admin_assistant', 'secretary', 'ict_administrator'];
+            $users = \App\Models\User::whereHas('roles', function ($q) use ($roles) {
+                $q->whereIn('name', $roles);
+            })->get();
+
+            foreach ($users as $user) {
+                $user->notify(new \App\Notifications\SystemNotification(
+                    'Approvals',
+                    'Payment Verification Required',
+                    'A new proof of payment has been uploaded for Quotation Ref #' . $payment->quotation_id . ' and requires verification.',
+                    route('finance.index')
+                ));
             }
         });
 
@@ -438,7 +492,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \App\Models\User::updated(function ($user) {
-            if ($user->isDirty('password')) {
+            if ($user->wasChanged('password')) {
                 $user->notify(new \App\Notifications\SystemNotification(
                     'System Alerts',
                     'Password Updated',

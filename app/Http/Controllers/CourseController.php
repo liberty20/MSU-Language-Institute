@@ -952,7 +952,7 @@ class CourseController extends Controller
             'enrollment_status' => 'active',
         ]);
 
-        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseEnrollment::class, $enrollment->id);
+        \App\Services\ReminderService::markAsCompleted(CourseEnrollment::class, $enrollment->id);
 
         return redirect()->back()->with('success', 'Payment verified and enrollment activated successfully!');
     }
@@ -1468,7 +1468,7 @@ class CourseController extends Controller
                 'user_agent'    => $request->userAgent()
             ]);
 
-            \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
+            \App\Services\ReminderService::markAsCompleted(CourseApplication::class, $application->id);
 
             return redirect()->route('course-applications.index')->with('success', 'Application verified successfully and forwarded to the Coordinator.');
 
@@ -1710,7 +1710,7 @@ class CourseController extends Controller
                 }
             }
 
-            \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
+            \App\Services\ReminderService::markAsCompleted(CourseApplication::class, $application->id);
 
             return redirect()->back()->with('success', 'Application approved successfully! Student account activated and enrolled.');
 
@@ -1764,7 +1764,7 @@ class CourseController extends Controller
             ]
         );
 
-        \App\Services\ReminderService::markAsCompleted(\App\Models\CourseApplication::class, $application->id);
+        \App\Services\ReminderService::markAsCompleted(CourseApplication::class, $application->id);
 
         return redirect()->back()->with('success', 'Application rejected successfully.');
     }

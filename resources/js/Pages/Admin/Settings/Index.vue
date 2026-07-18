@@ -24,32 +24,7 @@
                 </div>
             </div>
 
-            <!-- Executive Director Database Reset Approval Banner -->
-            <div v-if="$page.props.auth.roles.includes('executive_director') && activeResetRequest && activeResetRequest.status === 'pending'" 
-                 class="bg-gradient-to-r from-red-50 to-amber-50 border border-red-200 rounded-2xl p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-start gap-4">
-                    <div class="bg-red-100 text-red-650 p-3 rounded-xl">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    </div>
-                    <div class="space-y-1">
-                        <h4 class="text-sm font-extrabold text-red-900 uppercase tracking-wide">Pending Action: Database Reset Request</h4>
-                        <p class="text-xs text-gray-600">
-                            ICT Administrator <strong>{{ activeResetRequest.requester_name }}</strong> has requested a complete database reset to clear all operational data.
-                        </p>
-                        <p class="text-[10px] text-gray-400">
-                            Requested at: {{ formatDateTime(activeResetRequest.requested_at) }}
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <button @click="actionReset('approve')" class="flex-1 md:flex-none px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-extrabold rounded-xl text-xs transition shadow-md uppercase tracking-wider">
-                        Approve Request
-                    </button>
-                    <button @click="actionReset('reject')" class="flex-1 md:flex-none px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-extrabold rounded-xl text-xs transition shadow-sm uppercase tracking-wider">
-                        Reject Request
-                    </button>
-                </div>
-            </div>
+
 
             <!-- Tabbed Controls -->
             <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-wrap gap-2">
@@ -672,138 +647,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- TAB 7: Danger Zone (Database Reset) -->
-            <div v-if="$page.props.auth.roles.includes('ict_administrator') && activeTab === 'reset'" class="space-y-6">
-                <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <h3 class="text-lg font-bold text-red-600 mb-2">Danger Zone - System Data Reset</h3>
-                    <p class="text-sm text-gray-550 mb-6">Wipe out operational data models. This will clean the system records to start fresh without sample data.</p>
-
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl mb-6">
-                        <div class="flex gap-3">
-                            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                            <div>
-                                <h4 class="text-sm font-bold text-red-800">Critical warning: Permanent Deletion</h4>
-                                <p class="text-xs text-red-700 mt-1">
-                                    Performing this operation will permanently delete:
-                                </p>
-                                <ul class="list-disc pl-5 text-xs text-red-700 mt-1 space-y-0.5">
-                                    <li>All Clients and their linked User accounts</li>
-                                    <li>All Quotations and Service Requests</li>
-                                    <li>All Assignments, Instructor Tasks, and Subtasks</li>
-                                    <li>All Client Payments and proof records</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Workflow States -->
-                    <div class="space-y-4">
-                        <!-- State 1: No active request -->
-                        <div v-if="!activeResetRequest" class="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Request Required</h4>
-                            <p class="text-xs text-gray-550 mb-4">A database reset requires explicit approval from the Executive Director before it can be executed. You must initiate a request first.</p>
-                            <button @click="initiateReset" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow text-xs">
-                                Request Database Reset
-                            </button>
-                        </div>
-
-                        <!-- State 2: Request is Pending -->
-                        <div v-else-if="activeResetRequest.status === 'pending'" class="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                            <h4 class="text-xs font-bold text-amber-800 uppercase tracking-wide mb-1">Reset Request Pending Approval</h4>
-                            <p class="text-xs text-amber-700 mb-2">
-                                Requested by <strong>{{ activeResetRequest.requester_name }}</strong> on {{ formatDateTime(activeResetRequest.requested_at) }}.
-                            </p>
-                            <div class="inline-flex items-center gap-1.5 text-xs text-amber-800 font-semibold bg-white px-3 py-1 rounded-full shadow-sm">
-                                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                Awaiting Executive Director Approval
-                            </div>
-                        </div>
-
-                        <!-- State 3: Request is Approved -->
-                        <div v-else-if="activeResetRequest.status === 'approved'" class="p-4 bg-green-50 border border-green-200 rounded-xl">
-                            <h4 class="text-xs font-bold text-green-800 uppercase tracking-wide mb-1">Reset Request Approved</h4>
-                            <p class="text-xs text-green-700 mb-4">
-                                Approved by <strong>{{ activeResetRequest.approver_name }}</strong> on {{ formatDateTime(activeResetRequest.actioned_at) }}.
-                            </p>
-                            <button @click="confirmReset = true" class="bg-red-600 hover:bg-red-700 text-white font-extrabold px-6 py-3 rounded-xl transition shadow-lg text-sm border-2 border-red-700 uppercase tracking-wider">
-                                ⚠️ Reset Operational Database
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Audit Trail Table -->
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="p-5 border-b border-gray-100 bg-gray-50/50">
-                        <h3 class="text-sm font-bold text-brand-blue">Database Reset Audit Trail</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
-                                    <th class="px-6 py-4 font-semibold">Requested By &amp; When</th>
-                                    <th class="px-6 py-4 font-semibold">Status</th>
-                                    <th class="px-6 py-4 font-semibold">Actioned By</th>
-                                    <th class="px-6 py-4 font-semibold">Actioned / Executed At</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 text-sm">
-                                <tr v-for="log in resetHistory" :key="log.id" class="hover:bg-gray-50 transition">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-gray-900">{{ log.requester_name }}</div>
-                                        <div class="text-xs text-gray-400 mt-0.5">{{ formatDateTime(log.requested_at) }}</div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wider"
-                                            :class="{
-                                                'bg-green-100 text-green-700': log.status === 'approved' || log.status === 'executed',
-                                                'bg-amber-100 text-amber-700': log.status === 'pending',
-                                                'bg-red-100 text-red-700': log.status === 'rejected'
-                                            }">
-                                            {{ log.status }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 font-semibold text-gray-700">
-                                        {{ log.approver_name || 'N/A' }}
-                                    </td>
-                                    <td class="px-6 py-4 text-gray-500 text-xs">
-                                        <div v-if="log.executed_at">Executed: {{ formatDateTime(log.executed_at) }}</div>
-                                        <div v-else-if="log.actioned_at">Actioned: {{ formatDateTime(log.actioned_at) }}</div>
-                                        <div v-else class="italic text-gray-400">Pending action</div>
-                                    </td>
-                                </tr>
-                                <tr v-if="resetHistory.length === 0">
-                                    <td colspan="4" class="px-6 py-8 text-center text-gray-500 text-xs">
-                                        No database reset history found.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Confirm Reset Modal -->
-        <div v-if="confirmReset" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-                <div class="flex items-center gap-3 text-red-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    <h3 class="text-lg font-bold">Confirm Database Reset?</h3>
-                </div>
-                <p class="text-sm text-gray-500 leading-relaxed">
-                    Are you absolutely sure you want to clean the system? This will delete all client histories, request workflows, billing quotations, and instructor assignments. <strong>This action cannot be undone.</strong>
-                </p>
-                <div class="pt-4 flex justify-end gap-3">
-                    <button @click="confirmReset = false" class="px-4 py-2 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition text-sm">
-                        Cancel
-                    </button>
-                    <button @click="executeReset" class="px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl transition shadow text-sm">
-                        Yes, Reset Data
-                    </button>
-                </div>
-            </div>
         </div>
 
         <!-- Create Testimonial Modal -->
@@ -934,8 +777,6 @@ const props = defineProps({
     stats: Object,
     config: Object,
     filters: Object,
-    activeResetRequest: Object,
-    resetHistory: Array,
     documentaries: Array,
 });
 
@@ -944,11 +785,10 @@ const isRestricted = computed(() => {
     return ['secretary', 'admin_assistant', 'coordinator'].some(role => usePage().props.value.auth.roles.includes(role));
 });
 let initialTab = urlParams.get('tab') || 'config';
-if (isRestricted.value && ['units', 'sections', 'roles', 'reset'].includes(initialTab)) {
+if (isRestricted.value && ['units', 'sections', 'roles'].includes(initialTab)) {
     initialTab = 'config';
 }
 const activeTab = ref(initialTab);
-const confirmReset = ref(false);
 
 const tabsList = computed(() => {
     let list = [
@@ -963,9 +803,6 @@ const tabsList = computed(() => {
     ];
     if (isRestricted.value) {
         list = list.filter(tab => !['units', 'sections', 'roles'].includes(tab.value));
-    }
-    if (usePage().props.value.auth.roles.includes('ict_administrator')) {
-        list.push({ value: 'reset', label: 'Danger Zone', icon: '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' });
     }
     return list;
 });
@@ -1007,27 +844,6 @@ const applySearch = () => {
     }, {
         preserveState: true,
         replace: true,
-    });
-};
-
-const initiateReset = () => {
-    Inertia.post(route('admin.settings.reset.request'), {}, {
-        preserveState: true,
-    });
-};
-
-const actionReset = (action) => {
-    Inertia.post(route('admin.settings.reset.action'), { action }, {
-        preserveState: true,
-    });
-};
-
-const executeReset = () => {
-    confirmReset.value = false;
-    Inertia.post(route('admin.settings.reset'), {}, {
-        onSuccess: () => {
-            activeTab.value = 'config';
-        }
     });
 };
 

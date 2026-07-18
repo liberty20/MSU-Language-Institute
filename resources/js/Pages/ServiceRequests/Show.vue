@@ -14,15 +14,18 @@
                 <div class="flex items-center gap-2">
                     <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
                         :class="{
-                            'bg-yellow-100 text-yellow-800': serviceRequest.status === 'pending',
-                            'bg-blue-100 text-blue-800': serviceRequest.status === 'in_progress',
-                            'bg-green-100 text-green-800': serviceRequest.status === 'completed',
-                            'bg-purple-100 text-purple-800': serviceRequest.status === 'quoted',
-                            'bg-teal-100 text-teal-800': serviceRequest.status === 'approved',
-                            'bg-orange-100 text-orange-800': serviceRequest.status === 'review',
-                            'bg-gray-100 text-gray-700': serviceRequest.status === 'cancelled',
+                            'bg-yellow-100 text-yellow-800': displayStatus === 'pending',
+                            'bg-blue-100 text-blue-800': displayStatus === 'in_progress',
+                            'bg-green-100 text-green-800': displayStatus === 'completed',
+                            'bg-purple-100 text-purple-800': displayStatus === 'quoted',
+                            'bg-teal-100 text-teal-800': displayStatus === 'approved',
+                            'bg-orange-100 text-orange-800': displayStatus === 'review',
+                            'bg-gray-100 text-gray-700': displayStatus === 'cancelled',
+                            'bg-indigo-100 text-indigo-800': displayStatus === 'pending_coordinator_action',
+                            'bg-emerald-100 text-emerald-800': displayStatus === 'delivered',
+                            'bg-cyan-100 text-cyan-800': displayStatus === 'assigned',
                         }">
-                        {{ serviceRequest.status.replace(/_/g, ' ') }}
+                        {{ displayStatusLabel }}
                     </span>
                 </div>
             </div>
@@ -92,7 +95,7 @@
                             <svg class="w-5 h-5 text-[#0a1f44]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             Assignments
                         </h2>
-                        <Link v-if="canManage" :href="route('assignments.create', { service_request_id: serviceRequest.id })"
+                        <Link v-if="canManage || $page.props.auth.roles.includes('coordinator') || $page.props.auth.roles.includes('deputy_director') || $page.props.auth.roles.includes('executive_director')" :href="route('assignments.create', { service_request_id: serviceRequest.id })"
                               class="text-xs bg-[#0a1f44] text-white px-3 py-1.5 rounded-lg hover:bg-[#0a1f44]/80 transition font-medium">
                             + Assign Staff
                         </Link>
@@ -163,7 +166,21 @@
                                             <p class="text-[10px] text-gray-400 font-medium truncate">{{ doc.description || 'Client upload' }} • By {{ doc.uploader?.name || 'Client' }}</p>
                                         </div>
                                     </div>
-                                    <a :href="route('documents.download', doc.id)" class="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition" target="_blank"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition border border-blue-150" title="Preview">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span>Preview</span>
+                                        </button>
+                                        <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" title="Download">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            </svg>
+                                            <span>Download</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -183,7 +200,21 @@
                                             <p class="text-[10px] text-gray-500 font-medium truncate">{{ doc.description || 'Completed Deliverable' }} • By {{ doc.uploader?.name || 'Staff' }}</p>
                                         </div>
                                     </div>
-                                    <a :href="route('documents.download', doc.id)" class="p-1.5 hover:bg-green-100 rounded text-green-700 transition" target="_blank"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></a>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-150" title="Preview">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span>Preview</span>
+                                        </button>
+                                        <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition border border-green-700 shadow-sm" title="Download">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            </svg>
+                                            <span>Download</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -422,6 +453,47 @@
                     </div>
                 </div>
 
+                <!-- Coordinator Decision Card (Perform or Delegate) -->
+                <div v-if="serviceRequest.status === 'pending_coordinator_action' && serviceRequest.assigned_to === $page.props.auth.user.id" class="bg-gradient-to-br from-indigo-50 to-purple-100/50 border border-indigo-200 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Coordinator Decision Required
+                    </h3>
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        This service request is assigned to you. You can either perform the task personally or delegate it to an eligible staff member under your supervision.
+                    </p>
+
+                    <div class="flex gap-2">
+                        <button @click="submitPerformTask" :disabled="submittingAction" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm text-center">
+                            Perform Task
+                        </button>
+                        <button @click="showDelegationForm = !showDelegationForm" :disabled="submittingAction" class="flex-1 bg-white hover:bg-gray-50 text-indigo-700 border border-indigo-300 disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm text-center">
+                            {{ showDelegationForm ? 'Cancel Delegation' : 'Delegate Task' }}
+                        </button>
+                    </div>
+
+                    <div v-if="showDelegationForm" class="space-y-3 pt-3 border-t border-indigo-100">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Select Staff Member *</label>
+                            <select v-model="delegationForm.assigned_to" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue">
+                                <option value="">-- Choose Staff --</option>
+                                <option v-for="member in eligibleStaff" :key="member.id" :value="member.id">{{ member.name }} ({{ member.email }})</option>
+                            </select>
+                            <p v-if="delegationForm.errors.assigned_to" class="text-red-500 text-[10px] mt-1">{{ delegationForm.errors.assigned_to }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Delegation Instructions / Notes</label>
+                            <textarea v-model="delegationForm.instructions" placeholder="Enter special instructions or notes for the staff member..." rows="3" class="w-full text-xs border-gray-300 rounded-lg focus:border-brand-blue focus:ring-brand-blue"></textarea>
+                            <p v-if="delegationForm.errors.instructions" class="text-red-500 text-[10px] mt-1">{{ delegationForm.errors.instructions }}</p>
+                        </div>
+                        <button @click="submitDelegateTask" :disabled="submittingAction || !delegationForm.assigned_to" class="w-full bg-indigo-600 hover:bg-indigo-750 text-white disabled:opacity-50 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm">
+                            Confirm Delegation
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 5. Coordinator Forward to Director Card -->
                 <div v-if="serviceRequest.status === 'review' && $page.props.auth.roles.includes('coordinator') && directors.length > 0" class="bg-gradient-to-br from-yellow-50 to-amber-100/50 border border-yellow-250 rounded-2xl p-6 shadow-sm space-y-4">
                     <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wider flex items-center gap-2">
@@ -485,8 +557,8 @@
                     </div>
                 </div>
 
-                <!-- Status Actions -->
-                <div v-if="canManage" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <!-- Client Actions -->
+                <div v-if="$page.props.auth.roles.includes('client') && serviceRequest.status === 'pending'" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Actions</h3>
                     <div class="space-y-2">
                         <Link :href="route('service-requests.edit', serviceRequest.id)"
@@ -497,6 +569,7 @@
                 </div>
             </div>
         </div>
+        <DocumentPreviewModal :show="showPreview" :document="previewDoc" @close="showPreview = false" />
     </AuthenticatedLayout>
 </template>
 
@@ -504,19 +577,83 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
 import { ref, computed } from 'vue';
-
 import { Inertia } from '@inertiajs/inertia';
+import DocumentPreviewModal from '@/Components/DocumentPreviewModal.vue';
+
+const previewDoc = ref(null);
+const showPreview = ref(false);
+
+const openPreview = (doc) => {
+    previewDoc.value = doc;
+    showPreview.value = true;
+};
 
 const props = defineProps({
     serviceRequest: Object,
     coordinators: Array,
     directors: Array,
+    eligibleStaff: Array,
     isDirectorApprovalView: Boolean,
     directRoutingEnabled: Boolean,
 });
 
 const page = usePage();
 const submittingAction = ref(false);
+const showDelegationForm = ref(false);
+
+// Status display: for client users, map internal statuses to client-friendly labels
+const isClient = computed(() => page.props.value.auth.roles.includes('client'));
+
+const displayStatus = computed(() => {
+    const raw = props.serviceRequest.status;
+    if (isClient.value) {
+        // Clients should see internal coordinator workflow states as "in_progress"
+        const clientMap = {
+            'pending_coordinator_action': 'pending',
+            'assigned': 'pending',
+            'review': 'in_progress',
+            'director_approval': 'in_progress',
+            'admin_submission': 'in_progress',
+        };
+        return clientMap[raw] || raw;
+    }
+    return raw;
+});
+
+const displayStatusLabel = computed(() => {
+    return displayStatus.value.replace(/_/g, ' ');
+});
+
+const delegationForm = useForm({
+    assigned_to: '',
+    instructions: '',
+});
+
+const submitPerformTask = () => {
+    submittingAction.value = true;
+    Inertia.post(route('service-requests.perform', props.serviceRequest.id), {}, {
+        onSuccess: () => {
+            submittingAction.value = false;
+        },
+        onFinish: () => {
+            submittingAction.value = false;
+        }
+    });
+};
+
+const submitDelegateTask = () => {
+    submittingAction.value = true;
+    delegationForm.post(route('service-requests.delegate', props.serviceRequest.id), {
+        onSuccess: () => {
+            delegationForm.reset();
+            showDelegationForm.value = false;
+            submittingAction.value = false;
+        },
+        onFinish: () => {
+            submittingAction.value = false;
+        }
+    });
+};
 
 const attachForm = useForm({
     file: null,

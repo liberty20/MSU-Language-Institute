@@ -87,12 +87,18 @@
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize"
                                     :class="{
-                                        'bg-yellow-100 text-yellow-800': request.status === 'pending',
-                                        'bg-blue-100 text-blue-800': request.status === 'in_progress',
-                                        'bg-green-100 text-green-800': request.status === 'completed',
-                                        'bg-gray-100 text-gray-800': ['draft', 'cancelled'].includes(request.status)
+                                        'bg-yellow-100 text-yellow-800': getDisplayStatus(request) === 'pending',
+                                        'bg-blue-100 text-blue-800': getDisplayStatus(request) === 'in_progress',
+                                        'bg-green-100 text-green-800': getDisplayStatus(request) === 'completed',
+                                        'bg-purple-100 text-purple-800': getDisplayStatus(request) === 'quoted',
+                                        'bg-teal-100 text-teal-800': getDisplayStatus(request) === 'approved',
+                                        'bg-orange-100 text-orange-800': getDisplayStatus(request) === 'review',
+                                        'bg-indigo-100 text-indigo-800': getDisplayStatus(request) === 'pending_coordinator_action',
+                                        'bg-emerald-100 text-emerald-800': getDisplayStatus(request) === 'delivered',
+                                        'bg-cyan-100 text-cyan-800': getDisplayStatus(request) === 'assigned',
+                                        'bg-gray-100 text-gray-800': ['draft', 'cancelled'].includes(getDisplayStatus(request))
                                     }">
-                                    {{ request.status.replace('_', ' ') }}
+                                    {{ getDisplayStatus(request).replace(/_/g, ' ') }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
@@ -122,9 +128,26 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/inertia-vue3';
+import { Head, Link, usePage } from '@inertiajs/inertia-vue3';
 import { reactive } from 'vue';
 import { Inertia } from '@inertiajs/inertia';
+
+const page = usePage();
+const isClientUser = page.props.value.auth.roles.includes('client');
+
+const getDisplayStatus = (request) => {
+    if (isClientUser) {
+        const clientMap = {
+            'pending_coordinator_action': 'pending',
+            'assigned': 'pending',
+            'review': 'in_progress',
+            'director_approval': 'in_progress',
+            'admin_submission': 'in_progress',
+        };
+        return clientMap[request.status] || request.status;
+    }
+    return request.status;
+};
 import { debounce } from 'lodash';
 
 const props = defineProps({

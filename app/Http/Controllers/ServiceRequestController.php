@@ -241,6 +241,16 @@ class ServiceRequestController extends Controller
             $directors = \App\Models\User::role(['executive_director', 'deputy_director'])->get(['id', 'name', 'email']);
         }
 
+        $eligibleStaff = [];
+        if ($user->hasRole('coordinator')) {
+            $eligibleStaff = \App\Models\User::where('is_active', true)
+                ->whereHas('roles', fn($q) => $q->whereIn('name', ['language_expert', 'part_time_staff', 'secretary']))
+                ->whereDoesntHave('department', fn($q) => $q->where('code', 'AOS'))
+                ->where('id', '!=', $user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']);
+        }
+
         $config = \App\Models\SystemSetting::get('deputy_system_config', []);
         $directRoutingEnabled = $config['deliverable_direct_routing'] ?? false;
 
@@ -248,6 +258,7 @@ class ServiceRequestController extends Controller
             'serviceRequest' => $serviceRequest,
             'coordinators'   => $coordinators,
             'directors'      => $directors,
+            'eligibleStaff'  => $eligibleStaff,
             'directRoutingEnabled' => $directRoutingEnabled,
         ]);
     }
@@ -280,29 +291,44 @@ class ServiceRequestController extends Controller
 
     public function edit(ServiceRequest $serviceRequest)
     {
+        $user = Auth::user();
+        if (!$user->hasRole('client') || $serviceRequest->submitted_by != $user->id || $serviceRequest->status !== 'pending') {
+            abort(403, 'Unauthorized.');
+        }
+
         return Inertia::render('ServiceRequests/Edit', [
             'serviceRequest' => $serviceRequest,
-            'clients'        => Client::where('status', 'active')->orderBy('contact_person')->get(),
+            'clients'        => [$serviceRequest->client],
         ]);
     }
 
     public function update(Request $request, ServiceRequest $serviceRequest)
     {
-        $validated = $request->validate([
-            'status'      => 'sometimes|in:pending,quoted,approved,in_progress,review,completed,cancelled',
-            'priority'    => 'sometimes|in:low,medium,high,urgent',
-            'assigned_to' => 'sometimes|nullable|exists:users,id',
-            'notes'       => 'nullable|string',
-        ]);
-
-        $serviceRequest->fill($validated);
-        if (!$serviceRequest->isDirty()) {
-            return redirect()->back()->with('error', 'No changes detected. Record remains unchanged.');
+        $user = Auth::user();
+        if (!$user->hasRole('client') || $serviceRequest->submitted_by != $user->id || $serviceRequest->status !== 'pending') {
+            abort(403, 'Unauthorized.');
         }
 
-        $serviceRequest->save();
+        $validated = $request->validate([
+            'title'            => 'required|string|max:255',
+            'service_category' => 'required|in:translation,editing,brailling,sign_language,consultancy',
+            'priority'         => 'required|in:low,medium,high,urgent',
+            'source_language'  => 'required|string',
+            'target_language'  => 'required|array',
+            'description'      => 'required|string',
+            'deadline'         => 'nullable|date|after:today',
+        ]);
 
-        return redirect()->back()->with('success', 'Service request updated.');
+        $serviceRequest->update($validated);
+
+        \App\Models\ActivityLog::log(
+            'service_request_updated',
+            'Client updated service request Reference #' . $serviceRequest->id,
+            $serviceRequest,
+            ['updated_by' => $user->name]
+        );
+
+        return redirect()->route('service-requests.show', $serviceRequest->id)->with('success', 'Service request updated successfully.');
     }
 
     public function destroy(ServiceRequest $serviceRequest)
@@ -436,29 +462,94 @@ class ServiceRequestController extends Controller
             abort(403, 'Unauthorized.');
         }
 
-        $query = ServiceRequest::with(['client', 'submittedBy', 'assignedTo', 'documents.uploader', 'assignments.documents.uploader', 'assignments.assignedTo']);
+        $items = collect();
+
+        // 1. ServiceRequests
+        $query = ServiceRequest::with([
+            'client', 
+            'submittedBy', 
+            'assignedTo', 
+            'documents.uploader', 
+            'assignments.documents.uploader', 
+            'assignments.assignedTo',
+            'quotations',
+            'payments'
+        ])->where('status', 'completed');
 
         if ($user->hasRole('client')) {
-            $query->where('submitted_by', $user->id)
-                  ->where('status', 'completed');
-        } else {
-            $query->whereIn('status', ['review', 'director_approval', 'admin_submission', 'completed']);
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-            // Scope by department is disabled so that users in all units, except Administration and Operations Support, have access to the same modules and functionalities based on standard user permissions.
-            /*
-            if ($user->department_id) {
-                $query->where('department_id', $user->department_id);
-            }
-            */
+            $query->where('submitted_by', $user->id);
+        }
+        $serviceRequests = $query->get();
+
+        $formatDate = function ($date) {
+            if (!$date) return null;
+            return \Carbon\Carbon::parse($date)->toIso8601String();
+        };
+
+        foreach ($serviceRequests as $sr) {
+            $items->push([
+                'id' => 'sr_' . $sr->id,
+                'db_id' => $sr->id,
+                'type' => 'service_request',
+                'reference_number' => $sr->reference_number,
+                'service_category' => $sr->service_category,
+                'title' => $sr->title,
+                'client' => $sr->client,
+                'assignments' => $sr->assignments,
+                'documents' => $sr->documents,
+                'status' => $sr->status,
+                'updated_at' => $formatDate($sr->updated_at),
+                'completed_at' => $formatDate($sr->completed_at),
+                'action_url' => route('service-requests.show', $sr->id),
+            ]);
         }
 
-        /** @var \Illuminate\Pagination\LengthAwarePaginator $serviceRequests */
-        $serviceRequests = $query->orderBy('updated_at', 'desc')->paginate(10);
+        // 2. Load other completed workflows for staff if status is not 'review' or 'outstanding_deliverables'
+        if (!$user->hasRole('client') && ($request->status === 'completed' || !$request->filled('status'))) {
+            // Completed Assignments
+            $assignments = \App\Models\Assignment::where('status', 'completed')
+                ->whereHas('serviceRequest', fn($q) => $q->where('status', 'completed'))
+                ->with(['serviceRequest.client', 'assignedTo', 'assignedBy', 'documents.uploader'])
+                ->get();
+            foreach ($assignments as $asg) {
+                if ($asg->serviceRequest) {
+                    $items->push([
+                        'id' => 'asg_' . $asg->id,
+                        'db_id' => $asg->id,
+                        'type' => 'assignment',
+                        'reference_number' => $asg->serviceRequest->reference_number,
+                        'service_category' => $asg->serviceRequest->service_category,
+                        'title' => "[Assignment] " . $asg->serviceRequest->title . " (" . ($asg->role_in_task ?: 'Specialist') . ")",
+                        'client' => $asg->serviceRequest->client,
+                        'assignments' => collect([$asg]),
+                        'documents' => $asg->documents,
+                        'status' => 'completed',
+                        'updated_at' => $formatDate($asg->completed_at) ?: $formatDate($asg->updated_at),
+                        'completed_at' => $formatDate($asg->completed_at),
+                        'action_url' => route('assignments.show', $asg->id),
+                    ]);
+                }
+            }
+        }
+
+        // Sort items by updated_at descending
+        $sorted = $items->sortByDesc('updated_at')->values();
+
+        // Paginate manually
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 10;
+        $currentPageItems = $sorted->slice(($currentPage - 1) * $perPage, $perPage)->all();
+
+        $paginatedItems = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentPageItems,
+            $sorted->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
 
         return Inertia::render('ServiceRequests/CompletedTasks', [
-            'serviceRequests' => $serviceRequests->withQueryString(),
+            'serviceRequests' => $paginatedItems->withQueryString(),
             'filters'         => $user->hasRole('client') ? [] : $request->only(['status']),
         ]);
     }
@@ -515,6 +606,10 @@ class ServiceRequestController extends Controller
 
         $absolutePath = storage_path('app/public/' . $path);
         
+        if (request()->has('download') || request()->has('force')) {
+            return response()->download($absolutePath, $document->filename);
+        }
+
         return response()->file($absolutePath, [
             'Content-Disposition' => 'inline; filename="' . $document->filename . '"',
         ]);
@@ -794,5 +889,128 @@ class ServiceRequestController extends Controller
         );
 
         return redirect()->back()->with('success', 'Deliverable approved directly and routed to Administrative Assistant.');
+    }
+
+    public function performTask(ServiceRequest $serviceRequest)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('coordinator')) {
+            abort(403, 'Unauthorized. Only coordinators can perform this action.');
+        }
+
+        if ((int) $serviceRequest->assigned_to !== (int) $user->id) {
+            abort(403, 'Unauthorized. This request is not assigned to you.');
+        }
+
+        if ($serviceRequest->status !== 'pending_coordinator_action') {
+            return redirect()->back()->with('error', 'Service Request is not in a status requiring coordinator decision.');
+        }
+
+        $serviceRequest->update([
+            'status' => 'in_progress',
+        ]);
+
+        \App\Models\ActivityLog::log(
+            'service_request_perform',
+            "Coordinator " . $user->name . " decided to perform the service request personally.",
+            $serviceRequest,
+            [
+                'service_request_id' => $serviceRequest->id,
+                'coordinator_id' => $user->id,
+                'decision' => 'Perform Task',
+                'date_and_time' => now()->toIso8601String(),
+            ]
+        );
+
+        return redirect()->back()->with('success', 'You have accepted to perform the task personally.');
+    }
+
+    public function delegateTask(Request $request, ServiceRequest $serviceRequest)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('coordinator')) {
+            abort(403, 'Unauthorized. Only coordinators can delegate tasks.');
+        }
+
+        if ((int) $serviceRequest->assigned_to !== (int) $user->id) {
+            abort(403, 'Unauthorized. This request is not assigned to you.');
+        }
+
+        if ($serviceRequest->status !== 'pending_coordinator_action') {
+            return redirect()->back()->with('error', 'Service Request is not in a status requiring coordinator decision.');
+        }
+
+        $validated = $request->validate([
+            'assigned_to' => 'required|exists:users,id',
+            'instructions' => 'nullable|string',
+        ]);
+
+        $delegatedUser = \App\Models\User::findOrFail($validated['assigned_to']);
+
+        // Eligible staff: role language_expert, part_time_staff, or secretary. Active. Not AOS.
+        if (!$delegatedUser->is_active) {
+            return redirect()->back()->withErrors(['assigned_to' => 'The selected staff member is inactive.']);
+        }
+        if (!$delegatedUser->hasAnyRole(['language_expert', 'part_time_staff', 'secretary'])) {
+            return redirect()->back()->withErrors(['assigned_to' => 'The selected user is not a valid regular staff member.']);
+        }
+        if ($delegatedUser->department && $delegatedUser->department->code === 'AOS') {
+            return redirect()->back()->withErrors(['assigned_to' => 'Cannot delegate tasks to staff members belonging to the AOS Unit.']);
+        }
+
+        // Reassign the Service Request to the selected staff member
+        $serviceRequest->update([
+            'assigned_to' => $delegatedUser->id,
+            'status' => 'assigned',
+        ]);
+
+        // Find the Coordinator's Assignment record for this Service Request and update it
+        $assignment = \App\Models\Assignment::where('service_request_id', $serviceRequest->id)
+            ->where('assigned_to', $user->id)
+            ->first();
+
+        if ($assignment) {
+            $assignment->update([
+                'assigned_to' => $delegatedUser->id,
+                'assigned_by' => $user->id,
+                'notes' => $validated['instructions'] ?? $assignment->notes,
+            ]);
+        } else {
+            // Fallback: create assignment if not found
+            $assignment = \App\Models\Assignment::create([
+                'service_request_id' => $serviceRequest->id,
+                'assigned_to' => $delegatedUser->id,
+                'assigned_by' => $user->id,
+                'role_in_task' => 'Delegated Staff',
+                'status' => 'assigned',
+                'notes' => $validated['instructions'],
+            ]);
+        }
+
+        // Record delegation in the activity log
+        \App\Models\ActivityLog::log(
+            'service_request_delegate',
+            "Coordinator " . $user->name . " delegated the service request to " . $delegatedUser->name . ".",
+            $serviceRequest,
+            [
+                'service_request_id' => $serviceRequest->id,
+                'coordinator_id' => $user->id,
+                'delegated_to' => $delegatedUser->id,
+                'delegated_to_name' => $delegatedUser->name,
+                'decision' => 'Delegate Task',
+                'instructions' => $validated['instructions'] ?? null,
+                'date_and_time' => now()->toIso8601String(),
+            ]
+        );
+
+        // Notify the delegated staff member
+        $delegatedUser->notify(new \App\Notifications\SystemNotification(
+            'Tasks',
+            'Task Delegated to You',
+            'You have been delegated service request "' . $serviceRequest->title . '" by Coordinator ' . $user->name . '.',
+            route('assignments.show', $assignment->id)
+        ));
+
+        return redirect()->back()->with('success', 'Task successfully delegated to ' . $delegatedUser->name . '.');
     }
 }

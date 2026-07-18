@@ -121,7 +121,7 @@
                     </div>
 
                     <!-- Footer Notes -->
-                    <div v-if="quotation.notes" class="px-8 pb-8">
+                    <div v-if="quotation.notes && !isClientUser" class="px-8 pb-8">
                         <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Terms &amp; Notes</p>
                         <p class="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed">{{ quotation.notes }}</p>
                     </div>
@@ -171,8 +171,19 @@
 
             <!-- Sidebar -->
             <div class="space-y-6">
+                <!-- Workflow Status Message -->
+                <div v-if="workflowMessage" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl shadow-sm space-y-2">
+                    <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ workflowMessage.title }}
+                    </h4>
+                    <p class="text-[11px] text-amber-700 leading-relaxed font-semibold">
+                        {{ workflowMessage.text }}
+                    </p>
+                </div>
+
                 <!-- Creator Actions -->
-                <div v-if="quotation.status === 'draft' && quotation.prepared_by === $page.props.auth.user.id" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div v-if="quotation.status === 'draft' && ($page.props.auth.roles.includes('secretary') || $page.props.auth.roles.includes('admin_assistant') || $page.props.auth.roles.includes('ict_administrator'))" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="text-sm font-bold text-[#0a1f44] uppercase tracking-wider mb-4">Creator Actions</h3>
                     <div class="space-y-2">
                         <Link :href="route('quotations.edit', quotation.id)"
@@ -280,14 +291,61 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
     quotation: Object,
 });
 
+const page = usePage();
 const approvalComment = ref('');
+
+const isClientUser = computed(() => {
+    const roles = page.props.value.auth.roles || [];
+    return roles.includes('client') || roles.includes('student');
+});
+
+const workflowMessage = computed(() => {
+    const status = props.quotation.status;
+    const roles = page.props.value.auth.roles || [];
+    
+    if (roles.includes('client') || roles.includes('student')) {
+        return null;
+    }
+    
+    if (status === 'submitted') {
+        if (roles.includes('deputy_director') || roles.includes('executive_director')) {
+            return {
+                title: 'Awaiting Coordinator Review',
+                text: 'This quotation is currently awaiting review by the Coordinator. Actions will become available once it is reviewed.',
+                type: 'warning'
+            };
+        }
+    }
+    
+    if (status === 'reviewed') {
+        if (roles.includes('executive_director') || roles.includes('coordinator')) {
+            return {
+                title: 'Awaiting Deputy Director Recommendation',
+                text: 'This quotation is currently awaiting recommendation by the Deputy Director.',
+                type: 'warning'
+            };
+        }
+    }
+    
+    if (status === 'pending_approval') {
+        if (roles.includes('coordinator') || roles.includes('deputy_director')) {
+            return {
+                title: 'Awaiting Executive Director Approval',
+                text: 'This quotation has been recommended by the Deputy Director and is currently awaiting final approval from the Executive Director.',
+                type: 'warning'
+            };
+        }
+    }
+    
+    return null;
+});
 
 const mappedStatus = computed(() => {
     if (props.quotation.status === 'draft') {

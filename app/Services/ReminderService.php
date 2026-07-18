@@ -217,6 +217,34 @@ class ReminderService
 
             // A. Quotation Review, Recommendation & Approvals
             if ($user->hasRole('coordinator')) {
+                // Pending Coordinator Action on Service Requests
+                $pendingCoordRequests = ServiceRequest::where('status', 'pending_coordinator_action')
+                    ->where('assigned_to', $user->id)
+                    ->get();
+
+                foreach ($pendingCoordRequests as $req) {
+                    $daysDiff = null;
+                    if ($req->deadline) {
+                        $due = Carbon::parse($req->deadline, $tz)->startOfDay();
+                        $daysDiff = $today->diffInDays($due, false);
+                    }
+
+                    $addTask([
+                        'id' => "coordinator-decision-{$req->id}",
+                        'title' => "Decision Needed: Service Request Ref #{$req->reference_number}",
+                        'module' => 'Service Requests',
+                        'required_action' => 'Perform or Delegate',
+                        'due_date' => $req->deadline ? $req->deadline->format('Y-m-d') : null,
+                        'days_diff' => $daysDiff,
+                        'priority' => 'high',
+                        'status' => 'Pending Action',
+                        'action_url' => route('service-requests.show', $req->id),
+                        'remindable_type' => ServiceRequest::class,
+                        'remindable_id' => $req->id,
+                        'description' => "Service Request \"{$req->title}\" is pending your decision (Perform or Delegate).",
+                    ]);
+                }
+
                 // Reviews (Stage 1)
                 $submittedQuots = Quotation::with('serviceRequest')
                     ->where('status', 'submitted')
@@ -348,7 +376,7 @@ class ReminderService
             }
 
             // C. Client Payments Verification (Finance)
-            if ($user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator'])) {
+            if ($user->hasAnyRole(['admin_assistant', 'secretary', 'ict_administrator'])) {
                 $pendingPayments = Payment::where('status', 'pending')->get();
                 foreach ($pendingPayments as $pay) {
                     $addTask([
@@ -369,7 +397,7 @@ class ReminderService
             }
 
             // D. Course Enrollment Payments Verification (Finance)
-            if ($user->hasAnyRole(['executive_director', 'deputy_director', 'ict_administrator', 'admin_assistant', 'secretary'])) {
+            if ($user->hasAnyRole(['admin_assistant', 'secretary', 'ict_administrator'])) {
                 $pendingEnrollments = CourseEnrollment::where('payment_status', 'pending')
                     ->whereNotNull('payment_proof_path')
                     ->with('user')
@@ -625,7 +653,11 @@ class ReminderService
 
             // 3. Admin Submission (Stage 3) -> Admin Assistants
             if ($user->hasRole('admin_assistant')) {
-                $submissionRequests = ServiceRequest::where('status', 'admin_submission')->get();
+                $submissionRequests = ServiceRequest::where('status', 'admin_submission')
+                    ->whereHas('payments', function ($q) {
+                        $q->where('status', 'verified');
+                    })
+                    ->get();
 
                 foreach ($submissionRequests as $req) {
                     $assignee = $req->assigned_to ? User::find($req->assigned_to) : null;

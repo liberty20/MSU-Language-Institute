@@ -177,6 +177,26 @@ class OutstandingTaskReminderTest extends TestCase
         $this->assertEmpty(array_filter($service->getOutstandingTasks($assistant), fn($t) => $t['id'] === "deliverable-submit-{$serviceRequest->id}"));
 
         // Stage 3: admin_submission -> Admin Assistant gets reminder
+        \App\Models\Quotation::create([
+            'service_request_id' => $serviceRequest->id,
+            'amount' => 100,
+            'currency' => 'USD',
+            'status' => 'approved',
+            'prepared_by' => $coordinator->id,
+            'description' => 'Test Quotation Description',
+        ]);
+        \App\Models\Payment::create([
+            'service_request_id' => $serviceRequest->id,
+            'quotation_id' => 1, // first quotation ID in setup/running
+            'client_id' => $this->client->id,
+            'amount_paid' => 100,
+            'bank_used' => 'Test Bank',
+            'proof_file_path' => 'proofs/test.pdf',
+            'status' => 'verified',
+            'verified_by' => $coordinator->id,
+            'verified_at' => now(),
+        ]);
+
         $serviceRequest->status = 'admin_submission';
         $serviceRequest->assigned_to = $assistant->id;
         $serviceRequest->save();
@@ -288,6 +308,26 @@ class OutstandingTaskReminderTest extends TestCase
             ['value' => json_encode(['deliverable_direct_routing' => true])]
         );
 
+        $quotation = \App\Models\Quotation::create([
+            'service_request_id' => $serviceRequest->id,
+            'amount' => 100,
+            'currency' => 'USD',
+            'status' => 'approved',
+            'prepared_by' => $coordinator->id,
+            'description' => 'Test Quotation Description',
+        ]);
+        \App\Models\Payment::create([
+            'service_request_id' => $serviceRequest->id,
+            'quotation_id' => $quotation->id,
+            'client_id' => $this->client->id,
+            'amount_paid' => 100,
+            'bank_used' => 'Test Bank',
+            'proof_file_path' => 'proofs/test.pdf',
+            'status' => 'verified',
+            'verified_by' => $coordinator->id,
+            'verified_at' => now(),
+        ]);
+
         $this->actingAs($coordinator)->post(route('service-requests.coordinator-approve', $serviceRequest->id), [
             'notes' => 'Approved directly',
         ]);
@@ -295,5 +335,74 @@ class OutstandingTaskReminderTest extends TestCase
         // Coordinator review reminder should be cleared, and Admin Assistant should have admin_submission reminder
         $this->assertEmpty(array_filter($service->getOutstandingTasks($coordinator), fn($t) => $t['id'] === "deliverable-review-{$serviceRequest->id}"));
         $this->assertNotEmpty(array_filter($service->getOutstandingTasks($assistant), fn($t) => $t['id'] === "deliverable-submit-{$serviceRequest->id}"));
+    }
+
+    public function test_payment_verification_notifications_and_reminders_targeting_and_redirection()
+    {
+        // 1. Setup users with roles
+        $assistant = User::factory()->create(['primary_category' => 'Staff']);
+        $assistant->assignRole('admin_assistant');
+
+        $secretary = User::factory()->create(['primary_category' => 'Staff']);
+        $secretary->assignRole('secretary');
+
+        $ictAdmin = User::factory()->create(['primary_category' => 'Staff']);
+        $ictAdmin->assignRole('ict_administrator');
+
+        $director = User::factory()->create(['primary_category' => 'Staff']);
+        $director->assignRole('executive_director');
+
+        $deputy = User::factory()->create(['primary_category' => 'Staff']);
+        $deputy->assignRole('deputy_director');
+
+        // Create a quotation
+        $serviceRequest = ServiceRequest::create([
+            'client_id' => $this->client->id,
+            'submitted_by' => $this->clientUser->id,
+            'title' => 'Request for quotation',
+            'description' => 'Description',
+            'service_category' => 'translation',
+        ]);
+        $quotation = \App\Models\Quotation::create([
+            'service_request_id' => $serviceRequest->id,
+            'prepared_by' => $assistant->id,
+            'description' => 'Quotation description',
+            'amount' => 500,
+            'currency' => 'USD',
+            'valid_until' => now()->addDays(10),
+            'status' => 'approved',
+        ]);
+
+        // 2. Client uploads proof of payment
+        $payment = \App\Models\Payment::create([
+            'client_id' => $this->clientUser->id,
+            'quotation_id' => $quotation->id,
+            'service_request_id' => $serviceRequest->id,
+            'amount_paid' => 500,
+            'bank_used' => 'MSU Bank',
+            'proof_file_path' => 'proofs/test_proof.pdf',
+            'status' => 'pending',
+        ]);
+
+        // 3. Verify notifications are sent to Assistant, Secretary, and ICT Admin, and NOT to Director/Deputy
+        $this->assertTrue($assistant->unreadNotifications()->where('data->title', 'Payment Verification Required')->exists());
+        $this->assertTrue($secretary->unreadNotifications()->where('data->title', 'Payment Verification Required')->exists());
+        $this->assertTrue($ictAdmin->unreadNotifications()->where('data->title', 'Payment Verification Required')->exists());
+        $this->assertFalse($director->unreadNotifications()->where('data->title', 'Payment Verification Required')->exists());
+        $this->assertFalse($deputy->unreadNotifications()->where('data->title', 'Payment Verification Required')->exists());
+
+        // 4. Verify clicked notifications redirect to Finance module for non-clients
+        $notification = $assistant->unreadNotifications()->where('data->title', 'Payment Verification Required')->first();
+        $response = $this->actingAs($assistant)->get(route('notifications.click', $notification->id));
+        $response->assertRedirect(route('finance.index'));
+
+        // 5. Verify reminders (outstanding tasks) are visible to Assistant, Secretary, and ICT Admin, and NOT to Director/Deputy
+        $service = resolve(ReminderService::class);
+
+        $this->assertNotEmpty(array_filter($service->getOutstandingTasks($assistant), fn($t) => $t['id'] === "payment-verify-{$payment->id}"));
+        $this->assertNotEmpty(array_filter($service->getOutstandingTasks($secretary), fn($t) => $t['id'] === "payment-verify-{$payment->id}"));
+        $this->assertNotEmpty(array_filter($service->getOutstandingTasks($ictAdmin), fn($t) => $t['id'] === "payment-verify-{$payment->id}"));
+        $this->assertEmpty(array_filter($service->getOutstandingTasks($director), fn($t) => $t['id'] === "payment-verify-{$payment->id}"));
+        $this->assertEmpty(array_filter($service->getOutstandingTasks($deputy), fn($t) => $t['id'] === "payment-verify-{$payment->id}"));
     }
 }
