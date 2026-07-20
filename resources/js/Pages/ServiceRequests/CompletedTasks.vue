@@ -12,6 +12,36 @@
         </template>
 
         <div class="space-y-6 max-w-7xl mx-auto pb-12">
+            <!-- Filter Bar -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-150 flex flex-wrap items-center gap-4">
+                <div class="flex-1 min-w-[240px] relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <input v-model="form.search" @input="debouncedSearch" type="text" placeholder="Search tasks by title, reference, or client..." 
+                           class="w-full pl-9 pr-4 py-2 border-gray-250 rounded-xl shadow-sm text-xs focus:border-[#0a1f44] focus:ring-[#0a1f44]" />
+                </div>
+                
+                <div class="w-48">
+                    <select v-model="form.category" @change="submitFilters"
+                            class="w-full border-gray-250 rounded-xl shadow-sm text-xs focus:border-[#0a1f44] focus:ring-[#0a1f44] capitalize">
+                        <option value="">All Services</option>
+                        <option value="translation">Translation</option>
+                        <option value="editing">Editing</option>
+                        <option value="brailling">Brailling</option>
+                        <option value="sign_language">Sign Language</option>
+                        <option value="consultancy">Consultancy</option>
+                        <option value="short_courses">Short Courses</option>
+                    </select>
+                </div>
+
+                <button v-if="form.search || form.category" @click="resetFilters"
+                        class="px-4 py-2 text-xs text-[#0a1f44] hover:bg-gray-100 rounded-xl font-bold flex items-center gap-1.5 transition border border-gray-200">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Clear Filters
+                </button>
+            </div>
+
             <!-- Main Registry Grid -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-150 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -134,10 +164,37 @@
 <script setup>
 import { Head, Link } from '@inertiajs/inertia-vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { reactive } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
+import { debounce } from 'lodash';
 
-defineProps({
-    serviceRequests: Object
+const props = defineProps({
+    serviceRequests: Object,
+    filters: Object
 });
+
+const form = reactive({
+    search: props.filters?.search || '',
+    category: props.filters?.category || '',
+});
+
+const submitFilters = () => {
+    Inertia.get(route('completed-tasks.index'), {
+        search: form.search,
+        category: form.category
+    }, {
+        preserveState: true,
+        replace: true
+    });
+};
+
+const debouncedSearch = debounce(submitFilters, 300);
+
+const resetFilters = () => {
+    form.search = '';
+    form.category = '';
+    submitFilters();
+};
 
 const countStaffFiles = (request) => {
     if (!request.assignments) return 0;

@@ -156,69 +156,69 @@
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Source Documents</h3>
                             <div v-if="!serviceRequest.documents?.length" class="text-xs text-gray-500 italic">No source files uploaded.</div>
                             <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div v-for="doc in serviceRequest.documents" :key="doc.id" class="flex items-center justify-between p-3 rounded-xl border border-gray-150 bg-white shadow-sm">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#0a1f44] flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-semibold text-gray-900 truncate" :title="doc.filename">{{ doc.filename }}</p>
-                                            <p class="text-[10px] text-gray-400 font-medium truncate">{{ doc.description || 'Client upload' }} • By {{ doc.uploader?.name || 'Client' }}</p>
-                                        </div>
+                            <div v-for="doc in serviceRequest.documents" :key="doc.id" class="p-3.5 rounded-xl border border-gray-150 bg-white shadow-sm flex flex-col justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#0a1f44] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                                     </div>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
-                                        <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition border border-blue-150" title="Preview">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                            <span>Preview</span>
-                                        </button>
-                                        <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" title="Download">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                            </svg>
-                                            <span>Download</span>
-                                        </a>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-gray-900 break-all leading-snug" :title="doc.filename">{{ doc.filename }}</p>
+                                        <p class="text-[10px] text-gray-400 font-medium mt-1">{{ doc.description || 'Client upload' }} • By {{ doc.uploader?.name || 'Client' }}</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Staff deliverables -->
-                        <div class="pt-4 border-t border-gray-100">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Completed Deliverables</h3>
-                            <div v-if="!staffDeliverables.length" class="text-xs text-gray-500 italic">No final deliverables submitted yet.</div>
-                            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div v-for="doc in staffDeliverables" :key="doc.id" class="flex items-center justify-between p-3 rounded-xl border border-green-150 bg-green-50/10 shadow-sm">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-8 h-8 rounded-lg bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-semibold text-gray-900 truncate" :title="doc.filename">{{ doc.filename }}</p>
-                                            <p class="text-[10px] text-gray-500 font-medium truncate">{{ doc.description || 'Completed Deliverable' }} • By {{ doc.uploader?.name || 'Staff' }}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2 flex-shrink-0">
-                                        <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-150" title="Preview">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                            <span>Preview</span>
-                                        </button>
-                                        <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition border border-green-700 shadow-sm" title="Download">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                            </svg>
-                                            <span>Download</span>
-                                        </a>
-                                    </div>
+                                <div class="flex items-center gap-2 justify-end pt-2 border-t border-gray-100">
+                                    <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition border border-blue-150" title="Preview">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <span>Preview</span>
+                                    </button>
+                                    <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" title="Download">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        <span>Download</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Staff deliverables -->
+                    <div class="pt-4 border-t border-gray-100">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Completed Deliverables</h3>
+                        <div v-if="!staffDeliverables.length" class="text-xs text-gray-500 italic">No final deliverables submitted yet.</div>
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div v-for="doc in staffDeliverables" :key="doc.id" class="p-3.5 rounded-xl border border-green-150 bg-green-50/10 shadow-sm flex flex-col justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-gray-900 break-all leading-snug" :title="doc.filename">{{ doc.filename }}</p>
+                                        <p class="text-[10px] text-gray-500 font-medium mt-1">{{ doc.description || 'Completed Deliverable' }} • By {{ doc.uploader?.name || 'Staff' }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 justify-end pt-2 border-t border-green-200/50">
+                                    <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-150" title="Preview">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <span>Preview</span>
+                                    </button>
+                                    <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition border border-green-700 shadow-sm" title="Download">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        <span>Download</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 </div>
 
                 <!-- Quotations -->
@@ -346,7 +346,7 @@
                 </div>
 
                 <!-- 1. Admin Assistant Client Delivery Card -->
-                <div v-if="serviceRequest.status === 'admin_submission' && $page.props.auth.roles.includes('admin_assistant')" class="bg-gradient-to-br from-green-50 to-emerald-100/50 border border-green-200 rounded-2xl p-6 shadow-sm space-y-4">
+                <div v-if="(serviceRequest.status === 'admin_submission' || (staffDeliverables.length > 0 && serviceRequest.status !== 'completed')) && $page.props.auth.roles.includes('admin_assistant')" class="bg-gradient-to-br from-green-50 to-emerald-100/50 border border-green-200 rounded-2xl p-6 shadow-sm space-y-4">
                     <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider flex items-center gap-2">
                         <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -354,7 +354,7 @@
                         Submit Deliverable to Client
                     </h3>
                     <p class="text-xs text-gray-700 leading-relaxed">
-                        The Director/Deputy Director has approved this deliverable. Review the files on the left and submit them to the client.
+                        Completed deliverables are ready. Review the files on the left and submit them to the client.
                     </p>
 
                     <!-- Lock Warning if payment is not verified yet -->
@@ -804,8 +804,17 @@ const staffDeliverables = computed(() => {
 });
 
 const hasVerifiedPayment = computed(() => {
-    if (!props.serviceRequest.payments) return false;
-    return props.serviceRequest.payments.some(p => p.status === 'verified');
+    if (props.serviceRequest.payments && props.serviceRequest.payments.some(p => p.status === 'verified')) {
+        return true;
+    }
+    if (props.serviceRequest.quotations) {
+        for (const q of props.serviceRequest.quotations) {
+            if (q.payments && q.payments.some(p => p.status === 'verified')) {
+                return true;
+            }
+        }
+    }
+    return false;
 });
 
 const canManage = computed(() => {

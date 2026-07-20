@@ -393,10 +393,12 @@ class ServiceRequestController extends Controller
     {
         $user = Auth::user();
         if (!$user->hasRole('admin_assistant')) {
-            abort(403, 'Unauthorized action.');
+            abort(403, 'Unauthorized action. Only Admin Assistants can submit deliverables to clients.');
         }
 
-        $hasVerifiedPayment = $serviceRequest->payments()->where('status', 'verified')->exists();
+        $hasVerifiedPayment = $serviceRequest->payments()->where('status', 'verified')->exists()
+            || \App\Models\Payment::whereIn('quotation_id', $serviceRequest->quotations()->pluck('id'))->where('status', 'verified')->exists();
+
         if (!$hasVerifiedPayment) {
             return redirect()->back()->with('error', 'Cannot deliver task: No verified proof of payment has been uploaded or verified for this service request.');
         }
@@ -504,32 +506,34 @@ class ServiceRequestController extends Controller
             ]);
         }
 
-        // 2. Load other completed workflows for staff if status is not 'review' or 'outstanding_deliverables'
-        if (!$user->hasRole('client') && ($request->status === 'completed' || !$request->filled('status'))) {
-            // Completed Assignments
-            $assignments = \App\Models\Assignment::where('status', 'completed')
-                ->whereHas('serviceRequest', fn($q) => $q->where('status', 'completed'))
-                ->with(['serviceRequest.client', 'assignedTo', 'assignedBy', 'documents.uploader'])
-                ->get();
-            foreach ($assignments as $asg) {
-                if ($asg->serviceRequest) {
-                    $items->push([
-                        'id' => 'asg_' . $asg->id,
-                        'db_id' => $asg->id,
-                        'type' => 'assignment',
-                        'reference_number' => $asg->serviceRequest->reference_number,
-                        'service_category' => $asg->serviceRequest->service_category,
-                        'title' => "[Assignment] " . $asg->serviceRequest->title . " (" . ($asg->role_in_task ?: 'Specialist') . ")",
-                        'client' => $asg->serviceRequest->client,
-                        'assignments' => collect([$asg]),
-                        'documents' => $asg->documents,
-                        'status' => 'completed',
-                        'updated_at' => $formatDate($asg->completed_at) ?: $formatDate($asg->updated_at),
-                        'completed_at' => $formatDate($asg->completed_at),
-                        'action_url' => route('assignments.show', $asg->id),
-                    ]);
-                }
-            }
+
+
+        // 3. Filter by search keyword and category if provided
+        $search = strtolower(trim($request->query('search', '')));
+        $category = strtolower(trim($request->query('category', '')));
+
+        if ($search !== '') {
+            $items = $items->filter(function ($item) use ($search) {
+                $ref = strtolower($item['reference_number'] ?? '');
+                $title = strtolower($item['title'] ?? '');
+                $cat = strtolower($item['service_category'] ?? '');
+                $clientOrg = strtolower($item['client']['organization'] ?? '');
+                $clientPerson = strtolower($item['client']['contact_person'] ?? '');
+                $clientEmail = strtolower($item['client']['email'] ?? '');
+
+                return str_contains($ref, $search) ||
+                    str_contains($title, $search) ||
+                    str_contains($cat, $search) ||
+                    str_contains($clientOrg, $search) ||
+                    str_contains($clientPerson, $search) ||
+                    str_contains($clientEmail, $search);
+            });
+        }
+
+        if ($category !== '') {
+            $items = $items->filter(function ($item) use ($category) {
+                return strtolower($item['service_category'] ?? '') === $category;
+            });
         }
 
         // Sort items by updated_at descending
@@ -550,7 +554,7 @@ class ServiceRequestController extends Controller
 
         return Inertia::render('ServiceRequests/CompletedTasks', [
             'serviceRequests' => $paginatedItems->withQueryString(),
-            'filters'         => $user->hasRole('client') ? [] : $request->only(['status']),
+            'filters'         => $request->only(['search', 'category', 'status']),
         ]);
     }
 

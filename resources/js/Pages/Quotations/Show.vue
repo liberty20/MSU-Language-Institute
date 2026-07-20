@@ -51,7 +51,7 @@
                     </div>
 
                     <!-- Bill To / Details Row -->
-                    <div class="p-8 grid grid-cols-2 gap-8 border-b border-gray-100">
+                    <div class="p-8 grid grid-cols-2 gap-8 border-b border-gray-100 relative">
                         <div>
                             <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Bill To</p>
                             <p class="font-bold text-gray-900 text-lg">{{ quotation.service_request?.client?.organization || quotation.service_request?.client?.contact_person }}</p>
@@ -59,6 +59,17 @@
                             <p class="text-sm text-gray-600">{{ quotation.service_request?.client?.phone }}</p>
                             <p class="text-sm text-gray-600 mt-1">{{ quotation.service_request?.client?.address }}</p>
                         </div>
+
+                        <!-- Official Digital Approval Stamp (Centered in arrowed section) -->
+                        <div v-if="quotation.status === 'approved'" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none print:block z-10">
+                            <div class="border-4 border-double border-emerald-600 text-emerald-600 rounded-xl px-5 py-2.5 font-black text-center uppercase tracking-widest bg-white/95 shadow-sm rotate-[-6deg] flex flex-col items-center justify-center space-y-1 transform hover:scale-105 transition-transform duration-300">
+                                <div class="text-[9px] tracking-wide text-emerald-500 font-bold uppercase">Midlands State University</div>
+                                <div class="text-[8px] tracking-wide text-emerald-500 font-semibold uppercase">National Language Institute</div>
+                                <div class="border-y-2 border-emerald-600 py-0.5 px-4 my-1 text-sm font-black tracking-widest">APPROVED</div>
+                                <div class="text-[10px] tracking-widest text-emerald-700 font-black">DIRECTOR</div>
+                            </div>
+                        </div>
+
                         <div class="text-right space-y-2">
                             <div>
                                 <p class="text-xs text-gray-400 uppercase tracking-wider">Date Issued</p>
@@ -124,16 +135,6 @@
                     <div v-if="quotation.notes && !isClientUser" class="px-8 pb-8">
                         <p class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Terms &amp; Notes</p>
                         <p class="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed">{{ quotation.notes }}</p>
-                    </div>
-
-                    <!-- Official Digital Approval Stamp -->
-                    <div v-if="quotation.status === 'approved'" class="absolute bottom-6 right-8 pointer-events-none select-none print:block z-10">
-                        <div class="border-4 border-double border-emerald-600 text-emerald-600 rounded-xl px-5 py-2.5 font-black text-center uppercase tracking-widest bg-white/95 shadow-sm rotate-[-6deg] flex flex-col items-center justify-center space-y-1 transform hover:scale-105 transition-transform duration-300">
-                            <div class="text-[9px] tracking-wide text-emerald-500 font-bold uppercase">Midlands State University</div>
-                            <div class="text-[8px] tracking-wide text-emerald-500 font-semibold uppercase">National Language Institute</div>
-                            <div class="border-y-2 border-emerald-600 py-0.5 px-4 my-1 text-sm font-black tracking-widest">APPROVED</div>
-                            <div class="text-[10px] tracking-widest text-emerald-700 font-black">DIRECTOR</div>
-                        </div>
                     </div>
                 </div>
 

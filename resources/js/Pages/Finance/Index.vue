@@ -191,11 +191,26 @@
                                      {{ p.quotation?.currency || 'USD' }} {{ Number(p.amount_paid).toLocaleString(undefined, {minimumFractionDigits: 2}) }}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <a :href="route('payments.proof', p.id)" target="_blank" 
-                                       class="text-[#d4af37] hover:text-[#0a1f44] font-semibold inline-flex items-center gap-1 transition">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                        View Proof
-                                    </a>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" @click="openProofPreview(p)" 
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-bold transition border border-amber-250" 
+                                                title="Preview Proof">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span>Preview</span>
+                                        </button>
+
+                                        <a :href="route('payments.proof', p.id)" target="_blank" download
+                                           class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" 
+                                           title="Download Proof">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            </svg>
+                                            <span>Download</span>
+                                        </a>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-0.5">
@@ -278,13 +293,35 @@
                 </div>
             </div>
         </div>
+        <!-- Proof Preview Modal -->
+        <div v-if="showProofModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @click.self="closeProofModal">
+            <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-[#0a1f44]">Payment Proof Preview</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Quotation Ref: {{ selectedProofPayment?.quotation?.reference_number }} • Client: {{ selectedProofPayment?.client?.name }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a :href="route('payments.proof', selectedProofPayment?.id)" target="_blank" download class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download Proof
+                        </a>
+                        <button @click="closeProofModal" class="text-gray-400 hover:text-gray-600 font-bold text-lg px-2 py-1 hover:bg-gray-100 rounded-lg transition">✕</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-auto bg-gray-50 rounded-xl p-4 flex justify-center items-center min-h-[50vh]">
+                    <iframe v-if="isPdfProof" :src="route('payments.proof', selectedProofPayment?.id)" class="w-full h-[65vh] rounded-lg border border-gray-200"></iframe>
+                    <img v-else :src="route('payments.proof', selectedProofPayment?.id)" class="max-h-[65vh] max-w-full object-contain rounded-lg border border-gray-200 shadow-sm" />
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/inertia-vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     bankAccounts: Array,
@@ -310,6 +347,25 @@ const bankForm = useForm({
 const paymentForm = useForm({
     action: '',
     notes: '',
+});
+
+// Proof Preview modal logic
+const showProofModal = ref(false);
+const selectedProofPayment = ref(null);
+
+const openProofPreview = (payment) => {
+    selectedProofPayment.value = payment;
+    showProofModal.value = true;
+};
+
+const closeProofModal = () => {
+    showProofModal.value = false;
+    selectedProofPayment.value = null;
+};
+
+const isPdfProof = computed(() => {
+    if (!selectedProofPayment.value?.proof_file_path) return false;
+    return selectedProofPayment.value.proof_file_path.toLowerCase().endsWith('.pdf');
 });
 
 // Bank CRUD actions

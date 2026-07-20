@@ -111,32 +111,32 @@
                             No source files attached by the client.
                         </div>
 
-                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div v-for="doc in assignment.service_request.documents" :key="doc.id" class="flex items-center justify-between p-4 rounded-xl border border-gray-150 hover:bg-gray-50/50 transition duration-150">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0">
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="doc in assignment.service_request.documents" :key="doc.id" class="p-4 rounded-xl border border-gray-150 hover:bg-gray-50/50 transition duration-150 flex flex-col justify-between gap-3 bg-white shadow-sm">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0 mt-0.5">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                                         </svg>
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-semibold text-gray-900 truncate" :title="doc.filename">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-bold text-gray-900 break-all leading-snug" :title="doc.filename">
                                             {{ doc.filename }}
                                         </p>
-                                        <p class="text-xs text-gray-400 mt-0.5">
+                                        <p class="text-xs text-gray-400 mt-1 font-medium">
                                             {{ (doc.file_size / 1024).toFixed(1) }} KB • Uploaded by client
                                         </p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                     <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition border border-blue-150" title="Preview">
+                                <div class="flex items-center gap-2 justify-end pt-2 border-t border-gray-100">
+                                     <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition border border-blue-150" title="Preview">
                                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                          </svg>
                                          <span>Preview</span>
                                      </button>
-                                     <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" title="Download">
+                                     <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold transition border border-gray-250" title="Download">
                                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                          </svg>
@@ -156,32 +156,32 @@
                             Submitted Deliverables
                         </h2>
 
-                        <div class="space-y-4">
-                            <div v-for="doc in assignment.documents" :key="doc.id" class="p-4 rounded-xl bg-green-50/30 border border-green-150 flex items-center justify-between">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-10 h-10 rounded-lg bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="doc in assignment.documents" :key="doc.id" class="p-4 rounded-xl bg-green-50/30 border border-green-150 flex flex-col justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-lg bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 mt-0.5">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-semibold text-gray-900 truncate">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-bold text-gray-900 break-all leading-snug" :title="doc.filename">
                                             {{ doc.filename }}
                                         </p>
-                                        <p class="text-xs text-gray-500 mt-0.5">
+                                        <p class="text-xs text-gray-500 mt-1 font-medium">
                                             Submitted on {{ new Date(doc.created_at).toLocaleDateString() }} • {{ doc.description || 'Deliverable' }}
                                         </p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-150" title="Preview">
+                                <div class="flex items-center gap-2 justify-end pt-2 border-t border-green-200/50">
+                                    <button type="button" @click="openPreview(doc)" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition border border-green-150" title="Preview">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
                                         <span>Preview</span>
                                     </button>
-                                    <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition border border-green-700 shadow-sm" title="Download">
+                                    <a :href="route('documents.download', { document: doc.id, download: 1 })" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition border border-green-700 shadow-sm" title="Download">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                         </svg>
