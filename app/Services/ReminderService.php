@@ -269,7 +269,7 @@ class ReminderService
                         'action_url' => route('quotations.show', $quot->id),
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
-                        'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires coordinator review.",
+                        'description' => "Quotation prepared for \"" . ($quot->serviceRequest ? $quot->serviceRequest->title : 'N/A') . "\" requires coordinator review.",
                     ]);
                 }
             }
@@ -299,7 +299,7 @@ class ReminderService
                         'action_url' => route('quotations.show', $quot->id),
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
-                        'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires recommendation.",
+                        'description' => "Quotation prepared for \"" . ($quot->serviceRequest ? $quot->serviceRequest->title : 'N/A') . "\" requires recommendation.",
                     ]);
                 }
             }
@@ -329,7 +329,7 @@ class ReminderService
                         'action_url' => route('quotations.show', $quot->id),
                         'remindable_type' => Quotation::class,
                         'remindable_id' => $quot->id,
-                        'description' => "Quotation prepared for \"{$quot->serviceRequest->title}\" requires final approval.",
+                        'description' => "Quotation prepared for \"" . ($quot->serviceRequest ? $quot->serviceRequest->title : 'N/A') . "\" requires final approval.",
                     ]);
                 }
             }
