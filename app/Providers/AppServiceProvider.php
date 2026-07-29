@@ -14,7 +14,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(
+            \Illuminate\Notifications\Channels\MailChannel::class,
+            function ($app) {
+                return new \App\Channels\SafeMailChannel(
+                    $app->make('mail.manager'),
+                    $app->make('markdown')
+                );
+            }
+        );
     }
 
     public static function getUsersByRole($roleName)
