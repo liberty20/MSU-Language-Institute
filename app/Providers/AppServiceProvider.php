@@ -18,8 +18,8 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Notifications\Channels\MailChannel::class,
             function ($app) {
                 return new \App\Channels\SafeMailChannel(
-                    $app->make('mail.manager'),
-                    $app->make('markdown')
+                    $app->make(\Illuminate\Contracts\Mail\Factory::class),
+                    $app->make(\Illuminate\Mail\Markdown::class)
                 );
             }
         );
