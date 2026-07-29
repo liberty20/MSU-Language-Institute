@@ -34,6 +34,21 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        // Prevent deleting or updating the super_administrator role itself
+        if (class_exists(\Spatie\Permission\Models\Role::class)) {
+            \Spatie\Permission\Models\Role::deleting(function ($role) {
+                if ($role->name === 'super_administrator') {
+                    throw new \InvalidArgumentException('The Super Administrator role cannot be deleted.');
+                }
+            });
+
+            \Spatie\Permission\Models\Role::updating(function ($role) {
+                if ($role->getOriginal('name') === 'super_administrator' && $role->isDirty('name')) {
+                    throw new \InvalidArgumentException('The Super Administrator role cannot be renamed or modified.');
+                }
+            });
+        }
+
         // Register DatabaseNotification Lifecycle Event Listeners for Auditing (Disabled under Audit Scope Optimization policy)
 
         // 1. Course Management Triggers

@@ -124,7 +124,7 @@ class QuotationController extends Controller
             ]
         );
 
-        \App\Services\ReminderService::markAsCompleted(\App\Models\ServiceRequest::class, $quotation->service_request_id);
+        \App\Services\ReminderService::markAsCompleted(ServiceRequest::class, $quotation->service_request_id);
 
         return redirect()->route('quotations.index')->with('success', 'Quotation generated and submitted successfully.');
     }
@@ -316,7 +316,7 @@ class QuotationController extends Controller
             }
         }
 
-        \App\Services\ReminderService::markAsCompleted(\App\Models\Quotation::class, $quotation->id);
+        \App\Services\ReminderService::markAsCompleted(Quotation::class, $quotation->id);
 
         return redirect()->route('quotations.index')->with('success', $msg);
     }

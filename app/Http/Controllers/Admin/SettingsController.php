@@ -62,7 +62,7 @@ class SettingsController extends Controller
             });
         }
 
-        $emailLogs = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $emailLogs = $query->orderBy('created_at', 'desc')->paginate(10)->appends(request()->query());
 
         // Statistics for mail monitoring
         $stats = [

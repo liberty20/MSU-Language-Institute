@@ -136,7 +136,9 @@ class RBACAndWorkflowEnhancementsTest extends TestCase
         $response->assertStatus(302);
         
         $enrollment->refresh();
-        $this->assertEquals($newDate, $enrollment->access_until->toDateString());
+        /** @var \Carbon\Carbon $accessUntil */
+        $accessUntil = $enrollment->access_until;
+        $this->assertEquals($newDate, $accessUntil->toDateString());
         $this->assertEquals('Need more time for assignments', $enrollment->extension_reason);
 
         // Verify audit log exists

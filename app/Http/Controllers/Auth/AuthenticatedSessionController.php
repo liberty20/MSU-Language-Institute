@@ -37,6 +37,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Initialise idle-timeout tracker
+        $request->session()->put('last_activity', time());
+
+        \App\Models\ActivityLog::log(
+            'login',
+            "User {$request->user()->name} ({$request->user()->email}) logged in.",
+            $request->user(),
+            [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        );
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
@@ -48,6 +61,20 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request)
     {
+        $user = $request->user();
+
+        if ($user) {
+            \App\Models\ActivityLog::log(
+                'logout',
+                "User {$user->name} ({$user->email}) logged out.",
+                $user,
+                [
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]
+            );
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

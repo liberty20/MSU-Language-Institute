@@ -50,20 +50,29 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $request->user() ? $request->user()->getRoleNames() : [],
                 'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
                 'is_instructor' => $request->user() ? (
-                    $request->user()->hasAnyRole(['language_expert', 'part_time_staff']) || 
+                    $request->user()->hasAnyRole(['language_expert', 'part_time_staff']) ||
                     $request->user()->instructedIntakes()->exists() ||
                     ($request->user()->department && $request->user()->department->code !== 'AOS')
                 ) : false,
                 'is_staff_outside_aos' => $request->user() ? (
-                    !$request->user()->hasRole('client') && 
-                    !$request->user()->hasRole('student') && 
-                    $request->user()->department && 
+                    !$request->user()->hasRole('client') &&
+                    !$request->user()->hasRole('student') &&
+                    $request->user()->department &&
                     $request->user()->department->code !== 'AOS'
                 ) : false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
+            ],
+            'impersonation' => [
+                'active'      => $request->session()->has('impersonating_user_id'),
+                'admin_name'  => $request->session()->get('impersonator_name'),
+                'admin_id'    => $request->session()->get('impersonator_id'),
+                'started_at'  => $request->session()->get('impersonation_started_at'),
+            ],
+            'sessionConfig' => [
+                'idle_timeout_minutes' => (int) \App\Models\SystemSetting::get('session_idle_timeout_minutes', 20),
             ],
             'unreadAnnouncementsCount' => $request->user() && $request->user()->primary_category === 'Student' ? (
                 \App\Models\Announcement::whereIn('course_id', function ($query) use ($request) {

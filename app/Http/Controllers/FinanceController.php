@@ -136,7 +136,7 @@ class FinanceController extends Controller
 
         $msg = $request->action === 'approve' ? 'Payment has been approved and verified.' : 'Payment has been rejected.';
 
-        \App\Services\ReminderService::markAsCompleted(\App\Models\Payment::class, $payment->id);
+        \App\Services\ReminderService::markAsCompleted(Payment::class, $payment->id);
 
         return redirect()->route('finance.index')->with('success', $msg);
     }

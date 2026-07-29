@@ -12,6 +12,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ProfileController;
@@ -339,7 +340,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('users/export', [UserController::class, 'export'])->name('users.export');
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::resource('users', UserController::class);
-        
+
         // System Settings Panel routes
         Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
         Route::post('settings/units', [\App\Http\Controllers\Admin\SettingsController::class, 'storeUnit'])->name('settings.units.store');
@@ -360,15 +361,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('testimonials/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyTestimonial'])->name('testimonials.destroy');
         Route::post('testimonials/update-active', [\App\Http\Controllers\Admin\SettingsController::class, 'updateActiveTestimonial'])->name('testimonials.update-active');
         Route::post('testimonials', [\App\Http\Controllers\Admin\SettingsController::class, 'storeTestimonial'])->name('testimonials.store');
-        
+
         // Documentaries configuration routes
         Route::post('settings/documentaries', [\App\Http\Controllers\Admin\SettingsController::class, 'storeDocumentary'])->name('settings.documentaries.store');
         Route::post('settings/documentaries/{id}/update', [\App\Http\Controllers\Admin\SettingsController::class, 'updateDocumentary'])->name('settings.documentaries.update');
         Route::delete('settings/documentaries/{id}', [\App\Http\Controllers\Admin\SettingsController::class, 'destroyDocumentary'])->name('settings.documentaries.destroy');
+
+        // Stop impersonation — accessible by any authenticated user who has an active impersonation session
+        // Note: Defined before wildcard routes like 'impersonate/{user}' to prevent route matching clash.
+        Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
+
+        // ── Super Administrator: Impersonation (requires recent auth) ──────────
+        Route::middleware(['role:super_administrator', 'require.recent.auth'])->group(function () {
+            Route::get('impersonate', [ImpersonationController::class, 'index'])->name('impersonate.index');
+            Route::post('impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
+            Route::get('impersonation-logs', [ImpersonationController::class, 'logs'])->name('impersonation.logs');
+        });
     });
 
     Route::middleware('role:deputy_director')->group(function () {
-        Route::get('deputy/settings', function() {
+        Route::get('deputy/settings', function () {
             return redirect()->route('admin.settings.index');
         })->name('deputy.settings');
     });
@@ -377,6 +389,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
+
+    // Session heartbeat — keeps idle timeout from firing during active use
+    Route::post('session/ping', function (\Illuminate\Http\Request $request) {
+        $request->session()->put('last_activity', time());
+        return response()->json(['ok' => true]);
+    })->name('session.ping');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

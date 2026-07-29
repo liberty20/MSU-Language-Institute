@@ -21,7 +21,7 @@ class TaskController extends Controller
         }
 
         return Inertia::render('Tasks/Index', [
-            'tasks'   => $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString(),
+            'tasks'   => $query->orderBy('created_at', 'desc')->paginate(10)->appends(request()->query()),
             'filters' => $request->only(['status', 'priority']),
         ]);
     }
@@ -86,7 +86,7 @@ class TaskController extends Controller
         $task->save();
 
         if ($task->status === 'completed') {
-            \App\Services\ReminderService::markAsCompleted(\App\Models\Task::class, $task->id);
+            \App\Services\ReminderService::markAsCompleted(Task::class, $task->id);
         }
 
         return redirect()->back()->with('success', 'Task updated.');

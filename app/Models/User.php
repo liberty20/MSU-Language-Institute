@@ -100,6 +100,11 @@ class User extends Authenticatable
         return $this->getRoleNames()->first() ?? 'N/A';
     }
 
+    public function isSuperAdministrator(): bool
+    {
+        return $this->hasRole('super_administrator');
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -116,6 +121,20 @@ class User extends Authenticatable
             if (in_array($user->primary_category, ['Student', 'Client'])) {
                 if ($user->department_id !== null || $user->section_id !== null || $user->msunli_role_id !== null) {
                     throw new \InvalidArgumentException("Category conflict: A Student or Client cannot be assigned to a department, section, or hierarchy role.");
+                }
+            }
+        });
+
+        static::deleting(function ($user) {
+            if ($user->hasRole('super_administrator')) {
+                throw new \InvalidArgumentException("The Super Administrator account cannot be deleted.");
+            }
+        });
+
+        static::updating(function ($user) {
+            if ($user->hasRole('super_administrator')) {
+                if ($user->isDirty('is_active') && !$user->is_active) {
+                    throw new \InvalidArgumentException("The Super Administrator account cannot be suspended.");
                 }
             }
         });
@@ -165,6 +184,13 @@ class User extends Authenticatable
             ->filter()
             ->unique()
             ->toArray();
+
+        // Prevent removing the super_administrator role from users who currently have it
+        if ($this->exists && $this->hasRole('super_administrator')) {
+            if (!in_array('super_administrator', $newRoleNames)) {
+                throw new \InvalidArgumentException("The Super Administrator role cannot be removed from this user.");
+            }
+        }
 
         if (empty($newRoleNames)) {
             return;

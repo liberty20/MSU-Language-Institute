@@ -89,7 +89,7 @@ class UserController extends Controller
             'filters' => $request->only(['search', 'unit_id', 'section_id', 'role', 'status', 'category']),
             'units'   => \App\Models\Department::orderBy('name')->get(['id', 'name', 'code']),
             'sections'=> \App\Models\MsunliSection::orderBy('name')->get(['id', 'name', 'unit_id']),
-            'roles'   => \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name']),
+            'roles'   => Role::orderBy('name')->get(['id', 'name']),
             'counts'  => $counts,
         ]);
     }
@@ -361,6 +361,16 @@ class UserController extends Controller
             return redirect()->back()->withErrors(['is_active' => 'As Deputy Director, you do not have permission to suspend the Executive Director account.']);
         }
 
+        // Prevent suspending a Super Administrator
+        if ($user->hasRole('super_administrator') && $request->has('is_active') && !$request->boolean('is_active')) {
+            return redirect()->back()->withErrors(['is_active' => 'The Super Administrator account cannot be suspended.']);
+        }
+
+        // Prevent removing the Super Administrator role
+        if ($user->hasRole('super_administrator') && $msunliRole->spatieRole->name !== 'super_administrator') {
+            return redirect()->back()->withErrors(['msunli_role_id' => 'The Super Administrator role cannot be changed or removed.']);
+        }
+
         // Capture original values for audit trail
         $user->load('msunliRole');
         $originalRoleName = $user->msunliRole ? $user->msunliRole->name : null;
@@ -440,6 +450,10 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->hasRole('super_administrator')) {
+            return redirect()->back()->with('error', 'The Super Administrator account cannot be deleted.');
+        }
+
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted.');
     }
@@ -447,6 +461,10 @@ class UserController extends Controller
     public function toggle(User $user)
     {
         $authUser = auth()->user();
+
+        if ($user->hasRole('super_administrator')) {
+            return redirect()->back()->with('error', 'The Super Administrator account cannot be suspended.');
+        }
 
         // Don't let users suspend themselves!
         if ($user->id === $authUser->id) {

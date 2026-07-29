@@ -37,6 +37,8 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SessionIdleTimeout::class,
+            \App\Http\Middleware\ImpersonationMiddleware::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\CheckCustomMaintenanceMode::class,
         ],
@@ -67,6 +69,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'role' => \Spatie\Permission\Middlewares\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
-        'instructor' => \App\Http\Middleware\InstructorMiddleware::class,
+        'instructor'         => \App\Http\Middleware\InstructorMiddleware::class,
+        'require.recent.auth' => \App\Http\Middleware\RequireRecentAuth::class,
     ];
 }

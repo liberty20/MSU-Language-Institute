@@ -40,6 +40,13 @@ class ConfirmablePasswordController extends Controller
 
         $request->session()->put('auth.password_confirmed_at', time());
 
+        \App\Models\ActivityLog::log(
+            're_authentication',
+            "User {$request->user()->name} ({$request->user()->email}) confirmed their identity for access to a sensitive module.",
+            $request->user(),
+            ['module_url' => $request->session()->get('url.intended', 'unknown')]
+        );
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 }
