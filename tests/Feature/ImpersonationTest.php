@@ -166,4 +166,75 @@ class ImpersonationTest extends TestCase
             $this->assertEquals('The Super Administrator role cannot be renamed or modified.', $e->getMessage());
         }
     }
+
+    public function test_only_super_administrator_can_edit_details_of_super_administrator()
+    {
+        // Create an ICT administrator (who is not a super_administrator)
+        Role::firstOrCreate(['name' => 'ict_administrator', 'guard_name' => 'web']);
+        $ictAdmin = User::create([
+            'name' => 'ICT Admin User',
+            'email' => 'ict@example.com',
+            'password' => bcrypt('password'),
+            'primary_category' => 'Staff',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+        $ictAdmin->assignRole('ict_administrator');
+
+        // Create MSUNLI role mappings to avoid validation errors
+        $unit = \App\Models\Department::create(['name' => 'AOS Unit', 'code' => 'AOS']);
+        $section = \App\Models\MsunliSection::create(['name' => 'AOS Section', 'unit_id' => $unit->id]);
+        $msunliRoleSuper = \App\Models\MsunliRole::create([
+            'name' => 'Super Administrator Role',
+            'section_id' => $section->id,
+            'role_id' => Role::findByName('super_administrator', 'web')->id
+        ]);
+        $msunliRoleIct = \App\Models\MsunliRole::create([
+            'name' => 'ICT Administrator Role',
+            'section_id' => $section->id,
+            'role_id' => Role::findByName('ict_administrator', 'web')->id
+        ]);
+
+        $this->admin->msunli_role_id = $msunliRoleSuper->id;
+        $this->admin->department_id = $unit->id;
+        $this->admin->section_id = $section->id;
+        $this->admin->save();
+
+        // 1. Authenticate as ICT Admin (non-super-admin)
+        $this->actingAs($ictAdmin);
+
+        // Assert 403 on edit page
+        $response = $this->get(route('admin.users.edit', $this->admin->id));
+        $response->assertStatus(403);
+
+        // Assert 403 on update request
+        $response = $this->put(route('admin.users.update', $this->admin->id), [
+            'name' => 'New Name By ICT',
+            'email' => 'newemail@example.com',
+            'unit_id' => $unit->id,
+            'section_id' => $section->id,
+            'msunli_role_id' => $msunliRoleSuper->id,
+            'is_active' => true,
+        ]);
+        $response->assertStatus(403);
+
+        // 2. Authenticate as Super Admin
+        $this->actingAs($this->admin);
+
+        // Assert success on edit page
+        $response = $this->get(route('admin.users.edit', $this->admin->id));
+        $response->assertStatus(200);
+
+        // Assert success on update request
+        $response = $this->put(route('admin.users.update', $this->admin->id), [
+            'name' => 'New Liberty Name',
+            'email' => 'mapfumol@staff.msu.ac.zw',
+            'unit_id' => $unit->id,
+            'section_id' => $section->id,
+            'msunli_role_id' => $msunliRoleSuper->id,
+            'is_active' => true,
+        ]);
+        $response->assertRedirect(route('admin.users.index'));
+        $this->assertEquals('New Liberty Name', $this->admin->refresh()->name);
+    }
 }

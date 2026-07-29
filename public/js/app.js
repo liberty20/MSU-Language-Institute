@@ -40880,7 +40880,10 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
           "class": (0,vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)(["inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", user.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'])
         }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
           "class": (0,vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)(["w-1.5 h-1.5 rounded-full", user.is_active ? 'bg-green-500' : 'bg-red-500'])
-        }, null, 2 /* CLASS */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.is_active ? 'Active' : 'Suspended'), 1 /* TEXT */)], 2 /* CLASS */)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", _hoisted_42, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_43, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)($setup["Link"], {
+        }, null, 2 /* CLASS */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" " + (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)(user.is_active ? 'Active' : 'Suspended'), 1 /* TEXT */)], 2 /* CLASS */)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("td", _hoisted_42, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_43, [!user.roles.some(function (r) {
+          return r.name === 'super_administrator';
+        }) || _ctx.$page.props.auth.roles.includes('super_administrator') ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createBlock)($setup["Link"], {
+          key: 0,
           href: _ctx.route('admin.users.edit', user.id),
           "class": "px-2.5 py-1.5 rounded-lg border border-gray-250/70 hover:bg-gray-50 text-gray-600 font-semibold transition hover:text-brand-blue"
         }, {
@@ -40888,10 +40891,12 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
             return _toConsumableArray(_cache[42] || (_cache[42] = [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" Edit ", -1 /* CACHED */)]));
           }),
           _: 1 /* STABLE */
-        }, 8 /* PROPS */, ["href"]), user.id !== _ctx.$page.props.auth.user.id && !(_ctx.$page.props.auth.roles.includes('deputy_director') && user.roles.some(function (r) {
+        }, 8 /* PROPS */, ["href"])) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true), user.id !== _ctx.$page.props.auth.user.id && !(_ctx.$page.props.auth.roles.includes('deputy_director') && user.roles.some(function (r) {
           return r.name === 'executive_director';
-        })) ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
-          key: 0,
+        })) && (!user.roles.some(function (r) {
+          return r.name === 'super_administrator';
+        }) || _ctx.$page.props.auth.roles.includes('super_administrator')) ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
+          key: 1,
           onClick: function onClick($event) {
             return $setup.toggleUserStatus(user);
           },

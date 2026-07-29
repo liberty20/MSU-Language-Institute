@@ -261,11 +261,12 @@
                                 </td>
                                 <td class="px-6 py-4 text-right whitespace-nowrap">
                                     <div class="flex justify-end items-center gap-3">
-                                        <Link :href="route('admin.users.edit', user.id)" 
+                                        <Link v-if="!user.roles.some(r => r.name === 'super_administrator') || $page.props.auth.roles.includes('super_administrator')"
+                                              :href="route('admin.users.edit', user.id)" 
                                               class="px-2.5 py-1.5 rounded-lg border border-gray-250/70 hover:bg-gray-50 text-gray-600 font-semibold transition hover:text-brand-blue">
                                             Edit
                                         </Link>
-                                        <button v-if="user.id !== $page.props.auth.user.id && !($page.props.auth.roles.includes('deputy_director') && user.roles.some(r => r.name === 'executive_director'))" 
+                                        <button v-if="user.id !== $page.props.auth.user.id && !($page.props.auth.roles.includes('deputy_director') && user.roles.some(r => r.name === 'executive_director')) && (!user.roles.some(r => r.name === 'super_administrator') || $page.props.auth.roles.includes('super_administrator'))" 
                                                 @click="toggleUserStatus(user)"
                                                 :class="user.is_active ? 'border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700' : 'border-green-200 hover:bg-green-50 text-green-600 hover:text-green-700'"
                                                 class="px-2.5 py-1.5 rounded-lg border font-semibold transition focus:outline-none">

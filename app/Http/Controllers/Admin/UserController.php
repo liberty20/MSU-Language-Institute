@@ -15,7 +15,7 @@ class UserController extends Controller
     {
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!$user || !$user->hasAnyRole(['ict_administrator', 'executive_director', 'deputy_director'])) {
+            if (!$user || !$user->hasAnyRole(['super_administrator', 'ict_administrator', 'executive_director', 'deputy_director'])) {
                 abort(403, 'Unauthorized.');
             }
             return $next($request);
@@ -299,6 +299,10 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        if ($user->hasRole('super_administrator') && !auth()->user()->hasRole('super_administrator')) {
+            abort(403, 'Unauthorized. Only a Super Administrator can edit another Super Administrator.');
+        }
+
         $user->load(['roles', 'department', 'section', 'msunliRole']);
         return Inertia::render('Admin/Users/Edit', [
             'user'     => $user,
@@ -310,6 +314,10 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if ($user->hasRole('super_administrator') && !auth()->user()->hasRole('super_administrator')) {
+            abort(403, 'Unauthorized. Only a Super Administrator can edit another Super Administrator.');
+        }
+
         $validated = $request->validate([
             'name'             => 'required|string|max:255',
             'email'            => 'required|email|unique:users,email,'.$user->id,
@@ -392,7 +400,7 @@ class UserController extends Controller
             'section_id'      => $validated['section_id'],
             'msunli_role_id'  => $validated['msunli_role_id'],
             'is_active'       => $request->has('is_active') ? $request->boolean('is_active') : $user->is_active,
-            'password'        => $validated['password'] ? Hash::make($validated['password']) : $user->password,
+            'password'        => (!empty($validated['password'])) ? Hash::make($validated['password']) : $user->password,
         ]);
 
         $roleChanged = !$user->hasRole($msunliRole->spatieRole->name);
